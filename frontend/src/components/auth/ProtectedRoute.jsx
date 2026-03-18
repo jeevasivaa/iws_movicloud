@@ -1,17 +1,16 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/useAuth'
-import { canAccessRoute } from '../../constants/roles'
 
-function ProtectedRoute() {
-  const { isAuthenticated, user, homeRoute } = useAuth()
+function ProtectedRoute({ allowedRoles }) {
+  const { isAuthenticated, user } = useAuth()
   const location = useLocation()
 
   if (!isAuthenticated) {
     return <Navigate to="/auth" replace state={{ from: location.pathname }} />
   }
 
-  if (!canAccessRoute(user.role, location.pathname)) {
-    return <Navigate to={homeRoute} replace />
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    return <Navigate to="/unauthorized" replace />
   }
 
   return <Outlet />

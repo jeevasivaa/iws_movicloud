@@ -1,6 +1,4 @@
-import { useMemo, useState } from 'react'
-import { HOME_BY_ROLE } from '../constants/roles'
-import * as authService from '../services/authService'
+import { useMemo, useState, useCallback } from 'react'
 import { AuthContextObject } from './authContextObject'
 
 const STORAGE_KEY = 'iws_auth_session'
@@ -26,29 +24,41 @@ function writeSession(session) {
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(() => readSession())
   const user = session?.user ?? null
+  const token = session?.token ?? null
 
-  const login = async ({ email, password, role }) => {
-    const result = await authService.login(email, password, role)
-    writeSession(result)
-    setSession(result)
-    return result
-  }
+  const login = useCallback((userData, userToken) => {
+    const newSession = { user: userData, token: userToken }
+    writeSession(newSession)
+    setSession(newSession)
+  }, [])
 
-  const logout = async () => {
-    await authService.logout()
+  const logout = useCallback(() => {
     writeSession(null)
     setSession(null)
-  }
+  }, [])
+
+  const loginAsMockUser = useCallback((role) => {
+    const mockUsers = {
+      admin: { name: 'Admin User', email: 'admin@vsa.com', role: 'admin' },
+      operations: { name: 'James Wilson', email: 'james@vsa.com', role: 'operations' },
+      finance: { name: 'Sarah Chen', email: 'sarah@vsa.com', role: 'finance' },
+      client: { name: 'Bistro Group', email: 'contact@bistro.com', role: 'client' },
+    }
+
+    const userData = mockUsers[role] || mockUsers.client
+    login(userData, 'mock-jwt-token')
+  }, [login])
 
   const value = useMemo(
     () => ({
       user,
+      token,
       isAuthenticated: Boolean(user),
-      homeRoute: user ? HOME_BY_ROLE[user.role] ?? '/dashboard' : '/auth',
       login,
       logout,
+      loginAsMockUser,
     }),
-    [user],
+    [user, token, login, logout, loginAsMockUser],
   )
 
   return <AuthContextObject.Provider value={value}>{children}</AuthContextObject.Provider>

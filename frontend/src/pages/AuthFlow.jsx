@@ -3,10 +3,11 @@ import { Factory, Eye, EyeOff, LogIn } from 'lucide-react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
 import { ROLE_LOGIN_OPTIONS } from '../services/authService'
+import { HOME_BY_ROLE } from '../constants/roles'
 
 function AuthFlow() {
   const navigate = useNavigate()
-  const { isAuthenticated, homeRoute, login } = useAuth()
+  const { isAuthenticated, user, login, loginAsMockUser } = useAuth()
 
   const [role, setRole] = useState(ROLE_LOGIN_OPTIONS[0].role)
   const [email, setEmail] = useState(ROLE_LOGIN_OPTIONS[0].defaultEmail)
@@ -19,6 +20,8 @@ function AuthFlow() {
     () => ROLE_LOGIN_OPTIONS.find((option) => option.role === role),
     [role],
   )
+
+  const homeRoute = user ? HOME_BY_ROLE[user.role] || '/dashboard' : '/auth'
 
   if (isAuthenticated) {
     return <Navigate to={homeRoute} replace />
@@ -39,9 +42,8 @@ function AuthFlow() {
     setError('')
 
     try {
-      const result = await login({ email, password, role })
-      const nextPath = result?.user?.role === role ? homeRoute : '/dashboard'
-      navigate(nextPath, { replace: true })
+      await login({ name: selectedRole.label, email, role }, 'mock-token')
+      navigate(HOME_BY_ROLE[role] || '/dashboard', { replace: true })
     } catch (err) {
       setError(err?.message || 'Invalid credentials')
     } finally {
@@ -82,10 +84,17 @@ function AuthFlow() {
         </div>
 
         <div className="relative z-10 rounded-2xl border border-white/15 bg-white/5 p-6 backdrop-blur-sm">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-300 mb-2">Available Demo Logins</p>
-          <div className="space-y-2 text-sm text-blue-100 font-semibold">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-300 mb-4">Quick Demo Login (One-click)</p>
+          <div className="grid grid-cols-2 gap-3">
             {ROLE_LOGIN_OPTIONS.map((option) => (
-              <p key={option.role}>{option.label}</p>
+              <button
+                key={option.role}
+                type="button"
+                onClick={() => loginAsMockUser(option.role)}
+                className="bg-white/10 hover:bg-white/20 text-white text-xs font-bold py-2 px-3 rounded-lg border border-white/10 transition-all text-left"
+              >
+                Login as {option.role.toUpperCase()}
+              </button>
             ))}
           </div>
         </div>
@@ -94,18 +103,18 @@ function AuthFlow() {
       <div className="w-full lg:w-1/2 bg-white flex flex-col justify-center px-8 lg:px-24 py-12">
         <div className="max-w-md w-full mx-auto">
           <h2 className="text-4xl font-black text-slate-900 mb-2">Sign In</h2>
-          <p className="text-slate-500 mb-10 font-medium">Choose one of the 3 login roles and continue.</p>
+          <p className="text-slate-500 mb-10 font-medium">Choose one of the roles and continue.</p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-2">Login Role</label>
-              <div className="grid grid-cols-1 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 {ROLE_LOGIN_OPTIONS.map((option) => (
                   <button
                     key={option.role}
                     type="button"
                     onClick={() => handleRoleChange(option.role)}
-                    className={`w-full rounded-xl border px-4 py-3 text-left text-sm font-bold transition-all ${
+                    className={`rounded-xl border px-3 py-2 text-left text-xs font-bold transition-all ${
                       role === option.role
                         ? 'border-blue-600 bg-blue-50 text-blue-700'
                         : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'

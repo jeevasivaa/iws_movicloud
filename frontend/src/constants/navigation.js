@@ -1,42 +1,34 @@
-import { canAccessRoute } from './roles'
-
 export const navigationGroups = [
   {
     group: 'Overview',
     items: [
-      { label: 'Dashboard', path: '/dashboard', icon: 'LayoutDashboard' },
-      { label: 'Employees', path: '/employees', icon: 'Users' },
-      { label: 'Products', path: '/products', icon: 'Package2' },
-      { label: 'Suppliers', path: '/suppliers', icon: 'Truck' },
-      { label: 'Clients', path: '/clients', icon: 'Handshake' },
+      { label: 'Dashboard', path: '/dashboard', icon: 'LayoutDashboard', allowedRoles: ['admin'] },
+      { label: 'Employees', path: '/employees', icon: 'Users', allowedRoles: ['admin'] },
+      { label: 'Products', path: '/products', icon: 'Package2', allowedRoles: ['admin'] },
+      { label: 'Suppliers', path: '/suppliers', icon: 'Truck', allowedRoles: ['admin'] },
+      { label: 'Clients', path: '/clients', icon: 'Handshake', allowedRoles: ['admin'] },
+      { label: 'Settings', path: '/settings', icon: 'Settings', allowedRoles: ['admin'] },
     ],
   },
   {
     group: 'Operations',
     items: [
-      { label: 'Orders', path: '/orders', icon: 'ClipboardList' },
-      { label: 'Production', path: '/production-control', icon: 'Factory' },
-      { label: 'Inventory', path: '/inventory', icon: 'Warehouse' },
-      { label: 'Collaboration', path: '/collaboration-quality', icon: 'Handshake' },
-      { label: 'Supply Chain Map', path: '/supply-chain-map', icon: 'Truck' },
+      { label: 'Control Tower', path: '/production-control', icon: 'Factory', allowedRoles: ['admin', 'operations'] },
+      { label: 'Inventory', path: '/inventory', icon: 'Warehouse', allowedRoles: ['admin', 'operations'] },
     ],
   },
   {
     group: 'Finance',
     items: [
-      { label: 'Billing', path: '/billing', icon: 'CreditCard' },
-      { label: 'Payroll', path: '/payroll', icon: 'Wallet' },
-      { label: 'Invoices', path: '/invoices', icon: 'FileText' },
-      { label: 'Contracts', path: '/contracts', icon: 'FileSignature' },
-      { label: 'Expenses', path: '/expenses', icon: 'Receipt' },
+      { label: 'Billing', path: '/billing', icon: 'CreditCard', allowedRoles: ['admin', 'finance'] },
+      { label: 'Invoices', path: '/invoices', icon: 'FileText', allowedRoles: ['admin', 'finance'] },
     ],
   },
   {
-    group: 'Intelligence',
+    group: 'My Orders',
     items: [
-      { label: 'Analytics', path: '/executive-analytics', icon: 'BarChart3' },
-      { label: 'AI Insights', path: '/ai-insights', icon: 'Sparkles' },
-      { label: 'Settings', path: '/settings', icon: 'Settings' },
+      { label: 'Orders', path: '/orders', icon: 'ClipboardList', allowedRoles: ['client'] },
+      { label: 'Product Builder', path: '/product-builder', icon: 'Sparkles', allowedRoles: ['client'] },
     ],
   },
 ]
@@ -45,7 +37,7 @@ export function getNavigationForRole(role) {
   return navigationGroups
     .map((group) => ({
       ...group,
-      items: group.items.filter((item) => canAccessRoute(role, item.path)),
+      items: group.items.filter((item) => item.allowedRoles.includes(role)),
     }))
     .filter((group) => group.items.length > 0)
 }

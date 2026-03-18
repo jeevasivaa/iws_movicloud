@@ -23,6 +23,12 @@ const MOCK_USERS = {
     email: 'finance@vsabeverages.com',
     role: ROLES.FINANCE,
   },
+  [ROLES.CLIENT]: {
+    id: 4,
+    name: 'Bistro Group',
+    email: 'contact@bistro.com',
+    role: ROLES.CLIENT,
+  },
 }
 
 export const ROLE_LOGIN_OPTIONS = [
@@ -40,6 +46,11 @@ export const ROLE_LOGIN_OPTIONS = [
     role: ROLES.FINANCE,
     label: ROLE_LABELS[ROLES.FINANCE],
     defaultEmail: MOCK_USERS[ROLES.FINANCE].email,
+  },
+  {
+    role: ROLES.CLIENT,
+    label: ROLE_LABELS[ROLES.CLIENT],
+    defaultEmail: MOCK_USERS[ROLES.CLIENT].email,
   },
 ]
 
