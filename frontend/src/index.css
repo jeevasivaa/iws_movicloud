@@ -1,0 +1,67 @@
+/* Google Fonts - Inter */
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --brand-primary: 30 58 138; /* #1e3a8a */
+    --premium-bg: 248 250 252; /* #f8fafc */
+  }
+
+  body {
+    @apply antialiased bg-[#f8fafc] text-slate-900 selection:bg-blue-100 selection:text-blue-900;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Refined scrollbar for premium feel */
+  ::-webkit-scrollbar {
+    @apply w-1.5 h-1.5;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-200 rounded-full transition-colors hover:bg-slate-300;
+  }
+}
+
+@layer components {
+  /* Premium Bento Card Style */
+  .bento-card {
+    @apply bg-white border border-slate-100 rounded-3xl shadow-bento transition-all duration-300 hover:shadow-premium-xl;
+  }
+
+  /* Glassmorphism utility */
+  .glass-premium {
+    @apply bg-white/70 backdrop-blur-md border border-white/20 shadow-premium-lg;
+  }
+
+  /* Interactive Button Base */
+  .btn-premium {
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-xl font-bold transition-all duration-300 transform active:scale-[0.98];
+  }
+
+  .btn-primary {
+    @apply btn-premium bg-[#1e3a8a] text-white shadow-premium-lg shadow-blue-900/10 hover:bg-[#1a367d] hover:shadow-blue-900/20;
+  }
+
+  .btn-secondary {
+    @apply btn-premium bg-white text-slate-700 border border-slate-200 shadow-premium-sm hover:bg-slate-50 hover:border-slate-300;
+  }
+}
+
+/* Page transitions */
+.page-enter {
+  @apply animate-slide-up opacity-0;
+}
+
+/* Material Symbol Overrides */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  @apply inline-block align-middle;
+}
