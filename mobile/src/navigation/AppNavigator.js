@@ -1,7 +1,7 @@
 import React from 'react';
 import { createDrawerNavigator, DrawerContentScrollView, DrawerItemList, DrawerItem } from '@react-navigation/drawer';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { 
   LayoutDashboard, Truck, Warehouse, Bell, Users, Package2, Handshake, 
   Factory, CreditCard, FileText, Sparkles, Settings, LogOut, ShieldCheck 
@@ -56,7 +56,10 @@ function MainDrawer() {
     <Drawer.Navigator
       drawerContent={(props) => <CustomDrawerContent {...props} />}
       screenOptions={{
-        headerStyle: { backgroundColor: '#fff', elevation: 0, shadowOpacity: 0 },
+        headerStyle: { 
+          backgroundColor: '#fff', elevation: 0, 
+          ...Platform.select({ web: { boxShadow: 'none' }, default: { shadowOpacity: 0 } }) 
+        },
         headerTitleStyle: { fontWeight: '900', color: '#0f172a' },
         drawerActiveBackgroundColor: '#eff6ff',
         drawerActiveTintColor: '#2563eb',
@@ -174,7 +177,14 @@ export default function AppNavigator() {
 
 const styles = StyleSheet.create({
   drawerHeader: { padding: 24, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingTop: 60 },
-  logoContainer: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#2563eb', justifyContent: 'center', alignItems: 'center', shadowColor: '#2563eb', shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
+  logoContainer: { 
+    width: 44, height: 44, borderRadius: 12, backgroundColor: '#2563eb', 
+    justifyContent: 'center', alignItems: 'center',
+    ...Platform.select({
+      web: { boxShadow: '0px 4px 8px rgba(37, 99, 235, 0.3)' },
+      default: { shadowColor: '#2563eb', shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 }
+    })
+  },
   logoText: { color: '#fff', fontSize: 22, fontWeight: '900' },
   userName: { fontSize: 16, fontWeight: '900', color: '#0f172a' },
   userRole: { fontSize: 10, fontWeight: '900', color: '#2563eb', letterSpacing: 1, marginTop: 2 },

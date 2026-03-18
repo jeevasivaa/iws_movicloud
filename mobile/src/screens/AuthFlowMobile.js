@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, SafeAreaView, Platform } from 'react-native';
 import { Factory, LogIn, ShieldCheck, Database, LayoutDashboard, Truck } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 
@@ -82,20 +82,40 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
   scrollContent: { padding: 24, paddingTop: 60 },
   header: { alignItems: 'center', marginBottom: 40 },
-  logoContainer: { width: 64, height: 64, backgroundColor: '#2563eb', borderRadius: 20, justifyContent: 'center', alignItems: 'center', shadowColor: '#2563eb', shadowOpacity: 0.3, shadowRadius: 10, elevation: 8 },
-  title: { fontSize: 28, fontWeight: '900', color: '#0f172a', marginTop: 16, tracking: -1 },
-  subtitle: { fontSize: 12, fontWeight: '900', color: '#2563eb', tracking: 2, textTransform: 'uppercase', marginTop: 4 },
-  formCard: { backgroundColor: '#fff', padding: 24, borderRadius: 24, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 15, elevation: 2 },
+  logoContainer: { 
+    width: 64, height: 64, backgroundColor: '#2563eb', borderRadius: 20, 
+    justifyContent: 'center', alignItems: 'center',
+    ...Platform.select({
+      web: { boxShadow: '0px 4px 10px rgba(37, 99, 235, 0.3)' },
+      default: { shadowColor: '#2563eb', shadowOpacity: 0.3, shadowRadius: 10, elevation: 8 }
+    })
+  },
+  title: { fontSize: 28, fontWeight: '900', color: '#0f172a', marginTop: 16, letterSpacing: -1 },
+  subtitle: { fontSize: 12, fontWeight: '900', color: '#2563eb', letterSpacing: 2, textTransform: 'uppercase', marginTop: 4 },
+  formCard: { 
+    backgroundColor: '#fff', padding: 24, borderRadius: 24,
+    ...Platform.select({
+      web: { boxShadow: '0px 4px 15px rgba(0, 0, 0, 0.05)' },
+      default: { shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 15, elevation: 2 }
+    })
+  },
   cardTitle: { fontSize: 20, fontWeight: '900', color: '#0f172a', marginBottom: 20 },
   inputGroup: { marginBottom: 16 },
-  label: { fontSize: 11, fontWeight: '900', color: '#64748b', textTransform: 'uppercase', marginBottom: 8, tracking: 1 },
+  label: { fontSize: 11, fontWeight: '900', color: '#64748b', textTransform: 'uppercase', marginBottom: 8, letterSpacing: 1 },
   input: { backgroundColor: '#f1f5f9', height: 54, borderRadius: 12, paddingHorizontal: 16, fontSize: 15, fontWeight: '600', color: '#0f172a' },
-  loginBtn: { backgroundColor: '#2563eb', height: 54, borderRadius: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 10, shadowColor: '#2563eb', shadowOpacity: 0.4, shadowRadius: 10, elevation: 4 },
+  loginBtn: { 
+    backgroundColor: '#2563eb', height: 54, borderRadius: 12, flexDirection: 'row', 
+    justifyContent: 'center', alignItems: 'center', marginTop: 10,
+    ...Platform.select({
+      web: { boxShadow: '0px 4px 10px rgba(37, 99, 235, 0.4)' },
+      default: { shadowColor: '#2563eb', shadowOpacity: 0.4, shadowRadius: 10, elevation: 4 }
+    })
+  },
   loginBtnText: { color: '#fff', fontSize: 16, fontWeight: '900', marginLeft: 10 },
-  demoTitle: { fontSize: 12, fontWeight: '900', color: '#64748b', textTransform: 'uppercase', tracking: 1, marginTop: 40, marginBottom: 16, textAlign: 'center' },
+  demoTitle: { fontSize: 12, fontWeight: '900', color: '#64748b', textTransform: 'uppercase', letterSpacing: 1, marginTop: 40, marginBottom: 16, textAlign: 'center' },
   roleGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  roleCard: { width: '47%', backgroundColor: '#fff', padding: 16, borderRadius: 20, alignItems: 'center', borderWith: 1 },
+  roleCard: { width: '47%', backgroundColor: '#fff', padding: 16, borderRadius: 20, alignItems: 'center', borderWidth: 1 },
   roleIcon: { width: 48, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
   roleLabel: { fontSize: 13, fontWeight: '900', color: '#0f172a' },
-  footerText: { textAlign: 'center', color: '#94a3b8', fontSize: 10, fontWeight: '800', marginTop: 40, textTransform: 'uppercase', tracking: 1 },
+  footerText: { textAlign: 'center', color: '#94a3b8', fontSize: 10, fontWeight: '800', marginTop: 40, textTransform: 'uppercase', letterSpacing: 1 },
 });
