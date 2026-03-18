@@ -45,22 +45,22 @@ const iconMap = {
 
 function Sidebar({ mobileOpen, onClose }) {
   const { user } = useAuth()
+  console.log('Sidebar rendering for user:', user)
   const visibleNavigationGroups = getNavigationForRole(user?.role)
+  console.log('visibleNavigationGroups:', visibleNavigationGroups)
 
   return (
     <>
       {/* Mobile Backdrop */}
       <div
-        className={`fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-300 lg:hidden ${
-          mobileOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
-        }`}
+        className={`fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-300 lg:hidden ${mobileOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
+          }`}
         onClick={onClose}
       />
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 transform bg-[#0f172a] text-slate-300 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) lg:translate-x-0 ${
-          mobileOpen ? 'translate-x-0 shadow-2xl shadow-blue-900/40' : '-translate-x-full'
-        }`}
+        className={`fixed inset-y-0 left-0 z-50 w-64 transform bg-[#0f172a] text-slate-300 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) lg:translate-x-0 ${mobileOpen ? 'translate-x-0 shadow-2xl shadow-blue-900/40' : '-translate-x-full'
+          }`}
       >
         {/* Sidebar Header */}
         <div className="flex h-20 items-center gap-3 border-b border-slate-800/50 px-6">
@@ -100,25 +100,27 @@ function Sidebar({ mobileOpen, onClose }) {
                       to={item.path}
                       onClick={onClose}
                       className={({ isActive }) =>
-                        `group flex items-center justify-between rounded-xl px-4 py-3 text-[13px] font-bold transition-all duration-300 ${
-                          isActive
-                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
-                            : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-100'
+                        `group flex items-center justify-between rounded-xl px-4 py-3 text-[13px] font-bold transition-all duration-300 ${isActive
+                          ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
+                          : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-100'
                         }`
                       }
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="transition-all duration-300">
-                          {Icon ? <Icon size={18} strokeWidth={isActive ? 2.5 : 2} /> : null}
-                        </div>
-                        <span className="tracking-wide">{item.label}</span>
-                      </div>
-                      <ChevronRight 
-                        size={14} 
-                        className={`transition-all duration-300 ${
-                          isActive ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0'
-                        }`} 
-                      />
+                      {({ isActive }) => (
+                        <>
+                          <div className="flex items-center gap-3">
+                            <div className="transition-all duration-300">
+                              {Icon ? <Icon size={18} strokeWidth={isActive ? 2.5 : 2} /> : null}
+                            </div>
+                            <span className="tracking-wide">{item.label}</span>
+                          </div>
+                          <ChevronRight
+                            size={14}
+                            className={`transition-all duration-300 ${isActive ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0'
+                              }`}
+                          />
+                        </>
+                      )}
                     </NavLink>
                   )
                 })}

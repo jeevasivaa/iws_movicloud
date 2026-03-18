@@ -34,10 +34,19 @@ export const navigationGroups = [
 ]
 
 export function getNavigationForRole(role) {
-  return navigationGroups
+  console.log('getNavigationForRole called with role:', role);
+  const result = navigationGroups
     .map((group) => ({
       ...group,
-      items: group.items.filter((item) => item.allowedRoles.includes(role)),
+      items: group.items.filter((item) => {
+        if (!item.allowedRoles) {
+          console.error('Item missing allowedRoles:', item);
+          return false;
+        }
+        return item.allowedRoles.includes(role);
+      }),
     }))
-    .filter((group) => group.items.length > 0)
+    .filter((group) => group.items.length > 0);
+  console.log('getNavigationForRole result:', result);
+  return result;
 }
