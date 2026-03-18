@@ -1,8 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Package, Activity, AlertTriangle, CheckCircle2 } from 'lucide-react-native';
+import { useAuth } from '../context/AuthContext';
 
 export default function Dashboard() {
+  const { user } = useAuth();
+  
   const stats = [
     { label: 'Active Batches', value: '12', icon: Activity, color: '#2563eb' },
     { label: 'Pending Orders', value: '4', icon: Package, color: '#8b5cf6' },
@@ -12,9 +15,9 @@ export default function Dashboard() {
 
   return (
     <ScrollView style={styles.container}>
-      <View className="p-4">
-        <Text style={styles.greeting}>Welcome, Warehouse Ops</Text>
-        <Text style={styles.subtitle}>Daily Operational Overview</Text>
+      <View style={{ padding: 16 }}>
+        <Text style={styles.greeting}>Welcome, {user?.name || 'Guest'}</Text>
+        <Text style={styles.subtitle}>{user?.role ? `${user.role.charAt(0).toUpperCase() + user.role.slice(1)} Overview` : 'Daily Operational Overview'}</Text>
 
         <View style={styles.grid}>
           {stats.map((stat, idx) => (

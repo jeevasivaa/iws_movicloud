@@ -177,6 +177,6 @@ const styles = StyleSheet.create({
   logoContainer: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#2563eb', justifyContent: 'center', alignItems: 'center', shadowColor: '#2563eb', shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
   logoText: { color: '#fff', fontSize: 22, fontWeight: '900' },
   userName: { fontSize: 16, fontWeight: '900', color: '#0f172a' },
-  userRole: { fontSize: 10, fontWeight: '900', color: '#2563eb', tracking: 1, marginTop: 2 },
+  userRole: { fontSize: 10, fontWeight: '900', color: '#2563eb', letterSpacing: 1, marginTop: 2 },
   drawerFooter: { padding: 10, borderTopWidth: 1, borderTopColor: '#f1f5f9' },
 });
