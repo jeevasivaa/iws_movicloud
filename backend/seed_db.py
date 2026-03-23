@@ -28,13 +28,27 @@ if db is None:
     db = client[MONGO_DB_NAME]
 
 
+def _create_unique_non_empty_string_index(collection: str, field: str, name: str) -> None:
+    db[collection].create_index(
+        [(field, ASCENDING)],
+        unique=True,
+        name=name,
+        partialFilterExpression={
+            "$and": [
+                {field: {"$type": "string"}},
+                {field: {"$gt": ""}},
+            ]
+        },
+    )
+
+
 def create_indexes():
-    db["users"].create_index([("email", ASCENDING)], unique=True)
-    db["products"].create_index([("sku", ASCENDING)], unique=True)
-    db["invoices"].create_index([("invoice_number", ASCENDING)], unique=True)
-    db["orders"].create_index([("order_id", ASCENDING)], unique=True)
-    db["production_batches"].create_index([("batch_id", ASCENDING)], unique=True)
-    db["settings"].create_index([("key", ASCENDING)], unique=True)
+    _create_unique_non_empty_string_index("users", "email", "email_unique_non_empty")
+    _create_unique_non_empty_string_index("products", "sku", "sku_unique_non_empty")
+    _create_unique_non_empty_string_index("invoices", "invoice_number", "invoice_number_unique_non_empty")
+    _create_unique_non_empty_string_index("orders", "order_id", "order_id_unique_non_empty")
+    _create_unique_non_empty_string_index("production_batches", "batch_id", "batch_id_unique_non_empty")
+    _create_unique_non_empty_string_index("settings", "key", "settings_key_unique_non_empty")
 
 
 def seed_database():
@@ -64,7 +78,7 @@ def seed_database():
     current_month = now.strftime("%Y-%m")
     year_token = now.strftime("%Y")
 
-    def month_date(month_delta: int, day: int) -> str:
+    def year_month_from_delta(month_delta: int) -> tuple[int, int]:
         year = now.year
         month = now.month + month_delta
 
@@ -76,8 +90,18 @@ def seed_database():
             month += 12
             year -= 1
 
+        return year, month
+
+    def month_date(month_delta: int, day: int) -> str:
+        year, month = year_month_from_delta(month_delta)
+
         max_day = calendar.monthrange(year, month)[1]
         return date(year, month, min(day, max_day)).isoformat()
+
+    def month_datetime(month_delta: int, day: int, hour: int = 9) -> datetime:
+        year, month = year_month_from_delta(month_delta)
+        max_day = calendar.monthrange(year, month)[1]
+        return datetime(year, month, min(day, max_day), hour, 0, 0)
 
     def days_from_now(day_offset: int) -> str:
         return (now + timedelta(days=day_offset)).date().isoformat()
@@ -199,6 +223,65 @@ def seed_database():
             "updated_at": now,
         },
     ]
+    clients.extend(
+        [
+            {
+                "_id": ObjectId(),
+                "company_name": "Urban Basket Retail",
+                "contact_person": "Priya Nair",
+                "email": "priya@urbanbasket.in",
+                "total_orders": 14,
+                "last_order_date": month_date(-1, 25),
+                "rating": 4.4,
+                "created_at": now,
+                "updated_at": now,
+            },
+            {
+                "_id": ObjectId(),
+                "company_name": "Sunrise Gourmet",
+                "contact_person": "Arun Bhat",
+                "email": "arun@sunrisegourmet.in",
+                "total_orders": 21,
+                "last_order_date": month_date(-2, 16),
+                "rating": 4.7,
+                "created_at": now,
+                "updated_at": now,
+            },
+            {
+                "_id": ObjectId(),
+                "company_name": "Metro Fresh Chain",
+                "contact_person": "Meena Kapoor",
+                "email": "meena@metrofresh.in",
+                "total_orders": 27,
+                "last_order_date": month_date(-1, 9),
+                "rating": 4.5,
+                "created_at": now,
+                "updated_at": now,
+            },
+            {
+                "_id": ObjectId(),
+                "company_name": "Farm2Fork Collective",
+                "contact_person": "Deepak Rao",
+                "email": "deepak@farm2fork.in",
+                "total_orders": 11,
+                "last_order_date": month_date(-3, 27),
+                "rating": 4.2,
+                "created_at": now,
+                "updated_at": now,
+            },
+            {
+                "_id": ObjectId(),
+                "company_name": "Daily Needs Hypermart",
+                "contact_person": "Sonia Mathew",
+                "email": "sonia@dailyneeds.in",
+                "total_orders": 35,
+                "last_order_date": month_date(0, 19),
+                "rating": 4.9,
+                "created_at": now,
+                "updated_at": now,
+            },
+        ]
+    )
     db["clients"].insert_many(clients)
     print("Inserted clients")
 
@@ -259,6 +342,54 @@ def seed_database():
             "updated_at": now,
         },
     ]
+    products.extend(
+        [
+            {
+                "_id": ObjectId(),
+                "name": "Mustard Oil Premium",
+                "sku": "VSA-MO-006",
+                "category": "Cold Pressed Oils",
+                "price": 360.0,
+                "stock": 210,
+                "status": "Active",
+                "created_at": now,
+                "updated_at": now,
+            },
+            {
+                "_id": ObjectId(),
+                "name": "Almond Oil Extra Virgin",
+                "sku": "VSA-AO-007",
+                "category": "Essential Oils",
+                "price": 780.0,
+                "stock": 52,
+                "status": "Low Stock",
+                "created_at": now,
+                "updated_at": now,
+            },
+            {
+                "_id": ObjectId(),
+                "name": "Rice Bran Oil",
+                "sku": "VSA-RB-008",
+                "category": "Refined Oils",
+                "price": 295.0,
+                "stock": 430,
+                "status": "Active",
+                "created_at": now,
+                "updated_at": now,
+            },
+            {
+                "_id": ObjectId(),
+                "name": "Sunflower Oil Classic",
+                "sku": "VSA-SF-009",
+                "category": "Refined Oils",
+                "price": 270.0,
+                "stock": 125,
+                "status": "Active",
+                "created_at": now,
+                "updated_at": now,
+            },
+        ]
+    )
     db["products"].insert_many(products)
     print("Inserted products")
 
@@ -314,6 +445,40 @@ def seed_database():
             "updated_at": now,
         },
     ]
+    suppliers.extend(
+        [
+            {
+                "name": "South Coast Agro Oils",
+                "location": "Kerala",
+                "category_supplied": "Coconut",
+                "rating": 4.4,
+                "total_orders": 88,
+                "status": "Active",
+                "created_at": now,
+                "updated_at": now,
+            },
+            {
+                "name": "HarvestPulse Logistics",
+                "location": "Telangana",
+                "category_supplied": "Transportation",
+                "rating": 4.1,
+                "total_orders": 63,
+                "status": "Under Review",
+                "created_at": now,
+                "updated_at": now,
+            },
+            {
+                "name": "Evergreen Packaging Works",
+                "location": "Madhya Pradesh",
+                "category_supplied": "Packaging",
+                "rating": 4.7,
+                "total_orders": 104,
+                "status": "Active",
+                "created_at": now,
+                "updated_at": now,
+            },
+        ]
+    )
     db["suppliers"].insert_many(suppliers)
     print("Inserted suppliers")
 
@@ -374,6 +539,87 @@ def seed_database():
             "updated_at": now,
         },
     ]
+    inventory_rows.extend(
+        [
+            {
+                "item_name": "Groundnut Kernels",
+                "type": "Raw Material",
+                "warehouse_location": "WH-A",
+                "current_stock": 1600,
+                "max_capacity": 4000,
+                "expiry_date": days_from_now(110),
+                "status": "Adequate",
+                "created_at": now,
+                "updated_at": now,
+            },
+            {
+                "item_name": "Flaxseed",
+                "type": "Raw Material",
+                "warehouse_location": "WH-A",
+                "current_stock": 420,
+                "max_capacity": 2500,
+                "expiry_date": days_from_now(75),
+                "status": "Low",
+                "created_at": now,
+                "updated_at": now,
+            },
+            {
+                "item_name": "Sesame Oil 1L",
+                "type": "Finished Product",
+                "warehouse_location": "WH-B",
+                "current_stock": 710,
+                "max_capacity": 1400,
+                "expiry_date": days_from_now(380),
+                "status": "Adequate",
+                "created_at": now,
+                "updated_at": now,
+            },
+            {
+                "item_name": "Groundnut Oil 1L",
+                "type": "Finished Product",
+                "warehouse_location": "WH-B",
+                "current_stock": 120,
+                "max_capacity": 1200,
+                "expiry_date": days_from_now(320),
+                "status": "Critical",
+                "created_at": now,
+                "updated_at": now,
+            },
+            {
+                "item_name": "Shipping Cartons",
+                "type": "Packaging",
+                "warehouse_location": "WH-C",
+                "current_stock": 2100,
+                "max_capacity": 6000,
+                "expiry_date": days_from_now(860),
+                "status": "Adequate",
+                "created_at": now,
+                "updated_at": now,
+            },
+            {
+                "item_name": "Safety Seals",
+                "type": "Packaging",
+                "warehouse_location": "WH-C",
+                "current_stock": 260,
+                "max_capacity": 3000,
+                "expiry_date": days_from_now(700),
+                "status": "Low",
+                "created_at": now,
+                "updated_at": now,
+            },
+            {
+                "item_name": "Labels - Export Batch",
+                "type": "Packaging",
+                "warehouse_location": "WH-D",
+                "current_stock": 140,
+                "max_capacity": 2200,
+                "expiry_date": days_from_now(540),
+                "status": "Critical",
+                "created_at": now,
+                "updated_at": now,
+            },
+        ]
+    )
     db["inventory"].insert_many(inventory_rows)
     print("Inserted inventory")
 
@@ -434,6 +680,142 @@ def seed_database():
             "updated_at": now - timedelta(days=10),
         },
     ]
+    orders.extend(
+        [
+            {
+                "_id": ObjectId(),
+                "order_id": f"ORD-{year_token}-006",
+                "client_id": clients[5]["_id"],
+                "date": month_date(-5, 7),
+                "total_items": 9,
+                "total_amount": 81200.0,
+                "status": "Delivered",
+                "created_at": month_datetime(-5, 7),
+                "updated_at": month_datetime(-5, 8),
+            },
+            {
+                "_id": ObjectId(),
+                "order_id": f"ORD-{year_token}-007",
+                "client_id": clients[6]["_id"],
+                "date": month_date(-5, 22),
+                "total_items": 4,
+                "total_amount": 47400.0,
+                "status": "Shipped",
+                "created_at": month_datetime(-5, 22),
+                "updated_at": month_datetime(-5, 23),
+            },
+            {
+                "_id": ObjectId(),
+                "order_id": f"ORD-{year_token}-008",
+                "client_id": clients[7]["_id"],
+                "date": month_date(-4, 11),
+                "total_items": 7,
+                "total_amount": 59800.0,
+                "status": "Delivered",
+                "created_at": month_datetime(-4, 11),
+                "updated_at": month_datetime(-4, 12),
+            },
+            {
+                "_id": ObjectId(),
+                "order_id": f"ORD-{year_token}-009",
+                "client_id": clients[8]["_id"],
+                "date": month_date(-4, 24),
+                "total_items": 3,
+                "total_amount": 36250.0,
+                "status": "Delivered",
+                "created_at": month_datetime(-4, 24),
+                "updated_at": month_datetime(-4, 25),
+            },
+            {
+                "_id": ObjectId(),
+                "order_id": f"ORD-{year_token}-010",
+                "client_id": clients[9]["_id"],
+                "date": month_date(-3, 6),
+                "total_items": 10,
+                "total_amount": 73400.0,
+                "status": "Processing",
+                "created_at": month_datetime(-3, 6),
+                "updated_at": month_datetime(-3, 7),
+            },
+            {
+                "_id": ObjectId(),
+                "order_id": f"ORD-{year_token}-011",
+                "client_id": clients[0]["_id"],
+                "date": month_date(-3, 27),
+                "total_items": 2,
+                "total_amount": 28950.0,
+                "status": "Shipped",
+                "created_at": month_datetime(-3, 27),
+                "updated_at": month_datetime(-3, 28),
+            },
+            {
+                "_id": ObjectId(),
+                "order_id": f"ORD-{year_token}-012",
+                "client_id": clients[2]["_id"],
+                "date": month_date(-2, 9),
+                "total_items": 11,
+                "total_amount": 91500.0,
+                "status": "Delivered",
+                "created_at": month_datetime(-2, 9),
+                "updated_at": month_datetime(-2, 10),
+            },
+            {
+                "_id": ObjectId(),
+                "order_id": f"ORD-{year_token}-013",
+                "client_id": clients[3]["_id"],
+                "date": month_date(-2, 26),
+                "total_items": 5,
+                "total_amount": 44800.0,
+                "status": "Processing",
+                "created_at": month_datetime(-2, 26),
+                "updated_at": month_datetime(-2, 27),
+            },
+            {
+                "_id": ObjectId(),
+                "order_id": f"ORD-{year_token}-014",
+                "client_id": clients[4]["_id"],
+                "date": month_date(-1, 12),
+                "total_items": 4,
+                "total_amount": 38200.0,
+                "status": "Pending",
+                "created_at": month_datetime(-1, 12),
+                "updated_at": month_datetime(-1, 13),
+            },
+            {
+                "_id": ObjectId(),
+                "order_id": f"ORD-{year_token}-015",
+                "client_id": clients[7]["_id"],
+                "date": month_date(-1, 28),
+                "total_items": 8,
+                "total_amount": 67600.0,
+                "status": "Delivered",
+                "created_at": month_datetime(-1, 28),
+                "updated_at": month_datetime(-1, 29),
+            },
+            {
+                "_id": ObjectId(),
+                "order_id": f"ORD-{year_token}-016",
+                "client_id": clients[9]["_id"],
+                "date": month_date(0, 5),
+                "total_items": 7,
+                "total_amount": 52900.0,
+                "status": "Processing",
+                "created_at": month_datetime(0, 5),
+                "updated_at": month_datetime(0, 6),
+            },
+            {
+                "_id": ObjectId(),
+                "order_id": f"ORD-{year_token}-017",
+                "client_id": clients[1]["_id"],
+                "date": month_date(0, 17),
+                "total_items": 6,
+                "total_amount": 41800.0,
+                "status": "Pending",
+                "created_at": month_datetime(0, 17),
+                "updated_at": month_datetime(0, 18),
+            },
+        ]
+    )
     db["orders"].insert_many(orders)
     print("Inserted orders")
 
@@ -499,6 +881,142 @@ def seed_database():
             "updated_at": now - timedelta(days=7),
         },
     ]
+    invoices.extend(
+        [
+            {
+                "invoice_number": f"INV-{year_token}-006",
+                "client_id": orders[5]["client_id"],
+                "date": orders[5]["date"],
+                "amount": 81200.0,
+                "status": "Paid",
+                "items": [
+                    {"description": "Mustard Oil Premium", "qty": 140, "unit_price": 580.0, "line_total": 81200.0}
+                ],
+                "created_at": month_datetime(-5, 8),
+                "updated_at": month_datetime(-5, 9),
+            },
+            {
+                "invoice_number": f"INV-{year_token}-007",
+                "client_id": orders[6]["client_id"],
+                "date": orders[6]["date"],
+                "amount": 47400.0,
+                "status": "Paid",
+                "items": [
+                    {"description": "Sunflower Oil Classic", "qty": 120, "unit_price": 395.0, "line_total": 47400.0}
+                ],
+                "created_at": month_datetime(-5, 23),
+                "updated_at": month_datetime(-5, 24),
+            },
+            {
+                "invoice_number": f"INV-{year_token}-008",
+                "client_id": orders[7]["client_id"],
+                "date": orders[7]["date"],
+                "amount": 59800.0,
+                "status": "Paid",
+                "items": [
+                    {"description": "Rice Bran Oil", "qty": 200, "unit_price": 299.0, "line_total": 59800.0}
+                ],
+                "created_at": month_datetime(-4, 12),
+                "updated_at": month_datetime(-4, 13),
+            },
+            {
+                "invoice_number": f"INV-{year_token}-009",
+                "client_id": orders[8]["client_id"],
+                "date": orders[8]["date"],
+                "amount": 36250.0,
+                "status": "Paid",
+                "items": [
+                    {"description": "Virgin Sesame Oil", "qty": 95, "unit_price": 381.58, "line_total": 36250.0}
+                ],
+                "created_at": month_datetime(-4, 25),
+                "updated_at": month_datetime(-4, 26),
+            },
+            {
+                "invoice_number": f"INV-{year_token}-010",
+                "client_id": orders[9]["client_id"],
+                "date": orders[9]["date"],
+                "amount": 73400.0,
+                "status": "Pending",
+                "items": [
+                    {"description": "Cold Pressed Coconut Oil", "qty": 160, "unit_price": 458.75, "line_total": 73400.0}
+                ],
+                "created_at": month_datetime(-3, 7),
+                "updated_at": month_datetime(-3, 8),
+            },
+            {
+                "invoice_number": f"INV-{year_token}-011",
+                "client_id": orders[10]["client_id"],
+                "date": orders[10]["date"],
+                "amount": 28950.0,
+                "status": "Paid",
+                "items": [
+                    {"description": "Flaxseed Oil", "qty": 45, "unit_price": 643.33, "line_total": 28950.0}
+                ],
+                "created_at": month_datetime(-3, 28),
+                "updated_at": month_datetime(-3, 29),
+            },
+            {
+                "invoice_number": f"INV-{year_token}-012",
+                "client_id": orders[11]["client_id"],
+                "date": orders[11]["date"],
+                "amount": 91500.0,
+                "status": "Paid",
+                "items": [
+                    {"description": "Almond Oil Extra Virgin", "qty": 150, "unit_price": 610.0, "line_total": 91500.0}
+                ],
+                "created_at": month_datetime(-2, 10),
+                "updated_at": month_datetime(-2, 11),
+            },
+            {
+                "invoice_number": f"INV-{year_token}-013",
+                "client_id": orders[12]["client_id"],
+                "date": orders[12]["date"],
+                "amount": 44800.0,
+                "status": "Overdue",
+                "items": [
+                    {"description": "Groundnut Oil 1L", "qty": 140, "unit_price": 320.0, "line_total": 44800.0}
+                ],
+                "created_at": month_datetime(-2, 27),
+                "updated_at": month_datetime(-2, 28),
+            },
+            {
+                "invoice_number": f"INV-{year_token}-014",
+                "client_id": orders[13]["client_id"],
+                "date": orders[13]["date"],
+                "amount": 38200.0,
+                "status": "Pending",
+                "items": [
+                    {"description": "Sesame Oil 1L", "qty": 100, "unit_price": 382.0, "line_total": 38200.0}
+                ],
+                "created_at": month_datetime(-1, 13),
+                "updated_at": month_datetime(-1, 14),
+            },
+            {
+                "invoice_number": f"INV-{year_token}-015",
+                "client_id": orders[14]["client_id"],
+                "date": orders[14]["date"],
+                "amount": 67600.0,
+                "status": "Paid",
+                "items": [
+                    {"description": "Mustard Oil Premium", "qty": 130, "unit_price": 520.0, "line_total": 67600.0}
+                ],
+                "created_at": month_datetime(-1, 29),
+                "updated_at": month_datetime(-1, 30),
+            },
+            {
+                "invoice_number": f"INV-{year_token}-016",
+                "client_id": orders[15]["client_id"],
+                "date": orders[15]["date"],
+                "amount": 52900.0,
+                "status": "Pending",
+                "items": [
+                    {"description": "Rice Bran Oil", "qty": 170, "unit_price": 311.18, "line_total": 52900.0}
+                ],
+                "created_at": month_datetime(0, 6),
+                "updated_at": month_datetime(0, 7),
+            },
+        ]
+    )
     db["invoices"].insert_many(invoices)
     print("Inserted invoices")
 
@@ -554,6 +1072,70 @@ def seed_database():
             "updated_at": now,
         },
     ]
+    payroll_rows.extend(
+        [
+            {
+                "staff_id": users[1]["_id"],
+                "base_salary": 35000.0,
+                "deductions": 3600.0,
+                "net_pay": 31400.0,
+                "month": month_datetime(-1, 1).strftime("%Y-%m"),
+                "status": "Paid",
+                "created_at": month_datetime(-1, 2),
+                "updated_at": month_datetime(-1, 2),
+            },
+            {
+                "staff_id": users[2]["_id"],
+                "base_salary": 28000.0,
+                "deductions": 2700.0,
+                "net_pay": 25300.0,
+                "month": month_datetime(-1, 1).strftime("%Y-%m"),
+                "status": "Paid",
+                "created_at": month_datetime(-1, 2),
+                "updated_at": month_datetime(-1, 2),
+            },
+            {
+                "staff_id": users[3]["_id"],
+                "base_salary": 32000.0,
+                "deductions": 3100.0,
+                "net_pay": 28900.0,
+                "month": month_datetime(-1, 1).strftime("%Y-%m"),
+                "status": "Paid",
+                "created_at": month_datetime(-1, 2),
+                "updated_at": month_datetime(-1, 2),
+            },
+            {
+                "staff_id": users[1]["_id"],
+                "base_salary": 35000.0,
+                "deductions": 3500.0,
+                "net_pay": 31500.0,
+                "month": month_datetime(-2, 1).strftime("%Y-%m"),
+                "status": "Paid",
+                "created_at": month_datetime(-2, 2),
+                "updated_at": month_datetime(-2, 2),
+            },
+            {
+                "staff_id": users[2]["_id"],
+                "base_salary": 28000.0,
+                "deductions": 2800.0,
+                "net_pay": 25200.0,
+                "month": month_datetime(-2, 1).strftime("%Y-%m"),
+                "status": "Pending",
+                "created_at": month_datetime(-2, 2),
+                "updated_at": month_datetime(-2, 2),
+            },
+            {
+                "staff_id": users[0]["_id"],
+                "base_salary": 22000.0,
+                "deductions": 2200.0,
+                "net_pay": 19800.0,
+                "month": month_datetime(-2, 1).strftime("%Y-%m"),
+                "status": "Paid",
+                "created_at": month_datetime(-2, 2),
+                "updated_at": month_datetime(-2, 2),
+            },
+        ]
+    )
     db["payroll"].insert_many(payroll_rows)
     print("Inserted payroll")
 
@@ -609,6 +1191,110 @@ def seed_database():
             "updated_at": now - timedelta(days=10),
         },
     ]
+    production_batches.extend(
+        [
+            {
+                "batch_id": "BATCH-006",
+                "product_id": products[5]["_id"],
+                "quantity": 420,
+                "stage": "Completed",
+                "start_date": month_date(-5, 5),
+                "end_date": month_date(-5, 11),
+                "created_at": month_datetime(-5, 5),
+                "updated_at": month_datetime(-5, 11),
+            },
+            {
+                "batch_id": "BATCH-007",
+                "product_id": products[6]["_id"],
+                "quantity": 260,
+                "stage": "Completed",
+                "start_date": month_date(-5, 16),
+                "end_date": month_date(-5, 23),
+                "created_at": month_datetime(-5, 16),
+                "updated_at": month_datetime(-5, 23),
+            },
+            {
+                "batch_id": "BATCH-008",
+                "product_id": products[7]["_id"],
+                "quantity": 610,
+                "stage": "Completed",
+                "start_date": month_date(-4, 4),
+                "end_date": month_date(-4, 13),
+                "created_at": month_datetime(-4, 4),
+                "updated_at": month_datetime(-4, 13),
+            },
+            {
+                "batch_id": "BATCH-009",
+                "product_id": products[8]["_id"],
+                "quantity": 540,
+                "stage": "Completed",
+                "start_date": month_date(-4, 18),
+                "end_date": month_date(-4, 25),
+                "created_at": month_datetime(-4, 18),
+                "updated_at": month_datetime(-4, 25),
+            },
+            {
+                "batch_id": "BATCH-010",
+                "product_id": products[0]["_id"],
+                "quantity": 700,
+                "stage": "In Progress",
+                "start_date": month_date(-3, 3),
+                "end_date": month_date(-3, 12),
+                "created_at": month_datetime(-3, 3),
+                "updated_at": month_datetime(-3, 8),
+            },
+            {
+                "batch_id": "BATCH-011",
+                "product_id": products[1]["_id"],
+                "quantity": 500,
+                "stage": "Completed",
+                "start_date": month_date(-3, 14),
+                "end_date": month_date(-3, 20),
+                "created_at": month_datetime(-3, 14),
+                "updated_at": month_datetime(-3, 20),
+            },
+            {
+                "batch_id": "BATCH-012",
+                "product_id": products[2]["_id"],
+                "quantity": 450,
+                "stage": "Completed",
+                "start_date": month_date(-2, 6),
+                "end_date": month_date(-2, 13),
+                "created_at": month_datetime(-2, 6),
+                "updated_at": month_datetime(-2, 13),
+            },
+            {
+                "batch_id": "BATCH-013",
+                "product_id": products[6]["_id"],
+                "quantity": 330,
+                "stage": "In Progress",
+                "start_date": month_date(-2, 18),
+                "end_date": month_date(-2, 26),
+                "created_at": month_datetime(-2, 18),
+                "updated_at": month_datetime(-2, 23),
+            },
+            {
+                "batch_id": "BATCH-014",
+                "product_id": products[8]["_id"],
+                "quantity": 610,
+                "stage": "Completed",
+                "start_date": month_date(-1, 7),
+                "end_date": month_date(-1, 15),
+                "created_at": month_datetime(-1, 7),
+                "updated_at": month_datetime(-1, 15),
+            },
+            {
+                "batch_id": "BATCH-015",
+                "product_id": products[5]["_id"],
+                "quantity": 390,
+                "stage": "Planned",
+                "start_date": month_date(0, 24),
+                "end_date": month_date(0, 30),
+                "created_at": month_datetime(0, 20),
+                "updated_at": month_datetime(0, 20),
+            },
+        ]
+    )
     db["production_batches"].insert_many(production_batches)
     print("Inserted production batches")
 
@@ -659,6 +1345,55 @@ def seed_database():
             "updated_at": now - timedelta(hours=3),
         },
     ]
+    notifications.extend(
+        [
+            {
+                "title": "Dispatch delayed: ORD-" + year_token + "-010",
+                "message": "Truck allocation delayed due to weather. Revised dispatch ETA: +6 hours.",
+                "type": "warning",
+                "timestamp": now - timedelta(hours=4),
+                "is_read": False,
+                "created_at": now - timedelta(hours=4),
+                "updated_at": now - timedelta(hours=4),
+            },
+            {
+                "title": "High demand alert: Almond Oil",
+                "message": "Current week demand is 22% above baseline. Plan additional production batch.",
+                "type": "info",
+                "timestamp": now - timedelta(hours=6),
+                "is_read": False,
+                "created_at": now - timedelta(hours=6),
+                "updated_at": now - timedelta(hours=6),
+            },
+            {
+                "title": "Invoice overdue reminder sent",
+                "message": f"Auto-reminder sent for invoice INV-{year_token}-013.",
+                "type": "alert",
+                "timestamp": now - timedelta(hours=9),
+                "is_read": True,
+                "created_at": now - timedelta(hours=9),
+                "updated_at": now - timedelta(hours=9),
+            },
+            {
+                "title": "Supplier rating updated",
+                "message": "Evergreen Packaging Works moved to preferred supplier tier.",
+                "type": "success",
+                "timestamp": now - timedelta(hours=12),
+                "is_read": True,
+                "created_at": now - timedelta(hours=12),
+                "updated_at": now - timedelta(hours=12),
+            },
+            {
+                "title": "Critical stock: Labels - Export Batch",
+                "message": "Only 140 units left in WH-D. Urgent replenishment required.",
+                "type": "alert",
+                "timestamp": now - timedelta(hours=16),
+                "is_read": False,
+                "created_at": now - timedelta(hours=16),
+                "updated_at": now - timedelta(hours=16),
+            },
+        ]
+    )
     db["notifications"].insert_many(notifications)
     print("Inserted notifications")
 

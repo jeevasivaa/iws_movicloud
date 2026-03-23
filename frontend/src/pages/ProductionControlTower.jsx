@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { CheckCircle2, Eye, Factory, Plus, Timer, Warehouse } from 'lucide-react'
+import toast from 'react-hot-toast'
+import Modal from '../components/shared/Modal'
 import { useAuth } from '../context/useAuth'
-import { apiGet } from '../services/apiClient'
+import apiClient, { apiGet, getErrorMessage } from '../services/apiClient'
 
 function getStageClasses(stage) {
   if (stage === 'Completed') return 'bg-green-100 text-green-700'
@@ -14,6 +16,11 @@ function formatDate(value) {
   return String(value)
 }
 
+function normalizeStage(value) {
+  const allowed = ['Planned', 'In Progress', 'Completed']
+  return allowed.includes(value) ? value : 'Planned'
+}
+
 function ProductionControlTower() {
   const { token } = useAuth()
   const [rows, setRows] = useState([])
@@ -22,6 +29,18 @@ function ProductionControlTower() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [refreshIndex, setRefreshIndex] = useState(0)
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false)
+  const [isSavingBatch, setIsSavingBatch] = useState(false)
+  const [selectedBatch, setSelectedBatch] = useState(null)
+  const [batchForm, setBatchForm] = useState({
+    batch_id: '',
+    product_id: '',
+    quantity: '',
+    stage: 'Planned',
+    start_date: '',
+    end_date: '',
+  })
+  const authConfig = useMemo(() => (token ? { headers: { Authorization: `Bearer ${token}` } } : {}), [token])
 
   useEffect(() => {
     let isActive = true
@@ -118,6 +137,87 @@ function ProductionControlTower() {
     [productsById, rows, staffById],
   )
 
+  const productOptions = useMemo(
+    () => Array.from(productsById.entries()).map(([id, product]) => ({ id, name: product?.name || 'Product' })),
+    [productsById],
+  )
+
+  const openBatchModal = () => {
+    const today = new Date().toISOString().slice(0, 10)
+    setSelectedBatch(null)
+    setBatchForm({
+      batch_id: `BATCH-${String(rows.length + 1).padStart(3, '0')}`,
+      product_id: productOptions[0]?.id || '',
+      quantity: '',
+      stage: 'Planned',
+      start_date: today,
+      end_date: today,
+    })
+    setIsBatchModalOpen(true)
+  }
+
+  const closeBatchModal = () => {
+    setIsBatchModalOpen(false)
+    setSelectedBatch(null)
+  }
+
+  const openBatchDetails = (row) => {
+    setSelectedBatch(row)
+  }
+
+  const closeBatchDetails = () => {
+    setSelectedBatch(null)
+  }
+
+  const handleBatchField = (field, value) => {
+    setBatchForm((current) => ({
+      ...current,
+      [field]: value,
+    }))
+  }
+
+  const handleCreateBatch = async (event) => {
+    event.preventDefault()
+
+    const quantity = Number(batchForm.quantity)
+    if (!batchForm.batch_id.trim() || !batchForm.product_id || Number.isNaN(quantity) || quantity <= 0 || !batchForm.start_date || !batchForm.end_date) {
+      toast.error('Please complete all required batch fields')
+      return
+    }
+
+    const payload = {
+      batch_id: batchForm.batch_id.trim().toUpperCase(),
+      product_id: batchForm.product_id,
+      quantity,
+      stage: normalizeStage(batchForm.stage),
+      start_date: batchForm.start_date,
+      end_date: batchForm.end_date,
+    }
+
+    const batchIdPattern = /^BATCH-[A-Z0-9-]+$/
+    if (!batchIdPattern.test(payload.batch_id)) {
+      toast.error('Batch ID format must start with BATCH-')
+      return
+    }
+
+    if (new Date(payload.end_date) < new Date(payload.start_date)) {
+      toast.error('End date cannot be earlier than start date')
+      return
+    }
+
+    try {
+      setIsSavingBatch(true)
+      await apiClient.post('/api/production', payload, authConfig)
+      toast.success('Batch created successfully')
+      closeBatchModal()
+      setRefreshIndex((value) => value + 1)
+    } catch (err) {
+      toast.error(getErrorMessage(err, 'Failed to create batch'))
+    } finally {
+      setIsSavingBatch(false)
+    }
+  }
+
   return (
     <section className="space-y-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -128,6 +228,7 @@ function ProductionControlTower() {
 
         <button
           type="button"
+          onClick={openBatchModal}
           className="inline-flex items-center justify-center gap-2 rounded-md bg-emerald-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-600"
         >
           <Plus size={16} />
@@ -216,6 +317,7 @@ function ProductionControlTower() {
               <div className="mt-4 flex justify-end">
                 <button
                   type="button"
+                  onClick={() => openBatchDetails(row)}
                   className="inline-flex items-center gap-2 rounded-md p-2 text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-900"
                 >
                   <Eye size={17} />
@@ -232,6 +334,174 @@ function ProductionControlTower() {
           No production batches found.
         </div>
       ) : null}
+
+      <Modal
+        isOpen={Boolean(selectedBatch)}
+        onClose={closeBatchDetails}
+        title={`Batch ${selectedBatch?.batch_id || ''}`}
+      >
+        <div className="space-y-4 text-sm">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+              <p className="text-gray-500">Product</p>
+              <p className="mt-1 font-semibold text-gray-900">{selectedBatch?.productName || 'Product'}</p>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+              <p className="text-gray-500">Stage</p>
+              <p className="mt-1 font-semibold text-gray-900">{selectedBatch?.stage || 'Planned'}</p>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+              <p className="text-gray-500">Quantity</p>
+              <p className="mt-1 font-semibold text-gray-900">{(Number(selectedBatch?.quantity) || 0).toLocaleString('en-IN')}</p>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+              <p className="text-gray-500">Assigned</p>
+              <p className="mt-1 font-semibold text-gray-900">{selectedBatch?.assignedName || 'Not assigned'}</p>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+              <p className="text-gray-500">Start Date</p>
+              <p className="mt-1 font-semibold text-gray-900">{formatDate(selectedBatch?.start_date)}</p>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+              <p className="text-gray-500">End Date</p>
+              <p className="mt-1 font-semibold text-gray-900">{formatDate(selectedBatch?.end_date)}</p>
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={closeBatchDetails}
+              className="rounded-md border border-gray-200 bg-white px-4 py-2 font-medium text-gray-700 transition-colors hover:bg-gray-50"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isBatchModalOpen}
+        onClose={closeBatchModal}
+        title="New Batch"
+      >
+        <form onSubmit={handleCreateBatch} className="space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="batch-id" className="text-sm font-medium text-gray-700">
+              Batch ID
+            </label>
+            <input
+              id="batch-id"
+              type="text"
+              value={batchForm.batch_id}
+              onChange={(event) => handleBatchField('batch_id', event.target.value)}
+              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="batch-product" className="text-sm font-medium text-gray-700">
+              Product
+            </label>
+            <select
+              id="batch-product"
+              value={batchForm.product_id}
+              onChange={(event) => handleBatchField('product_id', event.target.value)}
+              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              required
+            >
+              <option value="">Select Product</option>
+              {productOptions.map((product) => (
+                <option key={product.id} value={product.id}>
+                  {product.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <label htmlFor="batch-quantity" className="text-sm font-medium text-gray-700">
+                Quantity
+              </label>
+              <input
+                id="batch-quantity"
+                type="number"
+                min="1"
+                step="1"
+                value={batchForm.quantity}
+                onChange={(event) => handleBatchField('quantity', event.target.value)}
+                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="batch-stage" className="text-sm font-medium text-gray-700">
+                Stage
+              </label>
+              <select
+                id="batch-stage"
+                value={batchForm.stage}
+                onChange={(event) => handleBatchField('stage', normalizeStage(event.target.value))}
+                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              >
+                <option value="Planned">Planned</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Completed">Completed</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <label htmlFor="batch-start-date" className="text-sm font-medium text-gray-700">
+                Start Date
+              </label>
+              <input
+                id="batch-start-date"
+                type="date"
+                value={batchForm.start_date}
+                onChange={(event) => handleBatchField('start_date', event.target.value)}
+                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="batch-end-date" className="text-sm font-medium text-gray-700">
+                End Date
+              </label>
+              <input
+                id="batch-end-date"
+                type="date"
+                value={batchForm.end_date}
+                onChange={(event) => handleBatchField('end_date', event.target.value)}
+                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-1">
+            <button
+              type="button"
+              onClick={closeBatchModal}
+              className="rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSavingBatch}
+              className="rounded-md bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-600"
+            >
+              {isSavingBatch ? 'Saving...' : 'Save Batch'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </section>
   )
 }

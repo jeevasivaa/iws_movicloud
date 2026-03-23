@@ -50,6 +50,7 @@ def create_order():
         "total_items": to_int(data.get("total_items")),
         "total_amount": to_float(data.get("total_amount")),
         "status": status,
+        "tracking_details": str(data.get("tracking_details")).strip() if data.get("tracking_details") else "",
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow(),
     }
@@ -88,6 +89,8 @@ def update_order(id):
         if not _validate_status(status):
             return jsonify({"msg": "Invalid status. Use Pending, Processing, Shipped, or Delivered"}), 400
         update_fields["status"] = status
+    if "tracking_details" in data:
+        update_fields["tracking_details"] = str(data.get("tracking_details")).strip()
 
     if not update_fields:
         return jsonify({"msg": "No updatable fields provided"}), 400

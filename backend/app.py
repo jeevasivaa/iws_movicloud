@@ -21,7 +21,28 @@ def create_app():
     app.json = app.json_provider_class(app)
 
     CORS(app, resources={r"/api/*": {"origins": "*"}})
-    JWTManager(app)
+    jwt = JWTManager(app)
+
+    @jwt.unauthorized_loader
+    def _missing_token(_reason):
+        return jsonify({"msg": "Authentication required"}), 401
+
+    @jwt.invalid_token_loader
+    def _invalid_token(_reason):
+        return jsonify({"msg": "Invalid authentication token"}), 401
+
+    @jwt.expired_token_loader
+    def _expired_token(_jwt_header, _jwt_payload):
+        return jsonify({"msg": "Authentication token has expired"}), 401
+
+    @jwt.revoked_token_loader
+    def _revoked_token(_jwt_header, _jwt_payload):
+        return jsonify({"msg": "Authentication token has been revoked"}), 401
+
+    @jwt.needs_fresh_token_loader
+    def _fresh_token_required(_jwt_header, _jwt_payload):
+        return jsonify({"msg": "Fresh authentication required"}), 401
+
     ensure_indexes()
 
     from routes.auth import auth_bp

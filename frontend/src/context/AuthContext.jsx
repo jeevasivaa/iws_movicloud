@@ -4,6 +4,16 @@ import { ROLES } from '../constants/roles'
 
 const STORAGE_KEY = 'iws_auth_session'
 const VALID_ROLES = new Set(Object.values(ROLES))
+const JWT_SEGMENT_PATTERN = /^[A-Za-z0-9_-]+$/
+
+function isLikelyJwt(token) {
+  if (typeof token !== 'string') return false
+  const normalizedToken = token.trim()
+  if (!normalizedToken) return false
+
+  const segments = normalizedToken.split('.')
+  return segments.length === 3 && segments.every((segment) => JWT_SEGMENT_PATTERN.test(segment))
+}
 
 function normalizeRole(role) {
   if (typeof role !== 'string') return null
@@ -17,12 +27,15 @@ function normalizeSession(session) {
   const user = session.user
   if (!user || typeof user !== 'object') return null
 
+  const token = typeof session.token === 'string' ? session.token.trim() : ''
+  if (!isLikelyJwt(token)) return null
+
   const role = normalizeRole(user.role)
   if (!role) return null
 
   return {
     user: { ...user, role },
-    token: session.token ?? null,
+    token,
   }
 }
 
@@ -55,6 +68,13 @@ export function AuthProvider({ children }) {
   const token = session?.token ?? null
 
   const login = useCallback((userData, userToken) => {
+    const normalizedToken = typeof userToken === 'string' ? userToken.trim() : ''
+    if (!isLikelyJwt(normalizedToken)) {
+      writeSession(null)
+      setSession(null)
+      return
+    }
+
     const role = normalizeRole(userData?.role)
     if (!role) {
       writeSession(null)
@@ -64,7 +84,7 @@ export function AuthProvider({ children }) {
 
     const newSession = {
       user: { ...userData, role },
-      token: userToken ?? null,
+      token: normalizedToken,
     }
     writeSession(newSession)
     setSession(newSession)
@@ -92,7 +112,7 @@ export function AuthProvider({ children }) {
     () => ({
       user,
       token,
-      isAuthenticated: Boolean(user),
+      isAuthenticated: Boolean(user && token),
       login,
       logout,
       loginAsMockUser,

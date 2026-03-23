@@ -1,4 +1,5 @@
 import React from 'react';
+import toast from 'react-hot-toast';
 import { 
   BrainCircuit, 
   TrendingUp, 
@@ -41,8 +42,20 @@ const AIInsights = () => {
           </p>
         </div>
         <div className="flex p-1.5 bg-slate-100/50 rounded-2xl border border-slate-100">
-          <button className="px-8 py-2.5 bg-white rounded-xl shadow-premium-sm text-xs font-black uppercase tracking-widest text-slate-900">Real-time Feed</button>
-          <button className="px-8 py-2.5 text-xs font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors">Neural History</button>
+          <button
+            type="button"
+            onClick={() => toast.success('Showing live feed view')}
+            className="px-8 py-2.5 bg-white rounded-xl shadow-premium-sm text-xs font-black uppercase tracking-widest text-slate-900"
+          >
+            Real-time Feed
+          </button>
+          <button
+            type="button"
+            onClick={() => toast('Neural history stream is coming soon')}
+            className="px-8 py-2.5 text-xs font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors"
+          >
+            Neural History
+          </button>
         </div>
       </div>
 
@@ -105,11 +118,19 @@ const AIInsights = () => {
               </p>
               
               <div className="flex flex-wrap gap-4">
-                <button className="bg-white text-[#0f172a] px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-100 transition-all flex items-center space-x-3 group/btn active:scale-[0.98]">
+                <button
+                  type="button"
+                  onClick={() => toast.success('Expansion plan created in draft mode')}
+                  className="bg-white text-[#0f172a] px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-100 transition-all flex items-center space-x-3 group/btn active:scale-[0.98]"
+                >
                   <span>Initiate Expansion Plan</span>
                   <ArrowRight size={18} strokeWidth={3} className="group-hover/btn:translate-x-1.5 transition-transform" />
                 </button>
-                <button className="bg-white/5 border border-white/10 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white/10 transition-all">
+                <button
+                  type="button"
+                  onClick={() => toast('Neural raw feed export is not available yet')}
+                  className="bg-white/5 border border-white/10 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white/10 transition-all"
+                >
                   Neural Raw Feed
                 </button>
               </div>
@@ -182,7 +203,11 @@ const AIInsights = () => {
                     <span className="text-[8px] font-black uppercase tracking-widest text-blue-500 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">{item.type}</span>
                   </div>
                   <p className="text-[11px] font-semibold text-slate-400 leading-relaxed mb-5">{item.desc}</p>
-                  <button className="w-full py-3.5 rounded-xl border border-slate-100 bg-slate-50 text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 hover:bg-white hover:text-blue-600 hover:border-blue-100 hover:shadow-premium-md transition-all active:scale-[0.98]">
+                  <button
+                    type="button"
+                    onClick={() => toast.success(`${item.title} queued for execution`)}
+                    className="w-full py-3.5 rounded-xl border border-slate-100 bg-slate-50 text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 hover:bg-white hover:text-blue-600 hover:border-blue-100 hover:shadow-premium-md transition-all active:scale-[0.98]"
+                  >
                     Execute Node
                   </button>
                 </div>

@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Download, Eye } from 'lucide-react'
+import toast from 'react-hot-toast'
+import Modal from '../components/shared/Modal'
 import { useAuth } from '../context/useAuth'
 import { apiGet } from '../services/apiClient'
 
@@ -14,6 +16,37 @@ function formatCurrency(value) {
   return `₹${amount.toLocaleString('en-IN')}`
 }
 
+function downloadTextFile(fileName, content) {
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+  const objectUrl = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = objectUrl
+  anchor.download = fileName
+  document.body.appendChild(anchor)
+  anchor.click()
+  document.body.removeChild(anchor)
+  URL.revokeObjectURL(objectUrl)
+}
+
+function sanitizeFileName(value, fallback) {
+  const normalized = String(value || fallback).trim()
+  const cleaned = normalized.replace(/[^a-zA-Z0-9-_]+/g, '_')
+  return cleaned || fallback
+}
+
+function buildPayslipText(row) {
+  return [
+    'Payslip',
+    `Employee: ${row?.employee_name || 'N/A'}`,
+    `Role: ${row?.employee_role || 'N/A'}`,
+    `Month: ${row?.month || 'N/A'}`,
+    `Status: ${row?.status || 'N/A'}`,
+    `Base Salary: ${formatCurrency(row?.base_salary)}`,
+    `Deductions: ${formatCurrency(row?.deductions)}`,
+    `Net Pay: ${formatCurrency(row?.net_pay)}`,
+  ].join('\n')
+}
+
 function Payroll() {
   const { token } = useAuth()
   const [summary, setSummary] = useState({ total_payroll: 0, paid: 0, pending: 0 })
@@ -21,6 +54,7 @@ function Payroll() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [refreshIndex, setRefreshIndex] = useState(0)
+  const [viewingRow, setViewingRow] = useState(null)
 
   useEffect(() => {
     let isActive = true
@@ -98,6 +132,20 @@ function Payroll() {
     [summary.pending, summary.paid, summary.total_payroll],
   )
 
+  const closePayslipModal = () => {
+    setViewingRow(null)
+  }
+
+  const handleViewPayslip = (row) => {
+    setViewingRow(row)
+  }
+
+  const handleDownloadPayslip = (row) => {
+    const fileName = `${sanitizeFileName(row?.employee_name, 'employee')}_${sanitizeFileName(row?.month, 'payslip')}.txt`
+    downloadTextFile(fileName, buildPayslipText(row))
+    toast.success(`Downloaded payslip for ${row?.employee_name || 'employee'}`)
+  }
+
   return (
     <section className="space-y-6">
       <header>
@@ -167,6 +215,7 @@ function Payroll() {
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
+                        onClick={() => handleViewPayslip(row)}
                         aria-label={`View ${row.employee_name}`}
                         className="rounded-md p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
                       >
@@ -175,6 +224,7 @@ function Payroll() {
 
                       <button
                         type="button"
+                        onClick={() => handleDownloadPayslip(row)}
                         aria-label={`Download payslip for ${row.employee_name}`}
                         className="rounded-md p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
                       >
@@ -192,6 +242,60 @@ function Payroll() {
           <div className="px-6 py-10 text-center text-sm text-gray-500">No payroll records found.</div>
         ) : null}
       </div>
+
+      <Modal
+        isOpen={Boolean(viewingRow)}
+        onClose={closePayslipModal}
+        title={`Payslip · ${viewingRow?.employee_name || ''}`}
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
+              <p className="text-gray-500">Employee</p>
+              <p className="mt-1 font-semibold text-gray-900">{viewingRow?.employee_name || 'N/A'}</p>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
+              <p className="text-gray-500">Role</p>
+              <p className="mt-1 font-semibold text-gray-900">{viewingRow?.employee_role || 'N/A'}</p>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
+              <p className="text-gray-500">Month</p>
+              <p className="mt-1 font-semibold text-gray-900">{viewingRow?.month || 'N/A'}</p>
+            </div>
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
+              <p className="text-gray-500">Status</p>
+              <p className="mt-1 font-semibold text-gray-900">{viewingRow?.status || 'N/A'}</p>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-gray-200 bg-white p-4">
+            <div className="space-y-2 text-sm text-gray-700">
+              <div className="flex items-center justify-between">
+                <span>Base Salary</span>
+                <span className="font-medium text-gray-900">{formatCurrency(viewingRow?.base_salary)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Deductions</span>
+                <span className="font-medium text-red-500">{formatCurrency(viewingRow?.deductions)}</span>
+              </div>
+              <div className="flex items-center justify-between border-t border-gray-200 pt-2">
+                <span className="font-semibold text-gray-900">Net Pay</span>
+                <span className="font-semibold text-gray-900">{formatCurrency(viewingRow?.net_pay)}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={closePayslipModal}
+              className="rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </Modal>
     </section>
   )
 }

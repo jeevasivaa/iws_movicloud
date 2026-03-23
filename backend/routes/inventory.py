@@ -9,6 +9,7 @@ from utils.helpers import normalize_iso_date, parse_object_id, to_int
 inventory_bp = Blueprint("inventory", __name__)
 db = get_db()
 inventory_collection = db["inventory"]
+settings_collection = db["settings"]
 
 
 def _serialize_item(item):
@@ -18,6 +19,20 @@ def _serialize_item(item):
 
 def _validate_status(status):
     return status in {"Adequate", "Low", "Critical"}
+
+
+def _read_low_stock_threshold(default: int = 100) -> int:
+    row = settings_collection.find_one({"key": "low_stock_threshold"})
+    if not row:
+        return default
+
+    value = row.get("value")
+    try:
+        parsed = int(round(float(value)))
+    except (TypeError, ValueError):
+        return default
+
+    return max(0, parsed)
 
 
 @inventory_bp.route("", methods=["GET"])
@@ -30,15 +45,21 @@ def get_inventory_items():
 @inventory_bp.route("/kpis", methods=["GET"])
 @admin_required
 def get_inventory_kpis():
+    threshold = _read_low_stock_threshold()
+    critical_threshold = max(0, int(round(threshold * 0.2)))
+
     total_items = inventory_collection.count_documents({})
-    low_stock_items = inventory_collection.count_documents({"status": "Low"})
-    critical_items = inventory_collection.count_documents({"status": "Critical"})
+    low_stock_items = inventory_collection.count_documents(
+        {"current_stock": {"$gt": critical_threshold, "$lte": threshold}}
+    )
+    critical_items = inventory_collection.count_documents({"current_stock": {"$lte": critical_threshold}})
 
     return jsonify(
         {
             "total_items": total_items,
             "low_stock_items": low_stock_items,
             "critical_items": critical_items,
+            "low_stock_threshold": threshold,
         }
     ), 200
 
@@ -53,7 +74,6 @@ def create_inventory_item():
         "warehouse_location",
         "current_stock",
         "max_capacity",
-        "expiry_date",
         "status",
     ]
     missing_fields = [field for field in required_fields if data.get(field) in [None, ""]]
@@ -70,7 +90,7 @@ def create_inventory_item():
         "warehouse_location": str(data.get("warehouse_location")).strip(),
         "current_stock": to_int(data.get("current_stock")),
         "max_capacity": to_int(data.get("max_capacity")),
-        "expiry_date": normalize_iso_date(data.get("expiry_date")),
+        "expiry_date": normalize_iso_date(data.get("expiry_date")) if data.get("expiry_date") else None,
         "status": status,
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow(),
@@ -117,6 +137,54 @@ def update_inventory_item(id):
     result = inventory_collection.update_one({"_id": object_id}, {"$set": update_fields})
     if result.matched_count == 0:
         return jsonify({"msg": "Inventory item not found"}), 404
+
+    updated = inventory_collection.find_one({"_id": object_id})
+    return jsonify(_serialize_item(updated)), 200
+
+
+@inventory_bp.route("/<id>/stock", methods=["PATCH"])
+@admin_required
+def patch_inventory_stock(id):
+    object_id = parse_object_id(id)
+    if not object_id:
+        return jsonify({"msg": "Invalid inventory id"}), 400
+
+    data = request.get_json() or {}
+    if "delta" not in data:
+        return jsonify({"msg": "delta is required"}), 400
+
+    delta = to_int(data.get("delta"), 0)
+    if delta == 0:
+        return jsonify({"msg": "delta must be a non-zero integer"}), 400
+
+    existing = inventory_collection.find_one({"_id": object_id})
+    if not existing:
+        return jsonify({"msg": "Inventory item not found"}), 404
+
+    current_stock = max(0, to_int(existing.get("current_stock"), 0) + delta)
+    max_capacity = max(0, to_int(existing.get("max_capacity"), 0))
+
+    if max_capacity <= 0:
+        status = "Critical" if current_stock == 0 else "Adequate"
+    else:
+        ratio = current_stock / max_capacity
+        if ratio <= 0.2:
+            status = "Critical"
+        elif ratio <= 0.5:
+            status = "Low"
+        else:
+            status = "Adequate"
+
+    inventory_collection.update_one(
+        {"_id": object_id},
+        {
+            "$set": {
+                "current_stock": current_stock,
+                "status": status,
+                "updated_at": datetime.utcnow(),
+            }
+        },
+    )
 
     updated = inventory_collection.find_one({"_id": object_id})
     return jsonify(_serialize_item(updated)), 200

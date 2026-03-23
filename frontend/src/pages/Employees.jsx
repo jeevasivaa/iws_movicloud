@@ -1,7 +1,20 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Mail, Phone, Plus, Search } from 'lucide-react'
+import toast from 'react-hot-toast'
+import Modal from '../components/shared/Modal'
 import { useAuth } from '../context/useAuth'
-import { apiGet } from '../services/apiClient'
+import apiClient, { getErrorMessage } from '../services/apiClient'
+
+const ROLE_OPTIONS = ['admin', 'manager', 'staff', 'finance']
+const STATUS_OPTIONS = ['Active', 'On Leave', 'Inactive']
+
+const EMPTY_STAFF_FORM = {
+  name: '',
+  email: '',
+  role: ROLE_OPTIONS[2],
+  department: '',
+  status: STATUS_OPTIONS[0],
+}
 
 function getStatusClasses(status) {
   if (status === 'Active') return 'bg-green-100 text-green-700'
@@ -41,65 +54,108 @@ function getAvatarColor(name) {
 function Employees() {
   const { token } = useAuth()
   const [query, setQuery] = useState('')
-  const [rows, setRows] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [staff, setStaff] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [staffForm, setStaffForm] = useState(EMPTY_STAFF_FORM)
   const [error, setError] = useState('')
-  const [refreshIndex, setRefreshIndex] = useState(0)
+  const authConfig = useMemo(() => (token ? { headers: { Authorization: `Bearer ${token}` } } : {}), [token])
 
-  useEffect(() => {
-    let isActive = true
-    const controller = new AbortController()
-
-    const loadStaff = async () => {
+  const fetchStaff = useCallback(
+    async (signal) => {
       if (!token) {
-        if (isActive) {
-          setRows([])
-          setError('Authentication token missing. Please sign in again.')
-          setLoading(false)
-        }
+        setStaff([])
+        setError('Authentication token missing. Please sign in again.')
+        setIsLoading(false)
         return
       }
 
       try {
-        if (isActive) {
-          setLoading(true)
-          setError('')
-        }
+        setIsLoading(true)
+        setError('')
 
-        const response = await apiGet('/api/staff', token, { signal: controller.signal })
-        if (isActive) {
-          setRows(Array.isArray(response) ? response : [])
-        }
+        const response = await apiClient.get('/api/staff', { ...authConfig, signal })
+        setStaff(Array.isArray(response.data) ? response.data : [])
       } catch (err) {
-        if (controller.signal.aborted || !isActive) return
-        setRows([])
-        setError(err.message || 'Failed to load staff members')
-      } finally {
-        if (isActive) {
-          setLoading(false)
+        if (signal?.aborted) {
+          return
         }
+        setStaff([])
+        setError(getErrorMessage(err, 'Failed to load staff members'))
+      } finally {
+        setIsLoading(false)
       }
-    }
+    },
+    [authConfig, token],
+  )
 
-    loadStaff()
+  useEffect(() => {
+    const controller = new AbortController()
+    fetchStaff(controller.signal)
 
     return () => {
-      isActive = false
       controller.abort()
     }
-  }, [token, refreshIndex])
+  }, [fetchStaff])
 
   const filteredRows = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
 
     if (!normalizedQuery) {
-      return rows
+      return staff
     }
 
-    return rows.filter((row) =>
+    return staff.filter((row) =>
       [row.name, row.role, row.department, row.email, row.status].join(' ').toLowerCase().includes(normalizedQuery),
     )
-  }, [query, rows])
+  }, [query, staff])
+
+  const openAddModal = () => {
+    setStaffForm(EMPTY_STAFF_FORM)
+    setIsAddModalOpen(true)
+  }
+
+  const closeAddModal = () => {
+    setIsAddModalOpen(false)
+    setStaffForm(EMPTY_STAFF_FORM)
+  }
+
+  const handleStaffField = (field, value) => {
+    setStaffForm((current) => ({
+      ...current,
+      [field]: value,
+    }))
+  }
+
+  const handleCreateStaff = async (event) => {
+    event.preventDefault()
+
+    const payload = {
+      name: staffForm.name.trim(),
+      email: staffForm.email.trim().toLowerCase(),
+      role: staffForm.role,
+      department: staffForm.department.trim(),
+      status: staffForm.status,
+    }
+
+    if (!payload.name || !payload.email || !payload.department || !payload.role || !payload.status) {
+      toast.error('Please fill all required fields')
+      return
+    }
+
+    try {
+      setIsSaving(true)
+      await apiClient.post('/api/staff', payload, authConfig)
+      toast.success('Staff member added successfully')
+      closeAddModal()
+      fetchStaff()
+    } catch (err) {
+      toast.error(getErrorMessage(err, 'Failed to add staff member'))
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   return (
     <section className="space-y-6">
@@ -111,6 +167,7 @@ function Employees() {
 
         <button
           type="button"
+          onClick={openAddModal}
           className="inline-flex items-center justify-center gap-2 rounded-md bg-emerald-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-600"
         >
           <Plus size={16} />
@@ -123,7 +180,7 @@ function Employees() {
           <span>{error}</span>
           <button
             type="button"
-            onClick={() => setRefreshIndex((value) => value + 1)}
+            onClick={() => fetchStaff()}
             className="rounded-md border border-red-200 bg-white px-3 py-1 font-medium text-red-700 transition-colors hover:bg-red-100"
           >
             Retry
@@ -143,7 +200,7 @@ function Employees() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {loading ? (
+        {isLoading ? (
           <div className="rounded-xl border border-gray-200 bg-white px-6 py-10 text-center text-sm text-gray-500 shadow-sm md:col-span-2 xl:col-span-3">
             Loading staff members...
           </div>
@@ -186,11 +243,112 @@ function Employees() {
         )}
       </div>
 
-      {!loading && filteredRows.length === 0 ? (
+      {!isLoading && filteredRows.length === 0 ? (
         <div className="rounded-xl border border-gray-200 bg-white px-6 py-10 text-center text-sm text-gray-500 shadow-sm">
           No staff members found for this search.
         </div>
       ) : null}
+
+      <Modal isOpen={isAddModalOpen} onClose={closeAddModal} title="Add Employee">
+        <form onSubmit={handleCreateStaff} className="space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="staff-name" className="text-sm font-medium text-gray-700">
+              Name
+            </label>
+            <input
+              id="staff-name"
+              type="text"
+              value={staffForm.name}
+              onChange={(event) => handleStaffField('name', event.target.value)}
+              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="staff-email" className="text-sm font-medium text-gray-700">
+              Email
+            </label>
+            <input
+              id="staff-email"
+              type="email"
+              value={staffForm.email}
+              onChange={(event) => handleStaffField('email', event.target.value)}
+              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <label htmlFor="staff-role" className="text-sm font-medium text-gray-700">
+                Role
+              </label>
+              <select
+                id="staff-role"
+                value={staffForm.role}
+                onChange={(event) => handleStaffField('role', event.target.value)}
+                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              >
+                {ROLE_OPTIONS.map((role) => (
+                  <option key={role} value={role}>
+                    {role}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="staff-status" className="text-sm font-medium text-gray-700">
+                Status
+              </label>
+              <select
+                id="staff-status"
+                value={staffForm.status}
+                onChange={(event) => handleStaffField('status', event.target.value)}
+                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              >
+                {STATUS_OPTIONS.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="staff-department" className="text-sm font-medium text-gray-700">
+              Department
+            </label>
+            <input
+              id="staff-department"
+              type="text"
+              value={staffForm.department}
+              onChange={(event) => handleStaffField('department', event.target.value)}
+              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              required
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-1">
+            <button
+              type="button"
+              onClick={closeAddModal}
+              className="rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="rounded-md bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {isSaving ? 'Saving...' : 'Save Employee'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </section>
   )
 }

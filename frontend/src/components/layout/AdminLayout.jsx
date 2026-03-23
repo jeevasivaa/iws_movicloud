@@ -172,6 +172,7 @@ function AdminLayout({ children }) {
               <button
                 className="relative rounded-md p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
                 type="button"
+                onClick={() => navigate('/notifications')}
                 aria-label="Notifications"
               >
                 <Bell size={20} />

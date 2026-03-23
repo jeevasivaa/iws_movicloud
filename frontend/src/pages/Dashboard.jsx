@@ -21,6 +21,9 @@ import {
   Pie,
   Cell,
 } from 'recharts'
+import { useNavigate } from 'react-router-dom'
+import toast from 'react-hot-toast'
+import Modal from '../components/shared/Modal'
 import { useAuth } from '../context/useAuth'
 import { apiGet } from '../services/apiClient'
 
@@ -39,12 +42,14 @@ function getOrderStatusClass(status) {
 }
 
 function Dashboard() {
+  const navigate = useNavigate()
   const { user, token } = useAuth()
   const [summary, setSummary] = useState({
     total_revenue: 0,
     total_orders: 0,
     active_staff: 0,
     low_stock_alerts: 0,
+    low_stock_threshold: 100,
   })
   const [orders, setOrders] = useState([])
   const [salesData, setSalesData] = useState([])
@@ -53,6 +58,8 @@ function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [refreshIndex, setRefreshIndex] = useState(0)
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false)
+  const [isQuickActionModalOpen, setIsQuickActionModalOpen] = useState(false)
 
   const loadClientsMap = useCallback(async (signal) => {
     try {
@@ -112,6 +119,7 @@ function Dashboard() {
           total_orders: Number(dashboardSummaryResponse?.total_orders) || 0,
           active_staff: Number(dashboardSummaryResponse?.active_staff) || 0,
           low_stock_alerts: Number(dashboardSummaryResponse?.low_stock_alerts) || 0,
+          low_stock_threshold: Number(dashboardSummaryResponse?.low_stock_threshold) || 100,
         })
 
         setOrders(
@@ -151,7 +159,7 @@ function Dashboard() {
         setInventoryData(pieRows)
       } catch (err) {
         if (controller.signal.aborted || !isActive) return
-        setSummary({ total_revenue: 0, total_orders: 0, active_staff: 0, low_stock_alerts: 0 })
+        setSummary({ total_revenue: 0, total_orders: 0, active_staff: 0, low_stock_alerts: 0, low_stock_threshold: 100 })
         setOrders([])
         setSalesData([])
         setProductionData([])
@@ -201,14 +209,27 @@ function Dashboard() {
       {
         title: 'Low Stock Items',
         value: String(summary.low_stock_alerts),
-        subtitle: 'Needs attention',
+        subtitle: `Threshold ≤ ${Number(summary.low_stock_threshold || 0).toLocaleString('en-IN')} units`,
         subtitleClass: 'text-rose-500',
         Icon: TriangleAlert,
         iconWrap: 'bg-orange-50 text-orange-500',
       },
     ],
-    [orders, summary.active_staff, summary.low_stock_alerts, summary.total_orders, summary.total_revenue],
+    [orders, summary.active_staff, summary.low_stock_alerts, summary.low_stock_threshold, summary.total_orders, summary.total_revenue],
   )
+
+  const quickActions = [
+    { label: 'New Product', path: '/products', message: 'Opening Products' },
+    { label: 'Create Invoice', path: '/billing', message: 'Opening Billing' },
+    { label: 'Add Stock', path: '/inventory', message: 'Opening Inventory' },
+    { label: 'Update Orders', path: '/orders', message: 'Opening Orders' },
+  ]
+
+  const handleQuickActionNavigate = (action) => {
+    setIsQuickActionModalOpen(false)
+    navigate(action.path)
+    toast.success(action.message)
+  }
 
   const recentOrders = useMemo(
     () =>
@@ -251,11 +272,19 @@ function Dashboard() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <button className="inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-lg font-semibold text-slate-700 transition-colors hover:bg-slate-50">
+          <button
+            type="button"
+            onClick={() => setIsScheduleModalOpen(true)}
+            className="inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-lg font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+          >
             <Clock3 size={20} />
             View Schedule
           </button>
-          <button className="inline-flex items-center gap-3 rounded-2xl bg-[#3fa874] px-5 py-2.5 text-lg font-semibold text-white transition-colors hover:bg-[#348f62]">
+          <button
+            type="button"
+            onClick={() => setIsQuickActionModalOpen(true)}
+            className="inline-flex items-center gap-3 rounded-2xl bg-[#3fa874] px-5 py-2.5 text-lg font-semibold text-white transition-colors hover:bg-[#348f62]"
+          >
             <Plus size={20} />
             Quick Action
           </button>
@@ -373,7 +402,11 @@ function Dashboard() {
         <article className="vsa-card min-w-0 rounded-2xl border border-slate-200 bg-white p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-3xl leading-none font-semibold text-slate-800">Recent Orders</h2>
-            <button className="text-xl leading-none font-medium text-[#34a56f] transition-colors hover:text-[#2a8a5c]">
+            <button
+              type="button"
+              onClick={() => navigate('/orders')}
+              className="text-xl leading-none font-medium text-[#34a56f] transition-colors hover:text-[#2a8a5c]"
+            >
               View All
             </button>
           </div>
@@ -469,6 +502,60 @@ function Dashboard() {
           </ul>
         </article>
       </section>
+
+      <Modal
+        isOpen={isScheduleModalOpen}
+        onClose={() => setIsScheduleModalOpen(false)}
+        title="Today's Schedule"
+      >
+        <div className="space-y-3">
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+            <p className="text-sm text-gray-500">09:00 AM</p>
+            <p className="mt-1 font-medium text-gray-900">Production stand-up with operations team</p>
+          </div>
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+            <p className="text-sm text-gray-500">11:30 AM</p>
+            <p className="mt-1 font-medium text-gray-900">Warehouse stock review and approvals</p>
+          </div>
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+            <p className="text-sm text-gray-500">03:00 PM</p>
+            <p className="mt-1 font-medium text-gray-900">Supplier coordination call</p>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => {
+                setIsScheduleModalOpen(false)
+                navigate('/production-control')
+                toast.success('Opening Production Control')
+              }}
+              className="rounded-md bg-emerald-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-600"
+            >
+              Open Schedule Board
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isQuickActionModalOpen}
+        onClose={() => setIsQuickActionModalOpen(false)}
+        title="Quick Actions"
+      >
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {quickActions.map((action) => (
+            <button
+              key={action.label}
+              type="button"
+              onClick={() => handleQuickActionNavigate(action)}
+              className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-left text-sm font-semibold text-gray-800 transition-colors hover:border-emerald-300 hover:bg-emerald-50"
+            >
+              {action.label}
+            </button>
+          ))}
+        </div>
+      </Modal>
     </div>
   )
 }

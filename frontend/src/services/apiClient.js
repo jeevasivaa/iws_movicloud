@@ -1,40 +1,55 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
+import axios from 'axios'
 
-function toAbsoluteUrl(path) {
-  if (typeof path !== 'string' || !path.trim()) {
-    throw new Error('API path is required')
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
+
+const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 30000,
+})
+
+apiClient.interceptors.request.use((config) => {
+  const nextConfig = { ...config }
+  if (!nextConfig.headers) {
+    nextConfig.headers = {}
   }
 
-  if (/^https?:\/\//i.test(path)) {
-    return path
-  }
-
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`
-  return `${API_BASE_URL}${normalizedPath}`
-}
-
-async function parseResponse(response) {
-  const rawBody = await response.text()
-  let parsedBody = null
-
-  if (rawBody) {
+  const storage = window.localStorage.getItem('iws_auth_session')
+  if (storage) {
     try {
-      parsedBody = JSON.parse(rawBody)
+      const parsed = JSON.parse(storage)
+      const token = parsed?.token
+      if (typeof token === 'string' && token.trim()) {
+        nextConfig.headers.Authorization = `Bearer ${token.trim()}`
+      }
     } catch {
-      parsedBody = rawBody
+      // Ignore malformed local storage value.
     }
   }
 
-  if (!response.ok) {
-    const apiMessage =
-      parsedBody && typeof parsedBody === 'object'
-        ? parsedBody.msg || parsedBody.message
-        : null
+  return nextConfig
+})
 
-    throw new Error(apiMessage || `Request failed with status ${response.status}`)
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error?.response?.status === 401) {
+      window.localStorage.removeItem('iws_auth_session')
+    }
+    return Promise.reject(error)
+  },
+)
+
+export function getErrorMessage(error, fallback = 'Something went wrong') {
+  const serverMsg = error?.response?.data?.msg || error?.response?.data?.message
+  if (typeof serverMsg === 'string' && serverMsg.trim()) {
+    return serverMsg
   }
 
-  return parsedBody
+  if (typeof error?.message === 'string' && error.message.trim()) {
+    return error.message
+  }
+
+  return fallback
 }
 
 export async function apiRequest(path, options = {}) {
@@ -47,23 +62,19 @@ export async function apiRequest(path, options = {}) {
   } = options
 
   const requestHeaders = { ...headers }
-
   if (token) {
     requestHeaders.Authorization = `Bearer ${token}`
   }
 
-  if (body !== undefined) {
-    requestHeaders['Content-Type'] = 'application/json'
-  }
-
-  const response = await fetch(toAbsoluteUrl(path), {
+  const response = await apiClient.request({
+    url: path,
     method,
+    data: body,
     headers: requestHeaders,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
     signal,
   })
 
-  return parseResponse(response)
+  return response.data
 }
 
 export function apiGet(path, token, options = {}) {
@@ -81,3 +92,5 @@ export function apiPut(path, body, token, options = {}) {
 export function apiDelete(path, token, options = {}) {
   return apiRequest(path, { ...options, method: 'DELETE', token })
 }
+
+export default apiClient
