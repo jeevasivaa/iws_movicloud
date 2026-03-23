@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
-import { ROLE_LOGIN_OPTIONS } from '../services/authService'
+import { ROLE_LOGIN_OPTIONS, login as loginRequest } from '../services/authService'
 import { HOME_BY_ROLE } from '../constants/roles'
 import heroImage from '../assets/hero.png'
 
@@ -11,7 +11,7 @@ function AuthFlow() {
 
   const [role, setRole] = useState(ROLE_LOGIN_OPTIONS[0].role)
   const [email, setEmail] = useState(ROLE_LOGIN_OPTIONS[0].defaultEmail)
-  const [password, setPassword] = useState('Password@123')
+  const [password, setPassword] = useState('password123')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [keepSignedIn, setKeepSignedIn] = useState(true)
@@ -42,7 +42,8 @@ function AuthFlow() {
     setError('')
 
     try {
-      await login({ name: selectedRole.label, email, role }, 'mock-token')
+      const response = await loginRequest(email, password, role)
+      login(response.user, response.token)
       navigate(HOME_BY_ROLE[role] || '/dashboard', { replace: true })
     } catch (err) {
       setError(err?.message || 'Invalid credentials')

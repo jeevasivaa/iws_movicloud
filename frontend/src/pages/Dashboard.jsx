@@ -1,4 +1,4 @@
-import React from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Clock3,
   Plus,
@@ -22,100 +22,223 @@ import {
   Cell,
 } from 'recharts'
 import { useAuth } from '../context/useAuth'
+import { apiGet } from '../services/apiClient'
 
-const SALES_DATA = [
-  { name: 'Jan', value: 42000 },
-  { name: 'Feb', value: 38000 },
-  { name: 'Mar', value: 55000 },
-  { name: 'Apr', value: 47000 },
-  { name: 'May', value: 62000 },
-  { name: 'Jun', value: 58000 },
-]
+const COLORS = ['#3ca976', '#3f7fc3', '#c39d21', '#8f63b2']
 
-const PRODUCTION_DATA = [
-  { name: 'Mon', value: 120 },
-  { name: 'Tue', value: 145 },
-  { name: 'Wed', value: 133 },
-  { name: 'Thu', value: 159 },
-  { name: 'Fri', value: 142 },
-  { name: 'Sat', value: 95 },
-]
+function formatCurrency(value) {
+  const amount = Number(value) || 0
+  return `₹${amount.toLocaleString('en-IN')}`
+}
 
-const RECENT_ORDERS = [
-  {
-    id: 'ORD-2024-001',
-    client: 'FreshMart Stores',
-    status: 'Processing',
-    amount: '₹45,200',
-    statusClass: 'bg-[#f9f2dd] text-[#c79200]',
-  },
-  {
-    id: 'ORD-2024-002',
-    client: "Nature's Best Co.",
-    status: 'Shipped',
-    amount: '₹32,800',
-    statusClass: 'bg-[#e6f2fe] text-[#2f7dd8]',
-  },
-  {
-    id: 'ORD-2024-003',
-    client: 'Green Valley Foods',
-    status: 'Pending',
-    amount: '₹67,500',
-    statusClass: 'bg-[#fdeee6] text-[#e67c47]',
-  },
-  {
-    id: 'ORD-2024-004',
-    client: 'Organic Hub',
-    status: 'Delivered',
-    amount: '₹28,900',
-    statusClass: 'bg-[#e8f6ef] text-[#39a978]',
-  },
-]
+function getOrderStatusClass(status) {
+  if (status === 'Processing') return 'bg-[#f9f2dd] text-[#c79200]'
+  if (status === 'Shipped') return 'bg-[#e6f2fe] text-[#2f7dd8]'
+  if (status === 'Pending') return 'bg-[#fdeee6] text-[#e67c47]'
+  return 'bg-[#e8f6ef] text-[#39a978]'
+}
 
-const INVENTORY_DATA = [
-  { name: 'Cold Pressed Oils', value: 35, color: '#3ca976' },
-  { name: 'Essential Oils', value: 25, color: '#3f7fc3' },
-  { name: 'Raw Materials', value: 20, color: '#c39d21' },
-  { name: 'Packaging', value: 20, color: '#8f63b2' },
-]
+function Dashboard() {
+  const { user, token } = useAuth()
+  const [summary, setSummary] = useState({
+    total_revenue: 0,
+    total_orders: 0,
+    active_staff: 0,
+    low_stock_alerts: 0,
+  })
+  const [orders, setOrders] = useState([])
+  const [salesData, setSalesData] = useState([])
+  const [productionData, setProductionData] = useState([])
+  const [inventoryData, setInventoryData] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [refreshIndex, setRefreshIndex] = useState(0)
 
-const KPI_ITEMS = [
-  {
-    title: 'Total Revenue',
-    value: '₹3,02,000',
-    subtitle: '+12.5% from last month',
-    subtitleClass: 'text-emerald-600',
-    Icon: IndianRupee,
-    iconWrap: 'bg-emerald-50 text-emerald-500',
-  },
-  {
-    title: 'Active Orders',
-    value: '48',
-    subtitle: '+8 new today',
-    subtitleClass: 'text-emerald-600',
-    Icon: ShoppingCart,
-    iconWrap: 'bg-blue-50 text-blue-500',
-  },
-  {
-    title: 'Production Batches',
-    value: '12',
-    subtitle: '3 in progress',
-    subtitleClass: 'text-slate-500',
-    Icon: Factory,
-    iconWrap: 'bg-purple-50 text-purple-500',
-  },
-  {
-    title: 'Low Stock Items',
-    value: '7',
-    subtitle: 'Needs attention',
-    subtitleClass: 'text-rose-500',
-    Icon: TriangleAlert,
-    iconWrap: 'bg-orange-50 text-orange-500',
-  },
-]
+  const loadClientsMap = useCallback(async (signal) => {
+    try {
+      const clientsResponse = await apiGet('/api/marketing', token, { signal })
+      return new Map(
+        (Array.isArray(clientsResponse) ? clientsResponse : []).map((client) => [client._id, client.company_name]),
+      )
+    } catch {
+      return new Map()
+    }
+  }, [token])
 
-const Dashboard = () => {
-  const { user } = useAuth()
+  useEffect(() => {
+    let isActive = true
+    const controller = new AbortController()
+
+    const loadDashboard = async () => {
+      if (!token) {
+        if (isActive) {
+          setError('Authentication token missing. Please sign in again.')
+          setLoading(false)
+        }
+        return
+      }
+
+      try {
+        if (isActive) {
+          setLoading(true)
+          setError('')
+        }
+
+        const [
+          dashboardSummaryResponse,
+          ordersResponse,
+          salesReportResponse,
+          productionEfficiencyResponse,
+          inventoryResponse,
+          clientsMap,
+        ] = await Promise.all([
+          apiGet('/api/dashboard/summary', token, { signal: controller.signal }),
+          apiGet('/api/orders', token, { signal: controller.signal }),
+          apiGet('/api/reports/sales', token, { signal: controller.signal }),
+          apiGet('/api/reports/production-efficiency', token, { signal: controller.signal }),
+          apiGet('/api/inventory', token, { signal: controller.signal }),
+          loadClientsMap(controller.signal),
+        ])
+
+        if (!isActive) return
+
+        const orderRows = Array.isArray(ordersResponse) ? ordersResponse : []
+        const inventoryRows = Array.isArray(inventoryResponse) ? inventoryResponse : []
+        const salesRows = Array.isArray(salesReportResponse) ? salesReportResponse : []
+        const productionRows = Array.isArray(productionEfficiencyResponse) ? productionEfficiencyResponse : []
+
+        setSummary({
+          total_revenue: Number(dashboardSummaryResponse?.total_revenue) || 0,
+          total_orders: Number(dashboardSummaryResponse?.total_orders) || 0,
+          active_staff: Number(dashboardSummaryResponse?.active_staff) || 0,
+          low_stock_alerts: Number(dashboardSummaryResponse?.low_stock_alerts) || 0,
+        })
+
+        setOrders(
+          orderRows.map((order) => ({
+            ...order,
+            client_name: clientsMap.get(String(order.client_id)) || order.client_name || 'Client',
+          })),
+        )
+
+        setSalesData(
+          salesRows.map((row) => ({
+            name: row.month,
+            value: Number(row.sales) || 0,
+          })),
+        )
+
+        setProductionData(
+          productionRows.map((row) => ({
+            name: row.month,
+            value: Number(row.efficiency) || 0,
+          })),
+        )
+
+        const groupedInventory = inventoryRows.reduce((accumulator, row) => {
+          const key = row.type || 'Other'
+          accumulator[key] = (accumulator[key] || 0) + 1
+          return accumulator
+        }, {})
+
+        const totalInventoryItems = Object.values(groupedInventory).reduce((sum, count) => sum + count, 0)
+        const pieRows = Object.entries(groupedInventory).map(([name, count], index) => ({
+          name,
+          value: totalInventoryItems > 0 ? Math.round((count / totalInventoryItems) * 100) : 0,
+          color: COLORS[index % COLORS.length],
+        }))
+
+        setInventoryData(pieRows)
+      } catch (err) {
+        if (controller.signal.aborted || !isActive) return
+        setSummary({ total_revenue: 0, total_orders: 0, active_staff: 0, low_stock_alerts: 0 })
+        setOrders([])
+        setSalesData([])
+        setProductionData([])
+        setInventoryData([])
+        setError(err.message || 'Failed to load dashboard data')
+      } finally {
+        if (isActive) {
+          setLoading(false)
+        }
+      }
+    }
+
+    loadDashboard()
+
+    return () => {
+      isActive = false
+      controller.abort()
+    }
+  }, [token, refreshIndex, loadClientsMap])
+
+  const kpiItems = useMemo(
+    () => [
+      {
+        title: 'Total Revenue',
+        value: formatCurrency(summary.total_revenue),
+        subtitle: `${summary.total_orders} orders tracked`,
+        subtitleClass: 'text-emerald-600',
+        Icon: IndianRupee,
+        iconWrap: 'bg-emerald-50 text-emerald-500',
+      },
+      {
+        title: 'Active Orders',
+        value: String(summary.total_orders),
+        subtitle: `${orders.filter((order) => order.status === 'Processing').length} processing`,
+        subtitleClass: 'text-emerald-600',
+        Icon: ShoppingCart,
+        iconWrap: 'bg-blue-50 text-blue-500',
+      },
+      {
+        title: 'Active Staff',
+        value: String(summary.active_staff),
+        subtitle: 'Operational staff members',
+        subtitleClass: 'text-slate-500',
+        Icon: Factory,
+        iconWrap: 'bg-purple-50 text-purple-500',
+      },
+      {
+        title: 'Low Stock Items',
+        value: String(summary.low_stock_alerts),
+        subtitle: 'Needs attention',
+        subtitleClass: 'text-rose-500',
+        Icon: TriangleAlert,
+        iconWrap: 'bg-orange-50 text-orange-500',
+      },
+    ],
+    [orders, summary.active_staff, summary.low_stock_alerts, summary.total_orders, summary.total_revenue],
+  )
+
+  const recentOrders = useMemo(
+    () =>
+      orders
+        .slice(0, 5)
+        .map((order) => ({
+          id: order.order_id,
+          client: order.client_name || 'Client',
+          status: order.status,
+          amount: formatCurrency(order.total_amount),
+          statusClass: getOrderStatusClass(order.status),
+        })),
+    [orders],
+  )
+
+  const maxSales = useMemo(() => {
+    if (salesData.length === 0) return 0
+    return salesData.reduce((maxValue, item) => {
+      const value = Number(item.value) || 0
+      return Math.max(maxValue, value)
+    }, 0)
+  }, [salesData])
+
+  const maxProduction = useMemo(() => {
+    if (productionData.length === 0) return 0
+    return productionData.reduce((maxValue, item) => {
+      const value = Number(item.value) || 0
+      return Math.max(maxValue, value)
+    }, 0)
+  }, [productionData])
 
   return (
     <div className="space-y-7 animate-fade-in">
@@ -139,8 +262,21 @@ const Dashboard = () => {
         </div>
       </section>
 
+      {error ? (
+        <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => setRefreshIndex((value) => value + 1)}
+            className="rounded-md border border-red-200 bg-white px-3 py-1 font-medium text-red-700 transition-colors hover:bg-red-100"
+          >
+            Retry
+          </button>
+        </div>
+      ) : null}
+
       <section className="grid grid-cols-1 gap-5 xl:grid-cols-4">
-        {KPI_ITEMS.map((item) => (
+        {kpiItems.map((item) => (
           <article key={item.title} className="vsa-card rounded-2xl border border-slate-200 bg-white p-6">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -157,74 +293,84 @@ const Dashboard = () => {
       </section>
 
       <section className="grid grid-cols-1 gap-5 2xl:grid-cols-2">
-        <article className="vsa-card rounded-2xl border border-slate-200 bg-white p-6">
+        <article className="vsa-card min-w-0 rounded-2xl border border-slate-200 bg-white p-6">
           <h2 className="mb-5 text-3xl leading-none font-semibold text-slate-800">Monthly Sales</h2>
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={SALES_DATA}>
-                <CartesianGrid stroke="#e2e8f0" strokeDasharray="4 4" />
-                <XAxis
-                  dataKey="name"
-                  axisLine={{ stroke: '#94a3b8' }}
-                  tickLine={false}
-                  tick={{ fill: '#6b7280', fontSize: 14, fontWeight: 500 }}
-                />
-                <YAxis
-                  axisLine={{ stroke: '#94a3b8' }}
-                  tickLine={false}
-                  domain={[0, 80000]}
-                  ticks={[0, 20000, 40000, 60000, 80000]}
-                  tick={{ fill: '#6b7280', fontSize: 14, fontWeight: 500 }}
-                />
-                <Tooltip
-                  formatter={(value) => [`₹${Number(value).toLocaleString('en-IN')}`, 'Sales']}
-                  contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0' }}
-                />
-                <Bar dataKey="value" fill="#43a979" radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="h-[300px] w-full min-w-0">
+            {loading ? (
+              <div className="flex h-full items-center justify-center text-sm text-gray-500">Loading sales chart...</div>
+            ) : salesData.length === 0 ? (
+              <div className="flex h-full items-center justify-center text-sm text-gray-500">No sales data available.</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                <BarChart data={salesData}>
+                  <CartesianGrid stroke="#e2e8f0" strokeDasharray="4 4" />
+                  <XAxis
+                    dataKey="name"
+                    axisLine={{ stroke: '#94a3b8' }}
+                    tickLine={false}
+                    tick={{ fill: '#6b7280', fontSize: 14, fontWeight: 500 }}
+                  />
+                  <YAxis
+                    axisLine={{ stroke: '#94a3b8' }}
+                    tickLine={false}
+                    domain={[0, maxSales > 0 ? Math.ceil(maxSales / 10000) * 10000 : 100000]}
+                    tick={{ fill: '#6b7280', fontSize: 14, fontWeight: 500 }}
+                  />
+                  <Tooltip
+                    formatter={(value) => [`₹${Number(value).toLocaleString('en-IN')}`, 'Sales']}
+                    contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0' }}
+                  />
+                  <Bar dataKey="value" fill="#43a979" radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </article>
 
-        <article className="vsa-card rounded-2xl border border-slate-200 bg-white p-6">
-          <h2 className="mb-5 text-3xl leading-none font-semibold text-slate-800">Production Output</h2>
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={PRODUCTION_DATA}>
-                <CartesianGrid stroke="#e2e8f0" strokeDasharray="4 4" />
-                <XAxis
-                  dataKey="name"
-                  axisLine={{ stroke: '#94a3b8' }}
-                  tickLine={false}
-                  tick={{ fill: '#6b7280', fontSize: 14, fontWeight: 500 }}
-                />
-                <YAxis
-                  axisLine={{ stroke: '#94a3b8' }}
-                  tickLine={false}
-                  domain={[0, 160]}
-                  ticks={[0, 40, 80, 120, 160]}
-                  tick={{ fill: '#6b7280', fontSize: 14, fontWeight: 500 }}
-                />
-                <Tooltip
-                  formatter={(value) => [value, 'Units']}
-                  contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0' }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="value"
-                  stroke="#3f7fc3"
-                  strokeWidth={3}
-                  dot={{ r: 5, fill: '#3f7fc3' }}
-                  activeDot={{ r: 6 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+        <article className="vsa-card min-w-0 rounded-2xl border border-slate-200 bg-white p-6">
+          <h2 className="mb-5 text-3xl leading-none font-semibold text-slate-800">Production Efficiency</h2>
+          <div className="h-[300px] w-full min-w-0">
+            {loading ? (
+              <div className="flex h-full items-center justify-center text-sm text-gray-500">Loading production chart...</div>
+            ) : productionData.length === 0 ? (
+              <div className="flex h-full items-center justify-center text-sm text-gray-500">No production data available.</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                <LineChart data={productionData}>
+                  <CartesianGrid stroke="#e2e8f0" strokeDasharray="4 4" />
+                  <XAxis
+                    dataKey="name"
+                    axisLine={{ stroke: '#94a3b8' }}
+                    tickLine={false}
+                    tick={{ fill: '#6b7280', fontSize: 14, fontWeight: 500 }}
+                  />
+                  <YAxis
+                    axisLine={{ stroke: '#94a3b8' }}
+                    tickLine={false}
+                    domain={[0, maxProduction > 0 ? Math.max(100, Math.ceil(maxProduction / 10) * 10) : 100]}
+                    tick={{ fill: '#6b7280', fontSize: 14, fontWeight: 500 }}
+                  />
+                  <Tooltip
+                    formatter={(value) => [value, 'Efficiency %']}
+                    contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0' }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="value"
+                    stroke="#3f7fc3"
+                    strokeWidth={3}
+                    dot={{ r: 5, fill: '#3f7fc3' }}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </article>
       </section>
 
       <section className="grid grid-cols-1 xl:grid-cols-[1.95fr_1fr] gap-5">
-        <article className="vsa-card rounded-2xl border border-slate-200 bg-white p-6">
+        <article className="vsa-card min-w-0 rounded-2xl border border-slate-200 bg-white p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-3xl leading-none font-semibold text-slate-800">Recent Orders</h2>
             <button className="text-xl leading-none font-medium text-[#34a56f] transition-colors hover:text-[#2a8a5c]">
@@ -243,51 +389,71 @@ const Dashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {RECENT_ORDERS.map((order) => (
-                  <tr key={order.id} className="border-b border-slate-200 last:border-b-0">
-                    <td className="py-3 pr-4 text-[22px] font-medium text-slate-800">{order.id}</td>
-                    <td className="py-3 pr-4 text-[22px] font-medium text-slate-800">{order.client}</td>
-                    <td className="py-3 pr-4">
-                      <span className={`inline-flex rounded-full px-3 py-1 text-lg font-medium leading-none ${order.statusClass}`}>
-                        {order.status}
-                      </span>
+                {loading ? (
+                  <tr>
+                    <td className="py-8 text-center text-sm text-gray-500" colSpan={4}>
+                      Loading recent orders...
                     </td>
-                    <td className="py-3 text-right text-[22px] font-medium text-slate-800">{order.amount}</td>
                   </tr>
-                ))}
+                ) : recentOrders.length === 0 ? (
+                  <tr>
+                    <td className="py-8 text-center text-sm text-gray-500" colSpan={4}>
+                      No recent orders found.
+                    </td>
+                  </tr>
+                ) : (
+                  recentOrders.map((order) => (
+                    <tr key={order.id} className="border-b border-slate-200 last:border-b-0">
+                      <td className="py-3 pr-4 text-[22px] font-medium text-slate-800">{order.id}</td>
+                      <td className="py-3 pr-4 text-[22px] font-medium text-slate-800">{order.client}</td>
+                      <td className="py-3 pr-4">
+                        <span className={`inline-flex rounded-full px-3 py-1 text-lg font-medium leading-none ${order.statusClass}`}>
+                          {order.status}
+                        </span>
+                      </td>
+                      <td className="py-3 text-right text-[22px] font-medium text-slate-800">{order.amount}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
         </article>
 
-        <article className="vsa-card rounded-2xl border border-slate-200 bg-white p-6">
+        <article className="vsa-card min-w-0 rounded-2xl border border-slate-200 bg-white p-6">
           <h2 className="mb-3 text-3xl leading-none font-semibold text-slate-800">Inventory Breakdown</h2>
 
-          <div className="mx-auto h-[260px] w-[260px] max-w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={INVENTORY_DATA}
-                  dataKey="value"
-                  nameKey="name"
-                  innerRadius="60%"
-                  outerRadius="88%"
-                  paddingAngle={2}
-                  startAngle={90}
-                  endAngle={-270}
-                  stroke="#ffffff"
-                  strokeWidth={4}
-                >
-                  {INVENTORY_DATA.map((entry) => (
-                    <Cell key={entry.name} fill={entry.color} />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
+          <div className="mx-auto h-[260px] w-full max-w-[260px] min-w-0">
+            {loading ? (
+              <div className="flex h-full items-center justify-center text-sm text-gray-500">Loading inventory chart...</div>
+            ) : inventoryData.length === 0 ? (
+              <div className="flex h-full items-center justify-center text-sm text-gray-500">No inventory data available.</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                <PieChart>
+                  <Pie
+                    data={inventoryData}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius="60%"
+                    outerRadius="88%"
+                    paddingAngle={2}
+                    startAngle={90}
+                    endAngle={-270}
+                    stroke="#ffffff"
+                    strokeWidth={4}
+                  >
+                    {inventoryData.map((entry) => (
+                      <Cell key={entry.name} fill={entry.color} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </div>
 
           <ul className="space-y-2.5">
-            {INVENTORY_DATA.map((entry) => (
+            {inventoryData.map((entry) => (
               <li key={entry.name} className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <span

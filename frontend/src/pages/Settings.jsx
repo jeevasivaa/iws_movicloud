@@ -1,19 +1,108 @@
+import { useEffect, useMemo, useState } from 'react'
 import { Bell, Shield } from 'lucide-react'
+import { useAuth } from '../context/useAuth'
+import { apiGet, apiPut } from '../services/apiClient'
 
-const NOTIFICATION_TOGGLES = [
-  'Low stock alerts',
-  'Production updates',
-  'New order notifications',
-  'Payroll reminders',
+const NOTIFICATION_KEYS = [
+  { key: 'low_stock_alerts', label: 'Low stock alerts' },
+  { key: 'production_updates', label: 'Production updates' },
+  { key: 'new_order_notifications', label: 'New order notifications' },
+  { key: 'payroll_reminders', label: 'Payroll reminders' },
 ]
 
 function Settings() {
+  const { token, user } = useAuth()
+  const [settingsRows, setSettingsRows] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [refreshIndex, setRefreshIndex] = useState(0)
+
+  useEffect(() => {
+    let isActive = true
+    const controller = new AbortController()
+
+    const loadSettings = async () => {
+      if (!token) {
+        if (isActive) {
+          setSettingsRows([])
+          setError('Authentication token missing. Please sign in again.')
+          setLoading(false)
+        }
+        return
+      }
+
+      try {
+        if (isActive) {
+          setLoading(true)
+          setError('')
+        }
+
+        const response = await apiGet('/api/settings', token, { signal: controller.signal })
+        if (isActive) {
+          setSettingsRows(Array.isArray(response) ? response : [])
+        }
+      } catch (err) {
+        if (controller.signal.aborted || !isActive) return
+        setSettingsRows([])
+        setError(err.message || 'Failed to load settings')
+      } finally {
+        if (isActive) {
+          setLoading(false)
+        }
+      }
+    }
+
+    loadSettings()
+
+    return () => {
+      isActive = false
+      controller.abort()
+    }
+  }, [token, refreshIndex])
+
+  const settingsMap = useMemo(
+    () => new Map(settingsRows.map((settingRow) => [settingRow.key, settingRow.value])),
+    [settingsRows],
+  )
+
+  const handleToggle = async (settingKey, currentValue) => {
+    if (!token) {
+      setError('Authentication token missing. Please sign in again.')
+      return
+    }
+
+    try {
+      setSaving(true)
+      setError('')
+      await apiPut('/api/settings', { key: settingKey, value: !currentValue }, token)
+      setRefreshIndex((value) => value + 1)
+    } catch (err) {
+      setError(err.message || 'Failed to update setting')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
     <section className="space-y-6">
       <header>
         <h1 className="text-3xl font-semibold text-gray-900">Settings</h1>
         <p className="mt-1 text-base text-gray-500">Manage system configurations and preferences</p>
       </header>
+
+      {error ? (
+        <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => setRefreshIndex((value) => value + 1)}
+            className="rounded-md border border-red-200 bg-white px-3 py-1 font-medium text-red-700 transition-colors hover:bg-red-100"
+          >
+            Retry
+          </button>
+        </div>
+      ) : null}
 
       <article className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
         <div className="mb-6 flex items-center gap-2">
@@ -26,7 +115,7 @@ function Settings() {
             Full Name
             <input
               type="text"
-              value="Raj Kumar"
+              value={user?.name || 'Admin'}
               readOnly
               className="mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-gray-900"
             />
@@ -36,7 +125,7 @@ function Settings() {
             Email
             <input
               type="text"
-              value="admin@vsafoods.com"
+              value={user?.email || 'admin@vsafoods.com'}
               readOnly
               className="mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-gray-900"
             />
@@ -46,7 +135,7 @@ function Settings() {
             Role
             <input
               type="text"
-              value="Admin"
+              value={user?.role || 'admin'}
               readOnly
               className="mt-2 h-12 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 text-gray-500"
             />
@@ -60,21 +149,33 @@ function Settings() {
           <h2 className="text-2xl font-semibold text-gray-900">Notification Preferences</h2>
         </div>
 
-        <div className="space-y-4">
-          {NOTIFICATION_TOGGLES.map((item) => (
-            <div key={item} className="flex items-center justify-between gap-4">
-              <p className="text-xl text-gray-900">{item}</p>
+        {loading ? (
+          <div className="py-6 text-sm text-gray-500">Loading settings...</div>
+        ) : (
+          <div className="space-y-4">
+            {NOTIFICATION_KEYS.map((item) => {
+              const isEnabled = Boolean(settingsMap.get(item.key))
 
-              <button
-                type="button"
-                className="relative h-8 w-14 rounded-full bg-emerald-500 transition-colors"
-                aria-label={`${item} enabled`}
-              >
-                <span className="absolute right-1 top-1 h-6 w-6 rounded-full bg-white" />
-              </button>
-            </div>
-          ))}
-        </div>
+              return (
+                <div key={item.key} className="flex items-center justify-between gap-4">
+                  <p className="text-xl text-gray-900">{item.label}</p>
+
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={() => handleToggle(item.key, isEnabled)}
+                    className={`relative h-8 w-14 rounded-full transition-colors ${isEnabled ? 'bg-emerald-500' : 'bg-gray-300'} ${saving ? 'cursor-not-allowed opacity-70' : ''}`}
+                    aria-label={`${item.label} ${isEnabled ? 'enabled' : 'disabled'}`}
+                  >
+                    <span
+                      className={`absolute top-1 h-6 w-6 rounded-full bg-white transition-all ${isEnabled ? 'right-1' : 'left-1'}`}
+                    />
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </article>
     </section>
   )

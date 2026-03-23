@@ -1,53 +1,7 @@
+import { useEffect, useMemo, useState } from 'react'
 import { Download, Eye } from 'lucide-react'
-
-const PAYROLL_KPIS = [
-  { label: 'Total Payroll', value: '₹1,43,000', valueClass: 'text-gray-900' },
-  { label: 'Paid', value: '₹76,500', valueClass: 'text-emerald-600' },
-  { label: 'Pending', value: '₹52,200', valueClass: 'text-amber-600' },
-]
-
-const PAYROLL_ROWS = [
-  {
-    employee: 'Vikram Singh',
-    role: 'Production Lead',
-    baseSalary: 35000,
-    deductions: 3500,
-    netPay: 31500,
-    status: 'Paid',
-  },
-  {
-    employee: 'Anita Desai',
-    role: 'Quality Inspector',
-    baseSalary: 28000,
-    deductions: 2800,
-    netPay: 25200,
-    status: 'Paid',
-  },
-  {
-    employee: 'Ravi Kumar',
-    role: 'Warehouse Manager',
-    baseSalary: 32000,
-    deductions: 3200,
-    netPay: 28800,
-    status: 'Pending',
-  },
-  {
-    employee: 'Sunita Patel',
-    role: 'Machine Operator',
-    baseSalary: 22000,
-    deductions: 2200,
-    netPay: 19800,
-    status: 'Paid',
-  },
-  {
-    employee: 'Arun Mehta',
-    role: 'Packing Supervisor',
-    baseSalary: 26000,
-    deductions: 2600,
-    netPay: 23400,
-    status: 'Pending',
-  },
-]
+import { useAuth } from '../context/useAuth'
+import { apiGet } from '../services/apiClient'
 
 function getStatusClasses(status) {
   if (status === 'Paid') return 'bg-green-100 text-green-700'
@@ -55,7 +9,95 @@ function getStatusClasses(status) {
   return 'bg-red-100 text-red-700'
 }
 
+function formatCurrency(value) {
+  const amount = Number(value) || 0
+  return `₹${amount.toLocaleString('en-IN')}`
+}
+
 function Payroll() {
+  const { token } = useAuth()
+  const [summary, setSummary] = useState({ total_payroll: 0, paid: 0, pending: 0 })
+  const [rows, setRows] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [refreshIndex, setRefreshIndex] = useState(0)
+
+  useEffect(() => {
+    let isActive = true
+    const controller = new AbortController()
+
+    const loadPayroll = async () => {
+      if (!token) {
+        if (isActive) {
+          setRows([])
+          setError('Authentication token missing. Please sign in again.')
+          setLoading(false)
+        }
+        return
+      }
+
+      try {
+        if (isActive) {
+          setLoading(true)
+          setError('')
+        }
+
+        const [summaryResponse, payrollRowsResponse, staffResponse] = await Promise.all([
+          apiGet('/api/payroll/summary', token, { signal: controller.signal }),
+          apiGet('/api/payroll', token, { signal: controller.signal }),
+          apiGet('/api/staff', token, { signal: controller.signal }),
+        ])
+
+        if (!isActive) return
+
+        const staffMap = new Map(
+          (Array.isArray(staffResponse) ? staffResponse : []).map((staffMember) => [staffMember._id, staffMember]),
+        )
+
+        const mappedRows = (Array.isArray(payrollRowsResponse) ? payrollRowsResponse : []).map((row) => {
+          const staff = staffMap.get(String(row.staff_id))
+          return {
+            ...row,
+            employee_name: staff?.name || row.employee_name || 'Staff Member',
+            employee_role: staff?.role || row.employee_role || 'Employee',
+          }
+        })
+
+        setRows(mappedRows)
+        setSummary({
+          total_payroll: Number(summaryResponse?.total_payroll) || 0,
+          paid: Number(summaryResponse?.paid) || 0,
+          pending: Number(summaryResponse?.pending) || 0,
+        })
+      } catch (err) {
+        if (controller.signal.aborted || !isActive) return
+        setRows([])
+        setSummary({ total_payroll: 0, paid: 0, pending: 0 })
+        setError(err.message || 'Failed to load payroll data')
+      } finally {
+        if (isActive) {
+          setLoading(false)
+        }
+      }
+    }
+
+    loadPayroll()
+
+    return () => {
+      isActive = false
+      controller.abort()
+    }
+  }, [token, refreshIndex])
+
+  const payrollKpis = useMemo(
+    () => [
+      { label: 'Total Payroll', value: formatCurrency(summary.total_payroll), valueClass: 'text-gray-900' },
+      { label: 'Paid', value: formatCurrency(summary.paid), valueClass: 'text-emerald-600' },
+      { label: 'Pending', value: formatCurrency(summary.pending), valueClass: 'text-amber-600' },
+    ],
+    [summary.pending, summary.paid, summary.total_payroll],
+  )
+
   return (
     <section className="space-y-6">
       <header>
@@ -63,8 +105,21 @@ function Payroll() {
         <p className="mt-1 text-base text-gray-500">Manage employee salaries, deductions, and payslips</p>
       </header>
 
+      {error ? (
+        <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => setRefreshIndex((value) => value + 1)}
+            className="rounded-md border border-red-200 bg-white px-3 py-1 font-medium text-red-700 transition-colors hover:bg-red-100"
+          >
+            Retry
+          </button>
+        </div>
+      ) : null}
+
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        {PAYROLL_KPIS.map((kpi) => (
+        {payrollKpis.map((kpi) => (
           <article key={kpi.label} className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             <p className="text-sm text-gray-500">{kpi.label}</p>
             <p className={`mt-2 text-5xl font-semibold ${kpi.valueClass}`}>{kpi.value}</p>
@@ -87,43 +142,55 @@ function Payroll() {
           </thead>
 
           <tbody>
-            {PAYROLL_ROWS.map((row) => (
-              <tr key={row.employee} className="border-b border-gray-100 last:border-b-0">
-                <td className="px-6 py-5 text-sm font-medium text-gray-900">{row.employee}</td>
-                <td className="px-6 py-5 text-sm text-gray-500">{row.role}</td>
-                <td className="px-6 py-5 text-sm font-medium text-gray-900">₹{row.baseSalary.toLocaleString('en-IN')}</td>
-                <td className="px-6 py-5 text-sm font-medium text-red-500">₹{row.deductions.toLocaleString('en-IN')}</td>
-                <td className="px-6 py-5 text-sm font-medium text-gray-900">₹{row.netPay.toLocaleString('en-IN')}</td>
-
-                <td className="px-6 py-5">
-                  <span className={`inline-flex rounded-full px-3 py-1 text-sm font-medium ${getStatusClasses(row.status)}`}>
-                    {row.status}
-                  </span>
-                </td>
-
-                <td className="px-6 py-5">
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      aria-label={`View ${row.employee}`}
-                      className="rounded-md p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
-                    >
-                      <Eye size={17} />
-                    </button>
-
-                    <button
-                      type="button"
-                      aria-label={`Download payslip for ${row.employee}`}
-                      className="rounded-md p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
-                    >
-                      <Download size={17} />
-                    </button>
-                  </div>
+            {loading ? (
+              <tr>
+                <td className="px-6 py-10 text-center text-sm text-gray-500" colSpan={7}>
+                  Loading payroll records...
                 </td>
               </tr>
-            ))}
+            ) : (
+              rows.map((row) => (
+                <tr key={row._id || `${row.staff_id}-${row.month}`} className="border-b border-gray-100 last:border-b-0">
+                  <td className="px-6 py-5 text-sm font-medium text-gray-900">{row.employee_name}</td>
+                  <td className="px-6 py-5 text-sm text-gray-500">{row.employee_role}</td>
+                  <td className="px-6 py-5 text-sm font-medium text-gray-900">{formatCurrency(row.base_salary)}</td>
+                  <td className="px-6 py-5 text-sm font-medium text-red-500">{formatCurrency(row.deductions)}</td>
+                  <td className="px-6 py-5 text-sm font-medium text-gray-900">{formatCurrency(row.net_pay)}</td>
+
+                  <td className="px-6 py-5">
+                    <span className={`inline-flex rounded-full px-3 py-1 text-sm font-medium ${getStatusClasses(row.status)}`}>
+                      {row.status}
+                    </span>
+                  </td>
+
+                  <td className="px-6 py-5">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        aria-label={`View ${row.employee_name}`}
+                        className="rounded-md p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                      >
+                        <Eye size={17} />
+                      </button>
+
+                      <button
+                        type="button"
+                        aria-label={`Download payslip for ${row.employee_name}`}
+                        className="rounded-md p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                      >
+                        <Download size={17} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
+
+        {!loading && rows.length === 0 ? (
+          <div className="px-6 py-10 text-center text-sm text-gray-500">No payroll records found.</div>
+        ) : null}
       </div>
     </section>
   )

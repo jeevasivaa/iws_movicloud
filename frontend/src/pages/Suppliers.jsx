@@ -1,53 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Edit, Plus, Search, Star, Truck } from 'lucide-react'
-
-const SUPPLIER_ROWS = [
-  {
-    id: 'SUP-001',
-    name: 'AgroFresh Farms',
-    state: 'Tamil Nadu',
-    category: 'Coconut',
-    rating: 4.8,
-    orders: 156,
-    status: 'Active',
-  },
-  {
-    id: 'SUP-002',
-    name: 'Golden Seeds Corp',
-    state: 'Gujarat',
-    category: 'Groundnut',
-    rating: 4.5,
-    orders: 98,
-    status: 'Active',
-  },
-  {
-    id: 'SUP-003',
-    name: "Nature's Harvest",
-    state: 'Rajasthan',
-    category: 'Sesame',
-    rating: 4.2,
-    orders: 72,
-    status: 'Active',
-  },
-  {
-    id: 'SUP-004',
-    name: 'PackRight Solutions',
-    state: 'Maharashtra',
-    category: 'Packaging',
-    rating: 4.6,
-    orders: 45,
-    status: 'Under Review',
-  },
-  {
-    id: 'SUP-005',
-    name: 'PureSeed Traders',
-    state: 'Karnataka',
-    category: 'Flaxseed',
-    rating: 3.9,
-    orders: 34,
-    status: 'Inactive',
-  },
-]
+import { useAuth } from '../context/useAuth'
+import { apiGet } from '../services/apiClient'
 
 function getStatusClasses(status) {
   if (status === 'Active') return 'bg-green-100 text-green-700'
@@ -56,19 +10,67 @@ function getStatusClasses(status) {
 }
 
 function Suppliers() {
+  const { token } = useAuth()
   const [query, setQuery] = useState('')
+  const [rows, setRows] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [refreshIndex, setRefreshIndex] = useState(0)
+
+  useEffect(() => {
+    let isActive = true
+    const controller = new AbortController()
+
+    const loadSuppliers = async () => {
+      if (!token) {
+        if (isActive) {
+          setRows([])
+          setError('Authentication token missing. Please sign in again.')
+          setLoading(false)
+        }
+        return
+      }
+
+      try {
+        if (isActive) {
+          setLoading(true)
+          setError('')
+        }
+
+        const response = await apiGet('/api/suppliers', token, { signal: controller.signal })
+        if (isActive) {
+          setRows(Array.isArray(response) ? response : [])
+        }
+      } catch (err) {
+        if (controller.signal.aborted || !isActive) return
+        setRows([])
+        setError(err.message || 'Failed to load suppliers')
+      } finally {
+        if (isActive) {
+          setLoading(false)
+        }
+      }
+    }
+
+    loadSuppliers()
+
+    return () => {
+      isActive = false
+      controller.abort()
+    }
+  }, [token, refreshIndex])
 
   const filteredRows = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
 
     if (!normalizedQuery) {
-      return SUPPLIER_ROWS
+      return rows
     }
 
-    return SUPPLIER_ROWS.filter((row) =>
-      [row.name, row.state, row.category, row.status, row.id].join(' ').toLowerCase().includes(normalizedQuery),
+    return rows.filter((row) =>
+      [row.name, row.location, row.category_supplied, row.status].join(' ').toLowerCase().includes(normalizedQuery),
     )
-  }, [query])
+  }, [query, rows])
 
   return (
     <section className="space-y-6">
@@ -87,6 +89,19 @@ function Suppliers() {
         </button>
       </header>
 
+      {error ? (
+        <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => setRefreshIndex((value) => value + 1)}
+            className="rounded-md border border-red-200 bg-white px-3 py-1 font-medium text-red-700 transition-colors hover:bg-red-100"
+          >
+            Retry
+          </button>
+        </div>
+      ) : null}
+
       <div className="relative w-full max-w-xl">
         <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
         <input
@@ -99,8 +114,13 @@ function Suppliers() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {filteredRows.map((row) => (
-          <article key={row.id} className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        {loading ? (
+          <div className="rounded-xl border border-gray-200 bg-white px-6 py-10 text-center text-sm text-gray-500 shadow-sm md:col-span-2 xl:col-span-3">
+            Loading suppliers...
+          </div>
+        ) : (
+          filteredRows.map((row) => (
+          <article key={row._id || row.name} className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-4">
                 <div className="rounded-xl bg-blue-100 p-3 text-blue-700">
@@ -109,7 +129,7 @@ function Suppliers() {
 
                 <div>
                   <h2 className="text-xl font-semibold text-gray-900">{row.name}</h2>
-                  <p className="text-sm text-gray-500">{row.state}</p>
+                  <p className="text-sm text-gray-500">{row.location}</p>
                 </div>
               </div>
 
@@ -123,14 +143,14 @@ function Suppliers() {
             </div>
 
             <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-gray-500">
-              <span className="rounded-full bg-gray-100 px-3 py-1 text-gray-600">{row.category}</span>
+              <span className="rounded-full bg-gray-100 px-3 py-1 text-gray-600">{row.category_supplied}</span>
 
               <span className="inline-flex items-center gap-1">
                 <Star size={14} className="fill-amber-400 text-amber-400" />
-                {row.rating.toFixed(1)}
+                {(Number(row.rating) || 0).toFixed(1)}
               </span>
 
-              <span>{row.orders} orders</span>
+              <span>{(Number(row.total_orders) || 0).toLocaleString('en-IN')} orders</span>
             </div>
 
             <div className="mt-4">
@@ -139,10 +159,11 @@ function Suppliers() {
               </span>
             </div>
           </article>
-        ))}
+        ))
+        )}
       </div>
 
-      {filteredRows.length === 0 ? (
+      {!loading && filteredRows.length === 0 ? (
         <div className="rounded-xl border border-gray-200 bg-white px-6 py-10 text-center text-sm text-gray-500 shadow-sm">
           No suppliers found for this search.
         </div>

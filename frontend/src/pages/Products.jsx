@@ -1,40 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Edit, Package2, Plus, Search, Trash2 } from 'lucide-react'
-
-const PRODUCT_ROWS = [
-  {
-    product: 'Cold Pressed Coconut Oil',
-    sku: 'VSA-CO-001',
-    category: 'Cold Pressed Oils',
-    price: 450,
-    stock: 320,
-    status: 'Active',
-  },
-  {
-    product: 'Virgin Sesame Oil',
-    sku: 'VSA-SO-002',
-    category: 'Cold Pressed Oils',
-    price: 380,
-    stock: 180,
-    status: 'Active',
-  },
-  {
-    product: 'Organic Groundnut Oil',
-    sku: 'VSA-GO-003',
-    category: 'Cold Pressed Oils',
-    price: 320,
-    stock: 45,
-    status: 'Low Stock',
-  },
-  {
-    product: 'Flaxseed Oil',
-    sku: 'VSA-FL-004',
-    category: 'Essential Oils',
-    price: 620,
-    stock: 0,
-    status: 'Out of Stock',
-  },
-]
+import { useAuth } from '../context/useAuth'
+import { apiGet } from '../services/apiClient'
 
 function getStatusClasses(status) {
   if (status === 'Active') return 'bg-green-100 text-green-700'
@@ -42,20 +9,73 @@ function getStatusClasses(status) {
   return 'bg-red-100 text-red-700'
 }
 
+function formatCurrency(value) {
+  const amount = Number(value) || 0
+  return `₹${amount.toLocaleString('en-IN')}`
+}
+
 function Products() {
+  const { token } = useAuth()
   const [query, setQuery] = useState('')
+  const [rows, setRows] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [refreshIndex, setRefreshIndex] = useState(0)
+
+  useEffect(() => {
+    let isActive = true
+    const controller = new AbortController()
+
+    const loadProducts = async () => {
+      if (!token) {
+        if (isActive) {
+          setRows([])
+          setError('Authentication token missing. Please sign in again.')
+          setLoading(false)
+        }
+        return
+      }
+
+      try {
+        if (isActive) {
+          setLoading(true)
+          setError('')
+        }
+
+        const response = await apiGet('/api/products', token, { signal: controller.signal })
+        if (isActive) {
+          setRows(Array.isArray(response) ? response : [])
+        }
+      } catch (err) {
+        if (controller.signal.aborted || !isActive) return
+        setRows([])
+        setError(err.message || 'Failed to load products')
+      } finally {
+        if (isActive) {
+          setLoading(false)
+        }
+      }
+    }
+
+    loadProducts()
+
+    return () => {
+      isActive = false
+      controller.abort()
+    }
+  }, [token, refreshIndex])
 
   const filteredRows = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
 
     if (!normalizedQuery) {
-      return PRODUCT_ROWS
+      return rows
     }
 
-    return PRODUCT_ROWS.filter((row) =>
-      [row.product, row.sku, row.category, row.status].join(' ').toLowerCase().includes(normalizedQuery),
+    return rows.filter((row) =>
+      [row.name, row.sku, row.category, row.status].join(' ').toLowerCase().includes(normalizedQuery),
     )
-  }, [query])
+  }, [query, rows])
 
   return (
     <section className="space-y-6">
@@ -73,6 +93,19 @@ function Products() {
           Add Product
         </button>
       </header>
+
+      {error ? (
+        <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => setRefreshIndex((value) => value + 1)}
+            className="rounded-md border border-red-200 bg-white px-3 py-1 font-medium text-red-700 transition-colors hover:bg-red-100"
+          >
+            Retry
+          </button>
+        </div>
+      ) : null}
 
       <div className="relative w-full">
         <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
@@ -100,21 +133,28 @@ function Products() {
           </thead>
 
           <tbody>
-            {filteredRows.map((row) => (
-              <tr key={row.sku} className="border-b border-gray-100 last:border-b-0">
+            {loading ? (
+              <tr>
+                <td className="px-6 py-10 text-center text-sm text-gray-500" colSpan={7}>
+                  Loading products...
+                </td>
+              </tr>
+            ) : (
+              filteredRows.map((row) => (
+              <tr key={row._id || row.sku} className="border-b border-gray-100 last:border-b-0">
                 <td className="px-6 py-5">
                   <div className="flex items-center gap-3">
                     <div className="flex h-8 w-8 items-center justify-center rounded-md bg-emerald-100">
                       <Package2 size={15} className="text-emerald-700" />
                     </div>
-                    <span className="text-sm font-medium text-gray-900">{row.product}</span>
+                    <span className="text-sm font-medium text-gray-900">{row.name}</span>
                   </div>
                 </td>
 
                 <td className="px-6 py-5 text-sm text-gray-500">{row.sku}</td>
                 <td className="px-6 py-5 text-sm text-gray-900">{row.category}</td>
-                <td className="px-6 py-5 text-sm font-medium text-gray-900">₹{row.price.toLocaleString('en-IN')}</td>
-                <td className="px-6 py-5 text-sm text-gray-900">{row.stock.toLocaleString('en-IN')}</td>
+                <td className="px-6 py-5 text-sm font-medium text-gray-900">{formatCurrency(row.price)}</td>
+                <td className="px-6 py-5 text-sm text-gray-900">{(Number(row.stock) || 0).toLocaleString('en-IN')}</td>
 
                 <td className="px-6 py-5">
                   <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${getStatusClasses(row.status)}`}>
@@ -127,7 +167,7 @@ function Products() {
                     <button
                       type="button"
                       className="rounded-md p-1.5 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
-                      aria-label={`Edit ${row.product}`}
+                      aria-label={`Edit ${row.name}`}
                     >
                       <Edit size={16} />
                     </button>
@@ -135,18 +175,19 @@ function Products() {
                     <button
                       type="button"
                       className="rounded-md p-1.5 text-red-600 transition-colors hover:bg-red-50 hover:text-red-700"
-                      aria-label={`Delete ${row.product}`}
+                      aria-label={`Delete ${row.name}`}
                     >
                       <Trash2 size={16} />
                     </button>
                   </div>
                 </td>
               </tr>
-            ))}
+            ))
+            )}
           </tbody>
         </table>
 
-        {filteredRows.length === 0 ? (
+        {!loading && filteredRows.length === 0 ? (
           <div className="px-6 py-10 text-center text-sm text-gray-500">No products found for this search.</div>
         ) : null}
       </div>

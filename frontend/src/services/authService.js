@@ -1,109 +1,78 @@
-/**
- * Mock Authentication Service
- * Simulates async API calls for login and signup.
- */
 import { ROLE_LABELS, ROLES } from '../constants/roles'
-
-const MOCK_USERS = {
-  [ROLES.ADMIN]: {
-    id: 1,
-    name: 'Priya Nair',
-    email: 'admin@vsabeverages.com',
-    role: ROLES.ADMIN,
-  },
-  [ROLES.MANAGER]: {
-    id: 2,
-    name: 'James Wilson',
-    email: 'manager@vsabeverages.com',
-    role: ROLES.MANAGER,
-  },
-  [ROLES.STAFF]: {
-    id: 5,
-    name: 'Zane Roy',
-    email: 'staff@vsabeverages.com',
-    role: ROLES.STAFF,
-  },
-  [ROLES.FINANCE]: {
-    id: 3,
-    name: 'Sarah Chen',
-    email: 'finance@vsabeverages.com',
-    role: ROLES.FINANCE,
-  },
-  [ROLES.CLIENT]: {
-    id: 4,
-    name: 'Bistro Group',
-    email: 'contact@bistro.com',
-    role: ROLES.CLIENT,
-  },
-}
+import { apiPost } from './apiClient'
 
 export const ROLE_LOGIN_OPTIONS = [
   {
     role: ROLES.ADMIN,
     label: ROLE_LABELS[ROLES.ADMIN],
-    defaultEmail: MOCK_USERS[ROLES.ADMIN].email,
+    defaultEmail: 'admin@vsafoods.com',
   },
   {
     role: ROLES.MANAGER,
     label: ROLE_LABELS[ROLES.MANAGER],
-    defaultEmail: MOCK_USERS[ROLES.MANAGER].email,
+    defaultEmail: 'vikram@vsafoods.com',
   },
   {
     role: ROLES.STAFF,
     label: ROLE_LABELS[ROLES.STAFF],
-    defaultEmail: MOCK_USERS[ROLES.STAFF].email,
+    defaultEmail: 'anita@vsafoods.com',
   },
   {
     role: ROLES.FINANCE,
     label: ROLE_LABELS[ROLES.FINANCE],
-    defaultEmail: MOCK_USERS[ROLES.FINANCE].email,
+    defaultEmail: 'ravi.finance@vsafoods.com',
   },
   {
     role: ROLES.CLIENT,
     label: ROLE_LABELS[ROLES.CLIENT],
-    defaultEmail: MOCK_USERS[ROLES.CLIENT].email,
+    defaultEmail: 'nita@organichub.in',
   },
 ]
 
-/**
- * Simulates a login request.
- * @param {string} email
- * @param {string} password
- * @param {string} role
- * @returns {Promise<object>} Resolves with user data on success
- */
-export const login = (email, password, role) => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      const userByRole = MOCK_USERS[role]
-      if (email && password && userByRole) {
-        resolve({
-          success: true,
-          user: { ...userByRole, email },
-          token: `mock-token-${userByRole.id}`,
-        })
-      } else {
-        reject({ success: false, message: 'Invalid credentials' })
-      }
-    }, 500)
+export async function login(email, password, expectedRole) {
+  const response = await apiPost('/api/auth/login', {
+    email,
+    password,
   })
+
+  const user = response?.user || null
+  const token = response?.access_token || null
+
+  if (!user || !token) {
+    throw new Error('Invalid login response from server')
+  }
+
+  const normalizedRole = (user.role || '').toLowerCase()
+  if (expectedRole && normalizedRole !== expectedRole) {
+    throw new Error(`This account is not mapped to ${ROLE_LABELS[expectedRole]}`)
+  }
+
+  return {
+    success: true,
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: normalizedRole,
+      company_id: user.company_id || null,
+    },
+    token,
+  }
 }
 
-/**
- * Simulates a signup request.
- * @param {object} data - { email, password, companyName }
- * @returns {Promise<object>} Resolves with success status
- */
-export const signup = (data) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        success: true,
-        message: 'Account created successfully',
-        user: { ...MOCK_USERS[ROLES.ADMIN], email: data.email },
-      })
-    }, 500)
+export async function signup(data) {
+  const response = await apiPost('/api/auth/register', {
+    name: data.name,
+    email: data.email,
+    password: data.password,
+    role: data.role || ROLES.CLIENT,
+    company_id: data.companyId || null,
   })
+
+  return {
+    success: true,
+    message: response?.msg || 'Account created successfully',
+  }
 }
 
 export const logout = () => {

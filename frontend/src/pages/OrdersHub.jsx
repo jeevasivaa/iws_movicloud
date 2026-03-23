@@ -1,55 +1,7 @@
+import { useEffect, useMemo, useState } from 'react'
 import { Eye, Plus, Search, Truck } from 'lucide-react'
-
-const ORDER_ROWS = [
-  {
-    orderId: 'ORD-2024-001',
-    client: 'FreshMart Stores',
-    date: '2024-03-01',
-    items: 5,
-    total: 45200,
-    status: 'Processing',
-  },
-  {
-    orderId: 'ORD-2024-002',
-    client: "Nature's Best Co.",
-    date: '2024-03-03',
-    items: 3,
-    total: 32800,
-    status: 'Shipped',
-  },
-  {
-    orderId: 'ORD-2024-003',
-    client: 'Green Valley Foods',
-    date: '2024-03-05',
-    items: 8,
-    total: 67500,
-    status: 'Pending',
-  },
-  {
-    orderId: 'ORD-2024-004',
-    client: 'Organic Hub',
-    date: '2024-03-07',
-    items: 2,
-    total: 28900,
-    status: 'Delivered',
-  },
-  {
-    orderId: 'ORD-2024-005',
-    client: 'HealthyLife Markets',
-    date: '2024-03-09',
-    items: 6,
-    total: 54300,
-    status: 'Processing',
-  },
-  {
-    orderId: 'ORD-2024-006',
-    client: 'WellBeing Store',
-    date: '2024-03-10',
-    items: 4,
-    total: 41700,
-    status: 'Pending',
-  },
-]
+import { useAuth } from '../context/useAuth'
+import { apiGet } from '../services/apiClient'
 
 function getStatusClasses(status) {
   if (status === 'Processing') return 'bg-amber-100 text-amber-700'
@@ -58,7 +10,92 @@ function getStatusClasses(status) {
   return 'bg-green-100 text-green-700'
 }
 
+function formatCurrency(value) {
+  const amount = Number(value) || 0
+  return `₹${amount.toLocaleString('en-IN')}`
+}
+
 function OrdersHub() {
+  const { token } = useAuth()
+  const [query, setQuery] = useState('')
+  const [rows, setRows] = useState([])
+  const [clientsById, setClientsById] = useState(new Map())
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [refreshIndex, setRefreshIndex] = useState(0)
+
+  useEffect(() => {
+    let isActive = true
+    const controller = new AbortController()
+
+    const loadOrders = async () => {
+      if (!token) {
+        if (isActive) {
+          setRows([])
+          setError('Authentication token missing. Please sign in again.')
+          setLoading(false)
+        }
+        return
+      }
+
+      try {
+        if (isActive) {
+          setLoading(true)
+          setError('')
+        }
+
+        const [ordersResponse, clientsResponse] = await Promise.all([
+          apiGet('/api/orders', token, { signal: controller.signal }),
+          apiGet('/api/marketing', token, { signal: controller.signal }),
+        ])
+
+        if (!isActive) return
+
+        setRows(Array.isArray(ordersResponse) ? ordersResponse : [])
+        setClientsById(
+          new Map((Array.isArray(clientsResponse) ? clientsResponse : []).map((client) => [client._id, client])),
+        )
+      } catch (err) {
+        if (controller.signal.aborted || !isActive) return
+        setRows([])
+        setClientsById(new Map())
+        setError(err.message || 'Failed to load orders')
+      } finally {
+        if (isActive) {
+          setLoading(false)
+        }
+      }
+    }
+
+    loadOrders()
+
+    return () => {
+      isActive = false
+      controller.abort()
+    }
+  }, [token, refreshIndex])
+
+  const mappedRows = useMemo(
+    () =>
+      rows.map((row) => ({
+        ...row,
+        clientName: clientsById.get(String(row.client_id))?.company_name || row.client_name || 'Client',
+      })),
+    [clientsById, rows],
+  )
+
+  const filteredRows = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase()
+
+    if (!normalizedQuery) {
+      return mappedRows
+    }
+
+    return mappedRows.filter((row) =>
+      [row.order_id, row.clientName, row.status, row.date].join(' ').toLowerCase().includes(normalizedQuery),
+    )
+  }, [mappedRows, query])
+
   return (
     <section className="space-y-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -76,10 +113,25 @@ function OrdersHub() {
         </button>
       </header>
 
+      {error ? (
+        <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => setRefreshIndex((value) => value + 1)}
+            className="rounded-md border border-red-200 bg-white px-3 py-1 font-medium text-red-700 transition-colors hover:bg-red-100"
+          >
+            Retry
+          </button>
+        </div>
+      ) : null}
+
       <div className="relative w-full max-w-xl">
         <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
         <input
           type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
           placeholder="Search orders..."
           className="h-11 w-full rounded-lg border border-gray-200 bg-white pl-11 pr-4 text-sm text-gray-900 placeholder:text-gray-500 outline-none transition-colors focus:border-emerald-300"
         />
@@ -100,43 +152,55 @@ function OrdersHub() {
           </thead>
 
           <tbody>
-            {ORDER_ROWS.map((row) => (
-              <tr key={row.orderId} className="border-b border-gray-100 last:border-b-0">
-                <td className="px-6 py-5 text-sm text-gray-700">{row.orderId}</td>
-                <td className="px-6 py-5 text-sm font-medium text-gray-900">{row.client}</td>
-                <td className="px-6 py-5 text-sm text-gray-500">{row.date}</td>
-                <td className="px-6 py-5 text-sm text-gray-900">{row.items}</td>
-                <td className="px-6 py-5 text-sm font-medium text-gray-900">₹{row.total.toLocaleString('en-IN')}</td>
-
-                <td className="px-6 py-5">
-                  <span className={`inline-flex rounded-full px-3 py-1 text-sm font-medium ${getStatusClasses(row.status)}`}>
-                    {row.status}
-                  </span>
-                </td>
-
-                <td className="px-6 py-5">
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      aria-label={`View ${row.orderId}`}
-                      className="rounded-md p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
-                    >
-                      <Eye size={17} />
-                    </button>
-
-                    <button
-                      type="button"
-                      aria-label={`Track ${row.orderId}`}
-                      className="rounded-md p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
-                    >
-                      <Truck size={17} />
-                    </button>
-                  </div>
+            {loading ? (
+              <tr>
+                <td className="px-6 py-10 text-center text-sm text-gray-500" colSpan={7}>
+                  Loading orders...
                 </td>
               </tr>
-            ))}
+            ) : (
+              filteredRows.map((row) => (
+                <tr key={row._id || row.order_id} className="border-b border-gray-100 last:border-b-0">
+                  <td className="px-6 py-5 text-sm text-gray-700">{row.order_id}</td>
+                  <td className="px-6 py-5 text-sm font-medium text-gray-900">{row.clientName}</td>
+                  <td className="px-6 py-5 text-sm text-gray-500">{row.date}</td>
+                  <td className="px-6 py-5 text-sm text-gray-900">{(Number(row.total_items) || 0).toLocaleString('en-IN')}</td>
+                  <td className="px-6 py-5 text-sm font-medium text-gray-900">{formatCurrency(row.total_amount)}</td>
+
+                  <td className="px-6 py-5">
+                    <span className={`inline-flex rounded-full px-3 py-1 text-sm font-medium ${getStatusClasses(row.status)}`}>
+                      {row.status}
+                    </span>
+                  </td>
+
+                  <td className="px-6 py-5">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        aria-label={`View ${row.order_id}`}
+                        className="rounded-md p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                      >
+                        <Eye size={17} />
+                      </button>
+
+                      <button
+                        type="button"
+                        aria-label={`Track ${row.order_id}`}
+                        className="rounded-md p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                      >
+                        <Truck size={17} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
+
+        {!loading && filteredRows.length === 0 ? (
+          <div className="px-6 py-10 text-center text-sm text-gray-500">No orders found for this search.</div>
+        ) : null}
       </div>
     </section>
   )
