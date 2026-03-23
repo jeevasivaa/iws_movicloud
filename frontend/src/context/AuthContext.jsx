@@ -1,14 +1,42 @@
 import { useMemo, useState, useCallback } from 'react'
 import { AuthContextObject } from './authContextObject'
+import { ROLES } from '../constants/roles'
 
 const STORAGE_KEY = 'iws_auth_session'
+const VALID_ROLES = new Set(Object.values(ROLES))
+
+function normalizeRole(role) {
+  if (typeof role !== 'string') return null
+  const normalized = role.trim().toLowerCase()
+  return VALID_ROLES.has(normalized) ? normalized : null
+}
+
+function normalizeSession(session) {
+  if (!session || typeof session !== 'object') return null
+
+  const user = session.user
+  if (!user || typeof user !== 'object') return null
+
+  const role = normalizeRole(user.role)
+  if (!role) return null
+
+  return {
+    user: { ...user, role },
+    token: session.token ?? null,
+  }
+}
 
 function readSession() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return null
-    return JSON.parse(raw)
+    const parsedSession = normalizeSession(JSON.parse(raw))
+    if (!parsedSession) {
+      localStorage.removeItem(STORAGE_KEY)
+    }
+    return parsedSession
   } catch {
+    localStorage.removeItem(STORAGE_KEY)
     return null
   }
 }
@@ -27,7 +55,17 @@ export function AuthProvider({ children }) {
   const token = session?.token ?? null
 
   const login = useCallback((userData, userToken) => {
-    const newSession = { user: userData, token: userToken }
+    const role = normalizeRole(userData?.role)
+    if (!role) {
+      writeSession(null)
+      setSession(null)
+      return
+    }
+
+    const newSession = {
+      user: { ...userData, role },
+      token: userToken ?? null,
+    }
     writeSession(newSession)
     setSession(newSession)
   }, [])
@@ -39,13 +77,14 @@ export function AuthProvider({ children }) {
 
   const loginAsMockUser = useCallback((role) => {
     const mockUsers = {
-      admin: { name: 'Admin User', email: 'admin@vsa.com', role: 'admin' },
-      operations: { name: 'James Wilson', email: 'james@vsa.com', role: 'operations' },
-      finance: { name: 'Sarah Chen', email: 'sarah@vsa.com', role: 'finance' },
-      client: { name: 'Bistro Group', email: 'contact@bistro.com', role: 'client' },
+      [ROLES.ADMIN]: { name: 'Admin User', email: 'admin@vsa.com', role: ROLES.ADMIN },
+      [ROLES.MANAGER]: { name: 'James Wilson', email: 'james@vsa.com', role: ROLES.MANAGER },
+      [ROLES.STAFF]: { name: 'Zane Roy', email: 'zane@vsa.com', role: ROLES.STAFF },
+      [ROLES.FINANCE]: { name: 'Sarah Chen', email: 'sarah@vsa.com', role: ROLES.FINANCE },
+      [ROLES.CLIENT]: { name: 'Bistro Group', email: 'contact@bistro.com', role: ROLES.CLIENT },
     }
 
-    const userData = mockUsers[role] || mockUsers.client
+    const userData = mockUsers[role] || mockUsers[ROLES.CLIENT]
     login(userData, 'mock-jwt-token')
   }, [login])
 

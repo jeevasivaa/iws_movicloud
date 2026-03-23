@@ -1,74 +1,101 @@
+import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import AppLayout from '../components/layout/AppLayout'
 import ProtectedRoute from '../components/auth/ProtectedRoute'
 import { useAuth } from '../context/useAuth'
-import AuthFlow from '../pages/AuthFlow'
-import Dashboard from '../pages/Dashboard'
-import Employees from '../pages/Employees'
-import Products from '../pages/Products'
-import Suppliers from '../pages/Suppliers'
-import Clients from '../pages/Clients'
-import OrdersHub from '../pages/OrdersHub'
-import ProductionControlTower from '../pages/ProductionControlTower'
-import SupplyChainLogisticsMap from '../pages/SupplyChainLogisticsMap'
-import CollaborationQualityHub from '../pages/CollaborationQualityHub'
-import ExecutiveAnalyticsDashboard from '../pages/ExecutiveAnalyticsDashboard'
-import AIInsights from '../pages/AIInsights'
-import Billing from '../pages/Billing'
-import Payroll from '../pages/Payroll'
-import Invoices from '../pages/Invoices'
-import Contracts from '../pages/Contracts'
-import Expenses from '../pages/Expenses'
-import Settings from '../pages/Settings'
-import Unauthorized from '../pages/Unauthorized'
-import { HOME_BY_ROLE } from '../constants/roles'
+import { HOME_BY_ROLE, ROLES } from '../constants/roles'
+
+const AuthFlow = lazy(() => import('../pages/AuthFlow'))
+const Dashboard = lazy(() => import('../pages/Dashboard'))
+const Employees = lazy(() => import('../pages/Employees'))
+const Products = lazy(() => import('../pages/Products'))
+const Suppliers = lazy(() => import('../pages/Suppliers'))
+const Clients = lazy(() => import('../pages/Clients'))
+const OrdersHub = lazy(() => import('../pages/OrdersHub'))
+const ProductionControlTower = lazy(() => import('../pages/ProductionControlTower'))
+const StaffTaskView = lazy(() => import('../pages/StaffTaskView'))
+const SupplyChainLogisticsMap = lazy(() => import('../pages/SupplyChainLogisticsMap'))
+const ExecutiveAnalyticsDashboard = lazy(() => import('../pages/ExecutiveAnalyticsDashboard'))
+const AIInsights = lazy(() => import('../pages/AIInsights'))
+const Billing = lazy(() => import('../pages/Billing'))
+const Payroll = lazy(() => import('../pages/Payroll'))
+const Invoices = lazy(() => import('../pages/Invoices'))
+const Expenses = lazy(() => import('../pages/Expenses'))
+const Settings = lazy(() => import('../pages/Settings'))
+const Marketing = lazy(() => import('../pages/Marketing'))
+const Notifications = lazy(() => import('../pages/Notifications'))
+const Unauthorized = lazy(() => import('../pages/Unauthorized'))
+
+function RouteLoadingFallback() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-[#1e3a8a]" />
+    </div>
+  )
+}
 
 function AppRouter() {
   const { isAuthenticated, user } = useAuth()
   const homeRoute = user ? HOME_BY_ROLE[user.role] || '/dashboard' : '/auth'
 
   return (
-    <Routes>
-      <Route path="/" element={<Navigate to={isAuthenticated ? homeRoute : '/auth'} replace />} />
+    <Suspense fallback={<RouteLoadingFallback />}>
+      <Routes>
+        <Route path="/" element={<Navigate to={isAuthenticated ? homeRoute : '/auth'} replace />} />
 
-      <Route path="/auth" element={<AuthFlow />} />
-      <Route path="/login" element={<Navigate to="/auth" replace />} />
-      <Route path="/unauthorized" element={<Unauthorized />} />
+        <Route path="/auth" element={<AuthFlow />} />
+        <Route path="/login" element={<Navigate to="/auth" replace />} />
+        <Route path="/unauthorized" element={<Unauthorized />} />
 
-      <Route element={<AppLayout />}>
-        {/* Admin Only Routes */}
-        <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/employees" element={<Employees />} />
-          <Route path="/products" element={<Products />} />
-          <Route path="/suppliers" element={<Suppliers />} />
-          <Route path="/clients" element={<Clients />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/executive-analytics" element={<ExecutiveAnalyticsDashboard />} />
-          <Route path="/ai-insights" element={<AIInsights />} />
+        <Route element={<AppLayout />}>
+          {/* Admin Only Routes */}
+          <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN]} />}>
+            <Route path="/ai-insights" element={<AIInsights />} />
+          </Route>
+
+          {/* Admin & Manager Routes */}
+          <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.MANAGER]} />}>
+            <Route path="/employees" element={<Employees />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/executive-analytics" element={<ExecutiveAnalyticsDashboard />} />
+            <Route path="/marketing" element={<Marketing />} />
+            <Route path="/products" element={<Products />} />
+            <Route path="/suppliers" element={<Suppliers />} />
+            <Route path="/clients" element={<Clients />} />
+          </Route>
+
+          {/* General Dashboard + Alerts Routes */}
+          <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.MANAGER, ROLES.STAFF, ROLES.FINANCE]} />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/notifications" element={<Notifications />} />
+          </Route>
+
+          {/* Operations Routes (Admin, Manager, Staff) */}
+          <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.MANAGER, ROLES.STAFF]} />}>
+            <Route
+              path="/production-control"
+              element={user?.role === ROLES.STAFF ? <StaffTaskView /> : <ProductionControlTower />}
+            />
+            <Route path="/inventory" element={<SupplyChainLogisticsMap />} />
+          </Route>
+
+          {/* Finance Routes (Admin, Finance) */}
+          <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.FINANCE]} />}>
+            <Route path="/billing" element={<Billing />} />
+            <Route path="/invoices" element={<Invoices />} />
+            <Route path="/expenses" element={<Expenses />} />
+            <Route path="/payroll" element={<Payroll />} />
+          </Route>
+
+          {/* Orders Routes */}
+          <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.MANAGER, ROLES.CLIENT]} />}>
+            <Route path="/orders" element={<OrdersHub />} />
+          </Route>
         </Route>
 
-        {/* Operations Routes */}
-        <Route element={<ProtectedRoute allowedRoles={['admin', 'operations']} />}>
-          <Route path="/production-control" element={<ProductionControlTower />} />
-          <Route path="/inventory" element={<SupplyChainLogisticsMap />} />
-        </Route>
-
-        {/* Finance Routes */}
-        <Route element={<ProtectedRoute allowedRoles={['admin', 'finance']} />}>
-          <Route path="/billing" element={<Billing />} />
-          <Route path="/invoices" element={<Invoices />} />
-        </Route>
-
-        {/* Client Routes */}
-        <Route element={<ProtectedRoute allowedRoles={['client']} />}>
-          <Route path="/orders" element={<OrdersHub />} />
-          <Route path="/product-builder" element={<div>Product Builder Component</div>} />
-        </Route>
-      </Route>
-
-      <Route path="*" element={<Navigate to={isAuthenticated ? homeRoute : '/auth'} replace />} />
-    </Routes>
+        <Route path="*" element={<Navigate to={isAuthenticated ? homeRoute : '/auth'} replace />} />
+      </Routes>
+    </Suspense>
   )
 }
 

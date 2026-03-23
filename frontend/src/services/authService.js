@@ -11,15 +11,21 @@ const MOCK_USERS = {
     email: 'admin@vsabeverages.com',
     role: ROLES.ADMIN,
   },
-  [ROLES.OPERATIONS]: {
+  [ROLES.MANAGER]: {
     id: 2,
-    name: 'Alex Thompson',
-    email: 'operations@vsabeverages.com',
-    role: ROLES.OPERATIONS,
+    name: 'James Wilson',
+    email: 'manager@vsabeverages.com',
+    role: ROLES.MANAGER,
+  },
+  [ROLES.STAFF]: {
+    id: 5,
+    name: 'Zane Roy',
+    email: 'staff@vsabeverages.com',
+    role: ROLES.STAFF,
   },
   [ROLES.FINANCE]: {
     id: 3,
-    name: 'Liam Carter',
+    name: 'Sarah Chen',
     email: 'finance@vsabeverages.com',
     role: ROLES.FINANCE,
   },
@@ -38,9 +44,14 @@ export const ROLE_LOGIN_OPTIONS = [
     defaultEmail: MOCK_USERS[ROLES.ADMIN].email,
   },
   {
-    role: ROLES.OPERATIONS,
-    label: ROLE_LABELS[ROLES.OPERATIONS],
-    defaultEmail: MOCK_USERS[ROLES.OPERATIONS].email,
+    role: ROLES.MANAGER,
+    label: ROLE_LABELS[ROLES.MANAGER],
+    defaultEmail: MOCK_USERS[ROLES.MANAGER].email,
+  },
+  {
+    role: ROLES.STAFF,
+    label: ROLE_LABELS[ROLES.STAFF],
+    defaultEmail: MOCK_USERS[ROLES.STAFF].email,
   },
   {
     role: ROLES.FINANCE,

@@ -1,194 +1,185 @@
-import { Activity, Play, Search, Sparkles, Users } from 'lucide-react'
+import React from 'react'
+import { 
+  Factory, 
+  Users, 
+  Package, 
+  Play, 
+  Search, 
+  Clock, 
+  ChevronRight,
+  MoreVertical,
+  CheckCircle2
+} from 'lucide-react'
 
-const productionWidgets = [
-  {
-    id: 'utilization',
-    title: 'Line Utilization',
-    value: '78%',
-    helper: 'Across 6 active lines',
-    progress: 78,
-    variant: 'teal',
-  },
-  {
-    id: 'batches',
-    title: 'Active Batches',
-    value: '12',
-    helper: '3 at risk of delay',
-    variant: 'avatars',
-    avatars: ['AW', 'KP', 'MN', '+4'],
-  },
-  {
-    id: 'insights',
-    title: 'Predictive Insights',
-    value: '1 critical alert',
-    helper: 'Line B likely bottleneck in 35 min',
-    variant: 'dark',
-  },
+const SUMMARY_KPIS = [
+  { label: 'Active batches', value: '12', icon: Factory, color: 'text-blue-600' },
+  { label: 'Completed Today', value: '8', icon: CheckCircle2, color: 'text-teal-600' },
+  { label: 'Total Units', value: '14,280', icon: Package, color: 'text-[#1e3a8a]' },
 ]
 
-const kanbanColumns = [
+const KANBAN_COLUMNS = [
   {
-    key: 'planned',
-    title: 'Planned',
-    cards: [
-      { id: 'BCH-3042', sku: 'TCW-250', qty: '8,200 units', owner: 'Line A', progress: 20, priority: 'Normal' },
-      { id: 'BCH-3043', sku: 'CON-20L', qty: '420 drums', owner: 'Line C', progress: 12, priority: 'High' },
-    ],
+    id: 'queued',
+    title: 'Queued',
+    batches: [
+      { id: 'BCH-882', name: 'Tender Coconut Water', stage: 'Extraction', progress: 0, staff: 'Zane Roy', avatar: 'ZR', units: '5,000', eta: 'Mar 24' },
+      { id: 'BCH-885', name: 'Sparkling Lemonade', stage: 'Packaging', progress: 0, staff: 'Maya George', avatar: 'MG', units: '2,500', eta: 'Mar 24' },
+    ]
   },
   {
-    key: 'production',
-    title: 'In Production',
-    cards: [
-      { id: 'BCH-3037', sku: 'TCW-500', qty: '5,600 units', owner: 'Line B', progress: 58, priority: 'Normal' },
-      { id: 'BCH-3038', sku: 'SPK-330', qty: '3,100 units', owner: 'Line F', progress: 42, priority: 'Normal' },
-    ],
+    id: 'in-progress',
+    title: 'In Progress',
+    batches: [
+      { id: 'BCH-879', name: 'Aloe Vera Juice', stage: 'Bottling', progress: 65, staff: 'Priya Nair', avatar: 'PN', units: '3,000', eta: 'Mar 23' },
+      { id: 'BCH-880', name: 'Guava Nectar', stage: 'Extraction', progress: 40, staff: 'James Wilson', avatar: 'JW', units: '4,500', eta: 'Mar 23' },
+    ]
   },
   {
-    key: 'qc',
-    title: 'Quality Check (QC)',
-    cards: [
-      { id: 'BCH-3032', sku: 'TCW-250', qty: '9,000 units', owner: 'Lab 2', progress: 88, priority: 'High' },
-    ],
-  },
-  {
-    key: 'completed',
-    title: 'Completed',
-    cards: [
-      { id: 'BCH-3028', sku: 'CON-5L', qty: '1,220 canisters', owner: 'Dock 1', progress: 100, priority: 'Normal' },
-      { id: 'BCH-3025', sku: 'TCW-500', qty: '4,900 units', owner: 'Dock 2', progress: 100, priority: 'Normal' },
-    ],
-  },
+    id: 'dispatch',
+    title: 'Ready for Dispatch',
+    batches: [
+      { id: 'BCH-875', name: 'Mango Pulp', stage: 'Packaging', progress: 100, staff: 'Sarah Chen', avatar: 'SC', units: '10,000', eta: 'Completed' },
+    ]
+  }
 ]
+
+const BatchCard = ({ batch }) => {
+  const getStageBadge = (stage) => {
+    switch (stage) {
+      case 'Bottling': return 'bg-blue-50 text-blue-700 border-blue-100'
+      case 'Extraction': return 'bg-teal-50 text-teal-700 border-teal-100'
+      case 'Packaging': return 'bg-amber-50 text-amber-700 border-amber-100'
+      default: return 'bg-slate-50 text-slate-600 border-slate-100'
+    }
+  }
+
+  return (
+    <div className="vsa-card p-6 hover:-translate-y-1.5 hover:shadow-xl transition-all duration-500 group cursor-pointer border-slate-200/60 bg-white">
+      <div className="flex justify-between items-start mb-5">
+        <div>
+          <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">#{batch.id}</span>
+          <h4 className="text-[15px] font-black text-slate-700 leading-tight group-hover:text-[#1e3a8a] transition-colors">
+            {batch.name}
+          </h4>
+        </div>
+        <button className="p-1.5 text-slate-300 hover:text-slate-600 transition-colors">
+          <MoreVertical size={18} />
+        </button>
+      </div>
+
+      <div className="mb-6">
+        <span className={`badge ${getStageBadge(batch.stage)} text-[10px] py-1 px-3`}>
+          {batch.stage}
+        </span>
+      </div>
+
+      {/* Progress Bar */}
+      <div className="space-y-2.5 mb-7">
+        <div className="flex justify-between items-center text-[11px] font-black uppercase tracking-widest text-slate-400">
+          <span>Batch Progress</span>
+          <span className={batch.progress === 100 ? 'text-teal-600' : 'text-[#1e3a8a]'}>{batch.progress}%</span>
+        </div>
+        <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+          <div 
+            className={`h-full transition-all duration-1000 ease-out shadow-[0_0_8px_rgba(30,58,138,0.2)] ${
+              batch.progress === 100 ? 'bg-teal-500' : 'bg-[#1e3a8a]'
+            }`} 
+            style={{ width: `${batch.progress}%` }} 
+          />
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between pt-5 border-t border-slate-100">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-[10px] font-black text-[#1e3a8a] shadow-sm">
+            {batch.avatar}
+          </div>
+          <span className="text-[12px] font-bold text-slate-500">{batch.staff}</span>
+        </div>
+        <div className="text-right">
+          <p className="text-[12px] font-black text-slate-700 leading-none mb-1">{batch.units} Units</p>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{batch.eta}</p>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function ProductionControlTower() {
   return (
-    <section className="space-y-6 bg-slate-50">
-      <header className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:flex-row lg:items-center lg:justify-between">
+    <div className="space-y-10 animate-fade-in">
+      {/* Header Area */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-2">
         <div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-teal-700">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-teal-500 opacity-75" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-teal-600" />
-            </span>
-            Live Feed
-          </div>
-          <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">Production Control Tower</h1>
-          <p className="mt-2 text-sm font-semibold text-slate-500">VSA Beverages - Operations lead: James Wilson</p>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Production Tower</h1>
+          <p className="text-slate-500 font-semibold mt-2">Operational command for manufacturing and quality control.</p>
         </div>
-
-        <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
-          <label className="relative min-w-[240px]">
-            <Search className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
-            <input
-              type="search"
-              defaultValue=""
-              placeholder="Search batch, SKU, line"
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm font-semibold text-slate-700 outline-none transition focus:border-blue-200 focus:bg-white focus:ring-2 focus:ring-blue-100"
+        <div className="flex gap-3">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400" />
+            <input 
+              type="text" 
+              placeholder="Filter active batches..."
+              className="pl-11 pr-5 py-3 bg-white border border-slate-200/80 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-blue-500/5 focus:border-[#1e3a8a] outline-none w-72 transition-all shadow-sm"
             />
-          </label>
-          <button className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#1e3a8a] px-5 py-3 text-sm font-black uppercase tracking-widest text-white shadow-sm transition hover:shadow-md">
-            <Play className="h-4 w-4" />
-            Start New Batch
+          </div>
+          <button className="btn-primary py-3 px-8 text-[11px] uppercase tracking-widest shadow-md">
+            <Play className="w-4 h-4 fill-current mr-2" />
+            Launch Batch
           </button>
         </div>
-      </header>
-
-      <div className="grid gap-4 lg:grid-cols-3">
-        {productionWidgets.map((widget) => {
-          if (widget.variant === 'dark') {
-            return (
-              <article key={widget.id} className="rounded-2xl border border-slate-200 bg-slate-900 p-5 text-white shadow-sm transition hover:shadow-md">
-                <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-300">{widget.title}</p>
-                  <Sparkles className="h-4 w-4 text-teal-300" />
-                </div>
-                <p className="mt-3 text-lg font-black tracking-tight">{widget.value}</p>
-                <p className="mt-2 text-sm text-slate-200">{widget.helper}</p>
-                <button className="mt-4 rounded-lg bg-white/10 px-3 py-2 text-xs font-black uppercase tracking-widest text-teal-200 transition hover:bg-white/20">
-                  View Recommendation
-                </button>
-              </article>
-            )
-          }
-
-          if (widget.variant === 'avatars') {
-            return (
-              <article key={widget.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md">
-                <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{widget.title}</p>
-                  <Users className="h-4 w-4 text-slate-400" />
-                </div>
-                <p className="mt-3 text-3xl font-black tracking-tight text-slate-900">{widget.value}</p>
-                <div className="mt-4 flex items-center -space-x-2">
-                  {widget.avatars.map((avatar) => (
-                    <span
-                      key={avatar}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-slate-100 text-[10px] font-black uppercase text-slate-700"
-                    >
-                      {avatar}
-                    </span>
-                  ))}
-                </div>
-                <p className="mt-3 text-sm font-semibold text-slate-500">{widget.helper}</p>
-              </article>
-            )
-          }
-
-          return (
-            <article key={widget.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md">
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{widget.title}</p>
-                <Activity className="h-4 w-4 text-teal-600" />
-              </div>
-              <p className="mt-3 text-3xl font-black tracking-tight text-slate-900">{widget.value}</p>
-              <div className="mt-4 h-2 rounded-full bg-slate-100">
-                <div className="h-full rounded-full bg-teal-500" style={{ width: `${widget.progress}%` }} />
-              </div>
-              <p className="mt-3 text-sm font-semibold text-slate-500">{widget.helper}</p>
-            </article>
-          )
-        })}
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-4">
-        {kanbanColumns.map((column) => (
-          <article key={column.key} className="rounded-2xl border border-slate-200 bg-slate-100 p-4 shadow-sm">
-            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-slate-600">{column.title}</h2>
-            <div className="mt-4 space-y-3">
-              {column.cards.map((card) => (
-                <div
-                  key={card.id}
-                  className="cursor-pointer rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md"
-                >
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-black tracking-tight text-slate-900">{card.id}</p>
-                    <span
-                      className={`rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-widest ${
-                        card.priority === 'High' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'
-                      }`}
-                    >
-                      {card.priority}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-xs font-black uppercase tracking-[0.2em] text-blue-700">{card.sku}</p>
-                  <p className="mt-2 text-sm font-semibold text-slate-700">{card.qty}</p>
-                  <div className="mt-3 h-2 rounded-full bg-slate-100">
-                    <div
-                      className={`h-full rounded-full ${card.progress === 100 ? 'bg-teal-500' : 'bg-[#1e3a8a]'}`}
-                      style={{ width: `${card.progress}%` }}
-                    />
-                  </div>
-                  <div className="mt-3 flex items-center justify-between text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-                    <span>{card.owner}</span>
-                    <span>{card.progress}%</span>
-                  </div>
-                </div>
-              ))}
+      {/* Summary KPI Widgets */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {SUMMARY_KPIS.map((kpi, i) => (
+          <div key={i} className="vsa-card p-7 flex items-center gap-6 border-slate-200/60 shadow-sm hover:shadow-md transition-shadow">
+            <div className={`w-14 h-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center ${kpi.color} shadow-inner`}>
+              <kpi.icon size={28} />
             </div>
-          </article>
+            <div>
+              <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5">{kpi.label}</p>
+              <h3 className="text-3xl font-black text-slate-800">{kpi.value}</h3>
+            </div>
+          </div>
         ))}
       </div>
-    </section>
+
+      {/* Kanban Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+        {KANBAN_COLUMNS.map((column) => (
+          <div key={column.id} className="space-y-6">
+            <div className="flex items-center justify-between px-3 mb-8">
+              <div className="flex items-center gap-4">
+                <div className={`w-2 h-2 rounded-full shadow-lg ${
+                  column.id === 'in-progress' ? 'bg-[#1e3a8a] shadow-blue-200' : 
+                  column.id === 'dispatch' ? 'bg-teal-500 shadow-teal-200' : 'bg-slate-300 shadow-slate-100'
+                }`} />
+                <h2 className="text-[12px] font-black uppercase tracking-[0.3em] text-slate-500">
+                  {column.title}
+                </h2>
+              </div>
+              <span className="bg-white text-slate-500 text-[11px] font-black px-3 py-1 rounded-full border border-slate-200 shadow-sm">
+                {column.batches.length}
+              </span>
+            </div>
+            
+            <div className="space-y-5">
+              {column.batches.map((batch) => (
+                <BatchCard key={batch.id} batch={batch} />
+              ))}
+            </div>
+
+            {column.id === 'queued' && (
+              <button className="w-full py-5 border-2 border-dashed border-slate-200 rounded-2xl text-[11px] font-black uppercase tracking-widest text-slate-400 hover:border-blue-300 hover:text-[#1e3a8a] hover:bg-blue-50/30 transition-all flex items-center justify-center gap-3 mt-6">
+                <Play size={14} className="fill-current" />
+                Schedule Next
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }
 

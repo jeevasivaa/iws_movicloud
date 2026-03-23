@@ -1,129 +1,200 @@
 import { useMemo, useState } from 'react'
-import { Filter, Search, ShieldCheck, Users } from 'lucide-react'
-import { useAuth } from '../context/useAuth'
-import { ROLES } from '../constants/roles'
+import { 
+  Search, 
+  UserPlus, 
+  MoreVertical, 
+  ShieldCheck, 
+  Activity, 
+  AlertCircle, 
+  Clock,
+  CheckCircle2,
+  Users,
+  Zap
+} from 'lucide-react'
 
-const EMPLOYEES = [
-  { id: 'EMP-001', name: 'Anika Das', department: 'Production', role: 'Line Supervisor', access: 'Operations', salaryBand: 'B2', manager: 'Alex Thompson' },
-  { id: 'EMP-002', name: 'Ravi Menon', department: 'Quality', role: 'QA Analyst', access: 'Operations', salaryBand: 'B1', manager: 'Alex Thompson' },
-  { id: 'EMP-003', name: 'Nisha Patel', department: 'Finance', role: 'Accountant', access: 'Finance', salaryBand: 'C1', manager: 'Liam Carter' },
-  { id: 'EMP-004', name: 'Zane Roy', department: 'Finance', role: 'Payroll Specialist', access: 'Finance', salaryBand: 'C1', manager: 'Liam Carter' },
-  { id: 'EMP-005', name: 'Maya George', department: 'Warehouse', role: 'Inventory Lead', access: 'Operations', salaryBand: 'B2', manager: 'Alex Thompson' },
-  { id: 'EMP-006', name: 'Kiran Rao', department: 'Admin', role: 'System Coordinator', access: 'Admin', salaryBand: 'C2', manager: 'Priya Nair' },
+const USERS = [
+  { id: '1', name: 'Priya Nair', email: 'admin@vsabeverages.com', role: 'Admin', lastActive: '2 mins ago', status: 'Active', avatar: 'PN' },
+  { id: '2', name: 'James Wilson', email: 'manager@vsabeverages.com', role: 'Manager', lastActive: '1 hour ago', status: 'Active', avatar: 'JW' },
+  { id: '3', name: 'Sarah Chen', email: 'finance@vsabeverages.com', role: 'Finance', lastActive: '3 hours ago', status: 'Offline', avatar: 'SC' },
+  { id: '4', name: 'Zane Roy', email: 'staff@vsabeverages.com', role: 'Staff', lastActive: '5 mins ago', status: 'Active', avatar: 'ZR' },
+  { id: '5', name: 'Maya George', email: 'maya@vsabeverages.com', role: 'Staff', lastActive: 'Yesterday', status: 'Offline', avatar: 'MG' },
+]
+
+const AUDIT_LOGS = [
+  { id: 1, action: 'Finance generated Invoice #102', time: '12:45 PM' },
+  { id: 2, action: 'Manager updated inventory', time: '11:20 AM' },
+  { id: 3, action: 'Admin changed system settings', time: '09:15 AM' },
+  { id: 4, action: 'Staff #ZR started production batch', time: '08:30 AM' },
 ]
 
 function Employees() {
-  const { user } = useAuth()
   const [query, setQuery] = useState('')
-  const [departmentFilter, setDepartmentFilter] = useState('All')
 
-  const scopedRows = useMemo(() => {
-    const base = EMPLOYEES.filter((row) => {
-      if (user?.role === ROLES.ADMIN) return true
-      if (user?.role === ROLES.OPERATIONS) return row.access !== 'Finance'
-      if (user?.role === ROLES.FINANCE) return row.access === 'Finance' || row.department === 'Admin'
-      return false
-    })
+  const filteredUsers = useMemo(() => {
+    return USERS.filter(user => 
+      user.name.toLowerCase().includes(query.toLowerCase()) || 
+      user.email.toLowerCase().includes(query.toLowerCase())
+    )
+  }, [query])
 
-    return base.filter((row) => {
-      const matchesQuery = [row.name, row.id, row.role].join(' ').toLowerCase().includes(query.toLowerCase())
-      const matchesDepartment = departmentFilter === 'All' || row.department === departmentFilter
-      return matchesQuery && matchesDepartment
-    })
-  }, [departmentFilter, query, user?.role])
-
-  const departments = ['All', ...new Set(EMPLOYEES.map((row) => row.department))]
+  const getRoleBadge = (role) => {
+    switch (role) {
+      case 'Admin': return 'bg-purple-50 text-purple-700 border-purple-100'
+      case 'Manager': return 'badge-info'
+      case 'Finance': return 'badge-success'
+      case 'Staff': return 'badge-warning'
+      default: return ''
+    }
+  }
 
   return (
-    <section className="space-y-8">
-      <header className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Employees</h1>
-          <p className="mt-2 text-sm font-semibold text-slate-500">Staff roster with role-based access levels and reporting ownership.</p>
-        </div>
-        <div className="grid grid-cols-2 gap-3 sm:flex">
-          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-center shadow-sm">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Visible Staff</p>
-            <p className="mt-1 text-xl font-black text-slate-900">{scopedRows.length}</p>
-          </div>
-          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-center shadow-sm">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Access Tracks</p>
-            <p className="mt-1 text-xl font-black text-slate-900">3</p>
-          </div>
-        </div>
-      </header>
-
-      <div className="bento-card overflow-hidden">
-        <div className="border-b border-slate-100 bg-slate-50/40 px-6 py-5 sm:px-8">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="relative w-full max-w-md">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search employee ID, name, role"
-                className="w-full rounded-xl border-none bg-white py-2.5 pl-10 pr-4 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-slate-100 focus:ring-2 focus:ring-blue-100"
-              />
-            </div>
-
-            <div className="relative w-full max-w-[220px]">
-              <Filter className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <select
-                value={departmentFilter}
-                onChange={(event) => setDepartmentFilter(event.target.value)}
-                className="w-full appearance-none rounded-xl border-none bg-white py-2.5 pl-4 pr-10 text-sm font-bold text-slate-700 shadow-sm ring-1 ring-slate-100 focus:ring-2 focus:ring-blue-100"
-              >
-                {departments.map((department) => (
-                  <option key={department} value={department}>{department}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[920px] text-left">
-            <thead>
-              <tr className="border-b border-slate-100 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-                <th className="px-8 py-5">Employee</th>
-                <th className="px-8 py-5">Department</th>
-                <th className="px-8 py-5">Role</th>
-                <th className="px-8 py-5">Access Level</th>
-                <th className="px-8 py-5">Band</th>
-                <th className="px-8 py-5">Reporting To</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {scopedRows.map((row) => (
-                <tr key={row.id} className="hover:bg-slate-50/60 transition-colors">
-                  <td className="px-8 py-5">
-                    <p className="text-sm font-black text-slate-900">{row.name}</p>
-                    <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">{row.id}</p>
-                  </td>
-                  <td className="px-8 py-5 text-sm font-semibold text-slate-700">{row.department}</td>
-                  <td className="px-8 py-5 text-sm font-semibold text-slate-700">{row.role}</td>
-                  <td className="px-8 py-5">
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-blue-700">
-                      <ShieldCheck className="h-3.5 w-3.5" />
-                      {row.access}
-                    </span>
-                  </td>
-                  <td className="px-8 py-5 text-sm font-black text-slate-900">{row.salaryBand}</td>
-                  <td className="px-8 py-5 text-sm font-semibold text-slate-600">{row.manager}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {scopedRows.length === 0 ? (
-          <div className="flex items-center justify-center gap-2 px-8 py-10 text-sm font-semibold text-slate-500">
-            <Users className="h-4 w-4" />
-            No employees found for the selected filters.
-          </div>
-        ) : null}
+    <div className="space-y-6 animate-fade-in">
+      {/* Page Header */}
+      <div>
+        <h1 className="text-2xl font-black text-slate-900 tracking-tight">Access & Security</h1>
+        <p className="text-sm font-semibold text-slate-500">System-wide user control and authentication logs.</p>
       </div>
-    </section>
+
+      {/* Top KPIs */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: 'Active Users', value: '1,284', icon: Users, color: 'text-[#1e3a8a]' },
+          { label: 'Uptime', value: '99.99%', icon: Activity, color: 'text-teal-600' },
+          { label: 'Requests', value: '3', icon: Clock, color: 'text-amber-600' },
+          { label: 'Alerts', value: '0', icon: AlertCircle, color: 'text-slate-400' },
+        ].map((kpi, i) => (
+          <div key={i} className="vsa-card p-5">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{kpi.label}</p>
+                <p className={`text-2xl font-black mt-1 ${kpi.color}`}>{kpi.value}</p>
+              </div>
+              <div className="p-2 bg-slate-50 rounded-xl">
+                <kpi.icon className="w-5 h-5 text-slate-400" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Main Section: User Management Table */}
+        <div className="flex-1 vsa-card overflow-hidden">
+          <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/30">
+            <h2 className="text-lg font-black text-slate-900">User Directory</h2>
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input 
+                  type="text" 
+                  placeholder="Search..."
+                  className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-semibold focus:ring-4 focus:ring-blue-500/5 focus:border-[#1e3a8a] outline-none w-64 transition-all"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+              </div>
+              <button className="btn-primary py-2 px-4 text-xs">
+                <UserPlus className="w-4 h-4" />
+                Invite
+              </button>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-slate-50/50 text-slate-400 text-[10px] font-black uppercase tracking-widest">
+                  <th className="px-6 py-4">Identity</th>
+                  <th className="px-6 py-4">Role</th>
+                  <th className="px-6 py-4">Last Active</th>
+                  <th className="px-6 py-4">Status</th>
+                  <th className="px-6 py-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredUsers.map((user) => (
+                  <tr key={user.id} className="hover:bg-slate-50/30 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-[11px] font-black text-[#1e3a8a] border border-slate-200">
+                          {user.avatar}
+                        </div>
+                        <div>
+                          <p className="text-sm font-black text-slate-900 leading-none mb-1">{user.name}</p>
+                          <p className="text-[11px] font-semibold text-slate-400">{user.email}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`badge ${getRoleBadge(user.role)}`}>
+                        {user.role}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-xs font-semibold text-slate-500">{user.lastActive}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-1.5 h-1.5 rounded-full ${user.status === 'Active' ? 'bg-teal-500' : 'bg-slate-300'}`} />
+                        <span className="text-xs font-bold text-slate-600">{user.status}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button className="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-400">
+                        <MoreVertical className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Right Panel: System Audit Log */}
+        <div className="w-full lg:w-80 space-y-6">
+          <div className="vsa-card p-6 bg-white">
+            <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-teal-600" />
+              Security Audit
+            </h3>
+            
+            <div className="space-y-6">
+              {AUDIT_LOGS.map((log) => (
+                <div key={log.id} className="relative pl-5 pb-6 last:pb-0">
+                  <div className="absolute left-[2px] top-1.5 bottom-0 w-[1px] bg-slate-100 last:hidden" />
+                  <div className="absolute left-0 top-1.5 w-1 h-1 rounded-full bg-slate-300" />
+                  
+                  <p className="text-[11px] font-bold text-slate-900 leading-relaxed">
+                    {log.action}
+                  </p>
+                  <p className="text-[9px] font-black text-slate-400 mt-1 uppercase tracking-widest">
+                    {log.time}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <button className="w-full mt-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 hover:bg-slate-100 rounded-xl transition-colors border border-slate-100">
+              Full Logs
+            </button>
+          </div>
+
+          <div className="bg-[#0f172a] p-6 rounded-xl shadow-lg text-white relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
+            <div className="flex items-center gap-2 mb-4">
+              <Zap className="w-4 h-4 text-teal-400 fill-teal-400" />
+              <span className="text-[10px] font-black uppercase tracking-wider text-teal-400">Encryption Active</span>
+            </div>
+            <p className="text-xs font-semibold text-slate-400 mb-4 leading-relaxed">
+              All administrative actions are cryptographically signed and immutable.
+            </p>
+            <div className="flex items-center gap-2 text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">
+              <CheckCircle2 className="w-3 h-3" />
+              Secure Protocol V4.2
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 

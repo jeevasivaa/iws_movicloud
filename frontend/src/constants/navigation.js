@@ -2,51 +2,43 @@ export const navigationGroups = [
   {
     group: 'Overview',
     items: [
-      { label: 'Dashboard', path: '/dashboard', icon: 'LayoutDashboard', allowedRoles: ['admin'] },
-      { label: 'Employees', path: '/employees', icon: 'Users', allowedRoles: ['admin'] },
-      { label: 'Products', path: '/products', icon: 'Package2', allowedRoles: ['admin'] },
-      { label: 'Suppliers', path: '/suppliers', icon: 'Truck', allowedRoles: ['admin'] },
-      { label: 'Clients', path: '/clients', icon: 'Handshake', allowedRoles: ['admin'] },
-      { label: 'Settings', path: '/settings', icon: 'Settings', allowedRoles: ['admin'] },
+      { label: 'Dashboard', path: '/dashboard', icon: 'LayoutDashboard', allowedRoles: ['admin', 'manager', 'staff', 'finance'] },
+      { label: 'Products', path: '/products', icon: 'Package2', allowedRoles: ['admin', 'manager'] },
+      { label: 'Suppliers', path: '/suppliers', icon: 'Truck', allowedRoles: ['admin', 'manager'] },
+      { label: 'Staff', path: '/employees', icon: 'Users', allowedRoles: ['admin', 'manager'] },
     ],
   },
   {
     group: 'Operations',
     items: [
-      { label: 'Control Tower', path: '/production-control', icon: 'Factory', allowedRoles: ['admin', 'operations'] },
-      { label: 'Inventory', path: '/inventory', icon: 'Warehouse', allowedRoles: ['admin', 'operations'] },
+      { label: 'Production', path: '/production-control', icon: 'Factory', allowedRoles: ['admin', 'manager', 'staff'] },
+      { label: 'Orders', path: '/orders', icon: 'ClipboardList', allowedRoles: ['admin', 'manager', 'client'] },
+      { label: 'Inventory', path: '/inventory', icon: 'Warehouse', allowedRoles: ['admin', 'manager', 'staff'] },
     ],
   },
   {
     group: 'Finance',
     items: [
       { label: 'Billing', path: '/billing', icon: 'CreditCard', allowedRoles: ['admin', 'finance'] },
-      { label: 'Invoices', path: '/invoices', icon: 'FileText', allowedRoles: ['admin', 'finance'] },
+      { label: 'Payroll', path: '/payroll', icon: 'Wallet', allowedRoles: ['admin', 'finance'] },
     ],
   },
   {
-    group: 'My Orders',
+    group: 'Intelligence',
     items: [
-      { label: 'Orders', path: '/orders', icon: 'ClipboardList', allowedRoles: ['client'] },
-      { label: 'Product Builder', path: '/product-builder', icon: 'Sparkles', allowedRoles: ['client'] },
+      { label: 'Reports', path: '/executive-analytics', icon: 'BarChart3', allowedRoles: ['admin', 'manager', 'finance'] },
+      { label: 'Marketing', path: '/marketing', icon: 'Sparkles', allowedRoles: ['admin', 'manager'] },
+      { label: 'Notifications', path: '/notifications', icon: 'Bell', allowedRoles: ['admin', 'manager', 'staff', 'finance'] },
+      { label: 'Settings', path: '/settings', icon: 'Settings', allowedRoles: ['admin', 'manager'] },
     ],
   },
 ]
 
 export function getNavigationForRole(role) {
-  console.log('getNavigationForRole called with role:', role);
-  const result = navigationGroups
+  return navigationGroups
     .map((group) => ({
       ...group,
-      items: group.items.filter((item) => {
-        if (!item.allowedRoles) {
-          console.error('Item missing allowedRoles:', item);
-          return false;
-        }
-        return item.allowedRoles.includes(role);
-      }),
+      items: group.items.filter((item) => item.allowedRoles.includes(role)),
     }))
-    .filter((group) => group.items.length > 0);
-  console.log('getNavigationForRole result:', result);
-  return result;
+    .filter((group) => group.items.length > 0)
 }
