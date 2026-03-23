@@ -25,11 +25,11 @@ function DashboardOverview() {
   ]
 
   return (
-    <div className="text-slate-800" style={{ fontFamily: "'Inter', sans-serif", background: 'linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%)', minHeight: '100vh' }}>
+    <div className="text-sm text-slate-800" style={{ fontFamily: "'Inter', sans-serif", background: 'linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%)', minHeight: '100vh' }}>
       {/* BEGIN: Sidebar Navigation */}
       <aside className="fixed left-0 top-0 h-full w-64 glass-panel border-r border-slate-200 z-50 flex flex-col">
         <div className="p-6">
-          <h1 className="text-2xl font-bold text-teal-700 tracking-tight">VSA Beverages</h1>
+          <h1 className="text-lg font-bold text-teal-700 tracking-tight">VSA Beverages</h1>
           <p className="text-xs text-slate-500 font-semibold uppercase tracking-widest mt-1">Intelligence System</p>
         </div>
         <nav className="flex-1 px-4 py-4 space-y-2">
@@ -66,7 +66,7 @@ function DashboardOverview() {
           <div className="flex items-center space-x-3 px-2">
             <div className="w-10 h-10 rounded-full bg-teal-500 flex items-center justify-center text-white font-bold">JD</div>
             <div>
-              <p className="text-sm font-semibold">John Doe</p>
+              <p className="text-xs font-semibold">John Doe</p>
               <p className="text-xs text-slate-500">Executive Director</p>
             </div>
           </div>
@@ -81,7 +81,7 @@ function DashboardOverview() {
             <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
             </span>
-            <input className="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-xl leading-5 bg-white bg-opacity-50 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 sm:text-sm transition duration-150" placeholder="Search analytics, SKUs, or reports..." type="text" />
+            <input className="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-xl leading-5 bg-white bg-opacity-50 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 sm:text-xs transition duration-150" placeholder="Search analytics, SKUs, or reports..." type="text" />
           </div>
           <div className="flex items-center space-x-4">
             <button className="p-2 text-slate-500 hover:text-teal-600 transition-colors">
@@ -89,7 +89,7 @@ function DashboardOverview() {
                 <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path>
               </svg>
             </button>
-            <button className="bg-teal-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-teal-700 transition-all shadow-lg shadow-teal-200">Export Report</button>
+            <button className="bg-teal-600 text-white px-4 py-2 rounded-xl text-xs font-semibold hover:bg-teal-700 transition-all shadow-lg shadow-teal-200">Export Report</button>
           </div>
         </header>
         {/* END: Top Header */}
@@ -100,9 +100,9 @@ function DashboardOverview() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Revenue Card */}
               <div className="glass-panel p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                <p className="text-sm font-medium text-slate-500">Revenue (MTD)</p>
+                <p className="text-xs font-medium text-slate-500">Revenue (MTD)</p>
                 <div className="flex items-baseline mt-2">
-                  <h3 className="text-3xl font-bold text-slate-900">$1.24M</h3>
+                  <h3 className="text-xl font-bold text-slate-900">$1.24M</h3>
                   <span className="ml-2 text-xs font-semibold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">+12.5%</span>
                 </div>
                 <div className="mt-4 h-1 w-full bg-slate-100 rounded-full overflow-hidden">
@@ -111,9 +111,9 @@ function DashboardOverview() {
               </div>
               {/* Orders Card */}
               <div className="glass-panel p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                <p className="text-sm font-medium text-slate-500">Orders Today</p>
+                <p className="text-xs font-medium text-slate-500">Orders Today</p>
                 <div className="flex items-baseline mt-2">
-                  <h3 className="text-3xl font-bold text-slate-900">3,842</h3>
+                  <h3 className="text-xl font-bold text-slate-900">3,842</h3>
                   <span className="ml-2 text-xs font-semibold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">+4.2%</span>
                 </div>
                 <div className="mt-4 flex justify-between items-center text-xs text-slate-400">
@@ -123,9 +123,9 @@ function DashboardOverview() {
               </div>
               {/* Inventory Status Card */}
               <div className="glass-panel p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow border-l-4 border-amber-400">
-                <p className="text-sm font-medium text-slate-500">Inventory Status</p>
+                <p className="text-xs font-medium text-slate-500">Inventory Status</p>
                 <div className="flex items-baseline mt-2">
-                  <h3 className="text-3xl font-bold text-slate-900">88.4%</h3>
+                  <h3 className="text-xl font-bold text-slate-900">88.4%</h3>
                   <span className="ml-2 text-xs font-semibold text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full">Low Stock (4)</span>
                 </div>
                 <p className="mt-4 text-xs text-slate-400">Next restocking scheduled for tomorrow, 08:00 AM.</p>
@@ -136,8 +136,8 @@ function DashboardOverview() {
             <div className="glass-panel p-8 rounded-3xl shadow-sm">
               <div className="flex justify-between items-center mb-8">
                 <div>
-                  <h2 className="text-xl font-bold text-slate-900">Sales Trend Analysis</h2>
-                  <p className="text-sm text-slate-500">Performance across all beverage categories (Last 30 days)</p>
+                  <h2 className="text-base font-bold text-slate-900">Sales Trend Analysis</h2>
+                  <p className="text-xs text-slate-500">Performance across all beverage categories (Last 30 days)</p>
                 </div>
                 <div className="flex space-x-2">
                   <button className="px-3 py-1 text-xs font-semibold rounded-lg bg-white border border-slate-200">Weekly</button>
@@ -176,19 +176,19 @@ function DashboardOverview() {
                     <path d="M13 10V3L4 14h7v7l9-11h-7z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path>
                   </svg>
                 </div>
-                <h2 className="text-lg font-bold text-slate-900">AI Insight Panel</h2>
+                <h2 className="text-sm font-bold text-slate-900">AI Insight Panel</h2>
               </div>
               {/* Recommendation Card 1 */}
               <div className="bg-white bg-opacity-40 p-4 rounded-2xl mb-4 border border-white">
                 <p className="text-xs font-bold text-teal-600 uppercase tracking-wider mb-1">Stock Optimization</p>
-                <h4 className="text-sm font-semibold text-slate-800 leading-tight">Increase inventory for 'Sparkling Lemonade' by 15% before weekend.</h4>
+                <h4 className="text-xs font-semibold text-slate-800 leading-tight">Increase inventory for 'Sparkling Lemonade' by 15% before weekend.</h4>
                 <p className="text-xs text-slate-500 mt-2">Predicted demand surge based on regional weather and festival schedules.</p>
                 <button className="mt-3 w-full py-2 bg-teal-600 bg-opacity-10 text-teal-700 text-xs font-bold rounded-xl hover:bg-opacity-20 transition-all">Apply Recommendation</button>
               </div>
               {/* Recommendation Card 2 */}
               <div className="bg-white bg-opacity-40 p-4 rounded-2xl mb-4 border border-white">
                 <p className="text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">Financial Analysis</p>
-                <h4 className="text-sm font-semibold text-slate-800 leading-tight">Logistics cost anomaly detected in Sector 4.</h4>
+                <h4 className="text-xs font-semibold text-slate-800 leading-tight">Logistics cost anomaly detected in Sector 4.</h4>
                 <p className="text-xs text-slate-500 mt-2">Current route efficiency is 12% below the quarterly benchmark.</p>
                 <a className="mt-3 block text-center text-xs font-bold text-blue-600 hover:underline" href="#">View Detailed Report</a>
               </div>
@@ -213,7 +213,7 @@ function DashboardOverview() {
             </div>
             {/* System Health Widget */}
             <div className="glass-panel p-6 rounded-3xl">
-              <h3 className="text-sm font-bold text-slate-800 mb-4">Operations Status</h3>
+              <h3 className="text-xs font-bold text-slate-800 mb-4">Operations Status</h3>
               <ul className="space-y-4">
                 {operationsStatus.map((item, i) => (
                   <li key={i} className="flex items-center justify-between">

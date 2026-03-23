@@ -1,5 +1,6 @@
+import calendar
 import os
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from bson import ObjectId  # type: ignore[import-untyped]
 from dotenv import load_dotenv
@@ -61,6 +62,25 @@ def seed_database():
 
     now = datetime.utcnow()
     current_month = now.strftime("%Y-%m")
+    year_token = now.strftime("%Y")
+
+    def month_date(month_delta: int, day: int) -> str:
+        year = now.year
+        month = now.month + month_delta
+
+        while month > 12:
+            month -= 12
+            year += 1
+
+        while month < 1:
+            month += 12
+            year -= 1
+
+        max_day = calendar.monthrange(year, month)[1]
+        return date(year, month, min(day, max_day)).isoformat()
+
+    def days_from_now(day_offset: int) -> str:
+        return (now + timedelta(days=day_offset)).date().isoformat()
 
     users = [
         {
@@ -129,7 +149,7 @@ def seed_database():
             "contact_person": "Ramesh Gupta",
             "email": "ramesh@freshmart.in",
             "total_orders": 24,
-            "last_order_date": "2024-03-01",
+            "last_order_date": month_date(0, 2),
             "rating": 4.8,
             "created_at": now,
             "updated_at": now,
@@ -140,7 +160,7 @@ def seed_database():
             "contact_person": "Lakshmi Iyer",
             "email": "lakshmi@naturesbest.in",
             "total_orders": 18,
-            "last_order_date": "2024-03-03",
+            "last_order_date": month_date(0, 5),
             "rating": 4.5,
             "created_at": now,
             "updated_at": now,
@@ -151,7 +171,7 @@ def seed_database():
             "contact_person": "Suresh Menon",
             "email": "suresh@greenvalley.in",
             "total_orders": 32,
-            "last_order_date": "2024-03-05",
+            "last_order_date": month_date(0, 8),
             "rating": 4.9,
             "created_at": now,
             "updated_at": now,
@@ -162,7 +182,7 @@ def seed_database():
             "contact_person": "Nita Shah",
             "email": "nita@organichub.in",
             "total_orders": 12,
-            "last_order_date": "2024-03-07",
+            "last_order_date": month_date(0, 11),
             "rating": 4.3,
             "created_at": now,
             "updated_at": now,
@@ -173,7 +193,7 @@ def seed_database():
             "contact_person": "Ajay Verma",
             "email": "ajay@healthylife.in",
             "total_orders": 8,
-            "last_order_date": "2024-03-09",
+            "last_order_date": month_date(0, 14),
             "rating": 4.6,
             "created_at": now,
             "updated_at": now,
@@ -304,7 +324,7 @@ def seed_database():
             "warehouse_location": "WH-A",
             "current_stock": 2500,
             "max_capacity": 5000,
-            "expiry_date": "2026-06-15",
+            "expiry_date": days_from_now(120),
             "status": "Adequate",
             "created_at": now,
             "updated_at": now,
@@ -315,7 +335,7 @@ def seed_database():
             "warehouse_location": "WH-A",
             "current_stock": 800,
             "max_capacity": 3000,
-            "expiry_date": "2026-05-20",
+            "expiry_date": days_from_now(90),
             "status": "Low",
             "created_at": now,
             "updated_at": now,
@@ -326,7 +346,7 @@ def seed_database():
             "warehouse_location": "WH-B",
             "current_stock": 320,
             "max_capacity": 1000,
-            "expiry_date": "2027-03-01",
+            "expiry_date": days_from_now(365),
             "status": "Low",
             "created_at": now,
             "updated_at": now,
@@ -337,7 +357,7 @@ def seed_database():
             "warehouse_location": "WH-C",
             "current_stock": 150,
             "max_capacity": 2000,
-            "expiry_date": "2029-12-31",
+            "expiry_date": days_from_now(720),
             "status": "Critical",
             "created_at": now,
             "updated_at": now,
@@ -348,7 +368,7 @@ def seed_database():
             "warehouse_location": "WH-C",
             "current_stock": 5000,
             "max_capacity": 12000,
-            "expiry_date": "2029-12-31",
+            "expiry_date": days_from_now(900),
             "status": "Adequate",
             "created_at": now,
             "updated_at": now,
@@ -360,58 +380,58 @@ def seed_database():
     orders = [
         {
             "_id": ObjectId(),
-            "order_id": "ORD-2024-001",
+            "order_id": f"ORD-{year_token}-001",
             "client_id": clients[0]["_id"],
-            "date": "2024-03-01",
+            "date": month_date(-4, 6),
             "total_items": 5,
             "total_amount": 45200.0,
             "status": "Processing",
-            "created_at": now - timedelta(days=18),
-            "updated_at": now - timedelta(days=17),
+            "created_at": now - timedelta(days=125),
+            "updated_at": now - timedelta(days=124),
         },
         {
             "_id": ObjectId(),
-            "order_id": "ORD-2024-002",
+            "order_id": f"ORD-{year_token}-002",
             "client_id": clients[1]["_id"],
-            "date": "2024-03-03",
+            "date": month_date(-3, 10),
             "total_items": 3,
             "total_amount": 32800.0,
             "status": "Shipped",
-            "created_at": now - timedelta(days=16),
-            "updated_at": now - timedelta(days=15),
+            "created_at": now - timedelta(days=95),
+            "updated_at": now - timedelta(days=94),
         },
         {
             "_id": ObjectId(),
-            "order_id": "ORD-2024-003",
+            "order_id": f"ORD-{year_token}-003",
             "client_id": clients[2]["_id"],
-            "date": "2024-03-05",
+            "date": month_date(-2, 14),
             "total_items": 8,
             "total_amount": 67500.0,
             "status": "Pending",
-            "created_at": now - timedelta(days=14),
-            "updated_at": now - timedelta(days=12),
+            "created_at": now - timedelta(days=65),
+            "updated_at": now - timedelta(days=63),
         },
         {
             "_id": ObjectId(),
-            "order_id": "ORD-2024-004",
+            "order_id": f"ORD-{year_token}-004",
             "client_id": clients[3]["_id"],
-            "date": "2024-03-07",
+            "date": month_date(-1, 18),
             "total_items": 2,
             "total_amount": 28900.0,
             "status": "Delivered",
-            "created_at": now - timedelta(days=12),
-            "updated_at": now - timedelta(days=10),
+            "created_at": now - timedelta(days=35),
+            "updated_at": now - timedelta(days=32),
         },
         {
             "_id": ObjectId(),
-            "order_id": "ORD-2024-005",
+            "order_id": f"ORD-{year_token}-005",
             "client_id": clients[4]["_id"],
-            "date": "2024-03-09",
+            "date": month_date(0, 8),
             "total_items": 6,
             "total_amount": 54300.0,
             "status": "Processing",
-            "created_at": now - timedelta(days=10),
-            "updated_at": now - timedelta(days=9),
+            "created_at": now - timedelta(days=12),
+            "updated_at": now - timedelta(days=10),
         },
     ]
     db["orders"].insert_many(orders)
@@ -419,57 +439,57 @@ def seed_database():
 
     invoices = [
         {
-            "invoice_number": "INV-2024-001",
+            "invoice_number": f"INV-{year_token}-001",
             "client_id": clients[0]["_id"],
-            "date": "2024-03-01",
+            "date": orders[0]["date"],
             "amount": 45200.0,
             "status": "Paid",
             "items": [
                 {"description": "Cold Pressed Coconut Oil", "qty": 100, "unit_price": 452.0, "line_total": 45200.0}
             ],
-            "created_at": now - timedelta(days=18),
-            "updated_at": now - timedelta(days=17),
+            "created_at": now - timedelta(days=124),
+            "updated_at": now - timedelta(days=123),
         },
         {
-            "invoice_number": "INV-2024-002",
+            "invoice_number": f"INV-{year_token}-002",
             "client_id": clients[1]["_id"],
-            "date": "2024-03-05",
+            "date": orders[1]["date"],
             "amount": 32800.0,
             "status": "Pending",
             "items": [
                 {"description": "Virgin Sesame Oil", "qty": 80, "unit_price": 410.0, "line_total": 32800.0}
             ],
-            "created_at": now - timedelta(days=14),
-            "updated_at": now - timedelta(days=13),
+            "created_at": now - timedelta(days=93),
+            "updated_at": now - timedelta(days=92),
         },
         {
-            "invoice_number": "INV-2024-003",
+            "invoice_number": f"INV-{year_token}-003",
             "client_id": clients[2]["_id"],
-            "date": "2024-03-08",
+            "date": orders[2]["date"],
             "amount": 67500.0,
             "status": "Overdue",
             "items": [
                 {"description": "Organic Groundnut Oil", "qty": 150, "unit_price": 450.0, "line_total": 67500.0}
             ],
-            "created_at": now - timedelta(days=12),
-            "updated_at": now - timedelta(days=9),
+            "created_at": now - timedelta(days=62),
+            "updated_at": now - timedelta(days=60),
         },
         {
-            "invoice_number": "INV-2024-004",
+            "invoice_number": f"INV-{year_token}-004",
             "client_id": clients[3]["_id"],
-            "date": "2024-03-10",
+            "date": orders[3]["date"],
             "amount": 28900.0,
             "status": "Paid",
             "items": [
                 {"description": "Flaxseed Oil", "qty": 50, "unit_price": 578.0, "line_total": 28900.0}
             ],
-            "created_at": now - timedelta(days=10),
-            "updated_at": now - timedelta(days=8),
+            "created_at": now - timedelta(days=31),
+            "updated_at": now - timedelta(days=29),
         },
         {
-            "invoice_number": "INV-2024-005",
+            "invoice_number": f"INV-{year_token}-005",
             "client_id": clients[4]["_id"],
-            "date": "2024-03-12",
+            "date": orders[4]["date"],
             "amount": 54300.0,
             "status": "Pending",
             "items": [
@@ -543,8 +563,8 @@ def seed_database():
             "product_id": products[0]["_id"],
             "quantity": 500,
             "stage": "In Progress",
-            "start_date": "2024-03-01",
-            "end_date": "2024-03-04",
+            "start_date": days_from_now(-6),
+            "end_date": days_from_now(2),
             "created_at": now - timedelta(days=18),
             "updated_at": now - timedelta(days=16),
         },
@@ -553,8 +573,8 @@ def seed_database():
             "product_id": products[1]["_id"],
             "quantity": 300,
             "stage": "In Progress",
-            "start_date": "2024-03-02",
-            "end_date": "2024-03-06",
+            "start_date": days_from_now(-4),
+            "end_date": days_from_now(3),
             "created_at": now - timedelta(days=17),
             "updated_at": now - timedelta(days=14),
         },
@@ -563,8 +583,8 @@ def seed_database():
             "product_id": products[2]["_id"],
             "quantity": 450,
             "stage": "Completed",
-            "start_date": "2024-02-28",
-            "end_date": "2024-03-03",
+            "start_date": days_from_now(-20),
+            "end_date": days_from_now(-15),
             "created_at": now - timedelta(days=20),
             "updated_at": now - timedelta(days=15),
         },
@@ -573,8 +593,8 @@ def seed_database():
             "product_id": products[3]["_id"],
             "quantity": 200,
             "stage": "Planned",
-            "start_date": "2024-03-05",
-            "end_date": "2024-03-10",
+            "start_date": days_from_now(4),
+            "end_date": days_from_now(10),
             "created_at": now - timedelta(days=14),
             "updated_at": now - timedelta(days=12),
         },
@@ -583,8 +603,8 @@ def seed_database():
             "product_id": products[4]["_id"],
             "quantity": 380,
             "stage": "Planned",
-            "start_date": "2024-03-08",
-            "end_date": "2024-03-13",
+            "start_date": days_from_now(7),
+            "end_date": days_from_now(13),
             "created_at": now - timedelta(days=11),
             "updated_at": now - timedelta(days=10),
         },
@@ -613,7 +633,7 @@ def seed_database():
         },
         {
             "title": "New order from Green Valley Foods",
-            "message": "Order ORD-2024-003 for Rs 67,500 received.",
+            "message": f"Order {orders[2]['order_id']} for ₹67,500 received.",
             "type": "success",
             "timestamp": now - timedelta(hours=1),
             "is_read": False,
@@ -622,7 +642,7 @@ def seed_database():
         },
         {
             "title": "Pending approval: Purchase Order PO-045",
-            "message": "Rs 1,25,000 for raw coconut from AgroFresh Farms.",
+            "message": "₹1,25,000 for raw coconut from AgroFresh Farms.",
             "type": "warning",
             "timestamp": now - timedelta(hours=2),
             "is_read": True,

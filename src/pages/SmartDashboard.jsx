@@ -79,7 +79,7 @@ function SmartDashboard() {
   ]
 
   return (
-    <div className="font-display text-slate-900 dark:text-slate-100" style={{ fontFamily: "'Inter', sans-serif", backgroundColor: '#f6f7f8' }}>
+    <div className="font-display text-sm text-slate-900 dark:text-slate-100" style={{ fontFamily: "'Inter', sans-serif", backgroundColor: '#f6f7f8' }}>
       <div className="flex h-screen overflow-hidden">
         {/* Side Navigation */}
         <aside className="w-64 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-background-dark flex flex-col">
@@ -164,7 +164,7 @@ function SmartDashboard() {
             {/* Hero Title */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
               <div>
-                <h2 className="text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100">Operational Overview</h2>
+                <h2 className="text-xl font-black tracking-tight text-slate-900 dark:text-slate-100">Operational Overview</h2>
                 <p className="text-slate-500 mt-1 italic font-medium">Live data feed from supply chain clusters</p>
               </div>
               <div className="flex gap-2 text-xs font-bold text-slate-500 bg-slate-200 dark:bg-slate-800 p-1 rounded-lg">
@@ -185,8 +185,8 @@ function SmartDashboard() {
                       <span className="material-symbols-outlined text-[12px]">{kpi.trendIcon}</span> {kpi.trendText}
                     </span>
                   </div>
-                  <p className="text-slate-500 text-sm font-semibold">{kpi.label}</p>
-                  <h3 className="text-2xl font-black">{kpi.value} <span className="text-sm font-normal text-slate-400">{kpi.unit}</span></h3>
+                  <p className="text-slate-500 text-xs font-semibold">{kpi.label}</p>
+                  <h3 className="text-lg font-black">{kpi.value} <span className="text-xs font-normal text-slate-400">{kpi.unit}</span></h3>
                   {kpi.progressWidth ? (
                     <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full mt-3 overflow-hidden">
                       <div className={`${kpi.progressColor} h-full rounded-full`} style={{ width: kpi.progressWidth }}></div>
@@ -201,19 +201,19 @@ function SmartDashboard() {
             <section className="space-y-4">
               <div className="flex items-center gap-2 px-1">
                 <span className="material-symbols-outlined" style={{ color: '#1a355b' }}>auto_awesome</span>
-                <h2 className="text-xl font-bold tracking-tight">AI Insight Panel</h2>
+                <h2 className="text-base font-bold tracking-tight">AI Insight Panel</h2>
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 bg-gradient-to-br from-primary to-[#2a4d7d] rounded-xl p-8 text-white relative overflow-hidden shadow-xl" style={{ background: 'linear-gradient(to bottom right, #1a355b, #2a4d7d)' }}>
                   <div className="relative z-10 flex flex-col h-full justify-between">
                     <div className="max-w-md">
                       <span className="bg-white/20 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest mb-4 inline-block">Predictive Analysis</span>
-                      <h3 className="text-2xl font-bold mb-2">Demand Spike Predicted</h3>
-                      <p className="text-blue-100 text-sm leading-relaxed">AI models predict a 24% increase in organic grain demand over the next 14 days due to seasonal market shifts. Suggesting immediate inventory allocation.</p>
+                      <h3 className="text-lg font-bold mb-2">Demand Spike Predicted</h3>
+                      <p className="text-blue-100 text-xs leading-relaxed">AI models predict a 24% increase in organic grain demand over the next 14 days due to seasonal market shifts. Suggesting immediate inventory allocation.</p>
                     </div>
                     <div className="mt-8 flex gap-4">
-                      <button className="bg-white px-6 py-2.5 rounded-lg font-bold text-sm shadow-lg hover:bg-blue-50 transition-colors" style={{ color: '#1a355b' }}>Adjust Strategy</button>
-                      <button className="bg-transparent border border-white/30 text-white px-6 py-2.5 rounded-lg font-bold text-sm hover:bg-white/10 transition-colors">View Details</button>
+                      <button className="bg-white px-6 py-2.5 rounded-lg font-bold text-xs shadow-lg hover:bg-blue-50 transition-colors" style={{ color: '#1a355b' }}>Adjust Strategy</button>
+                      <button className="bg-transparent border border-white/30 text-white px-6 py-2.5 rounded-lg font-bold text-xs hover:bg-white/10 transition-colors">View Details</button>
                     </div>
                   </div>
                   <div className="absolute right-[-40px] bottom-[-40px] opacity-10">
@@ -221,7 +221,7 @@ function SmartDashboard() {
                   </div>
                 </div>
                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
-                  <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                  <h3 className="text-sm font-bold mb-4 flex items-center gap-2">
                     <span className="material-symbols-outlined text-amber-500">savings</span> Cost Optimization
                   </h3>
                   <div className="space-y-4">
@@ -241,8 +241,8 @@ function SmartDashboard() {
             {/* Order Lifecycle Timeline */}
             <section className="space-y-4">
               <div className="flex justify-between items-center px-1">
-                <h2 className="text-xl font-bold tracking-tight">Recent Order Lifecycle</h2>
-                <span className="text-sm font-medium text-slate-500 uppercase tracking-tighter">Order #VSA-99023</span>
+                <h2 className="text-base font-bold tracking-tight">Recent Order Lifecycle</h2>
+                <span className="text-xs font-medium text-slate-500 uppercase tracking-tighter">Order #VSA-99023</span>
               </div>
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-8 shadow-sm">
                 <div className="relative flex justify-between items-center">
@@ -261,7 +261,7 @@ function SmartDashboard() {
                       >
                         <span className="material-symbols-outlined text-sm">{step.icon}</span>
                       </div>
-                      <p className={`mt-3 text-sm font-bold ${step.highlight ? '' : step.active ? '' : 'text-slate-400'}`} style={step.highlight ? { color: '#1a355b' } : {}}>
+                      <p className={`mt-3 text-xs font-bold ${step.highlight ? '' : step.active ? '' : 'text-slate-400'}`} style={step.highlight ? { color: '#1a355b' } : {}}>
                         {step.label}
                       </p>
                       <p className="text-[10px] text-slate-500">{step.date}</p>
@@ -284,7 +284,7 @@ function SmartDashboard() {
                         <span className="material-symbols-outlined text-slate-500">{item.icon}</span>
                       </div>
                       <div className="flex-1">
-                        <div className="flex justify-between text-sm font-bold mb-1">
+                        <div className="flex justify-between text-xs font-bold mb-1">
                           <span>{item.name}</span>
                           <span>{item.qty}</span>
                         </div>
@@ -318,7 +318,7 @@ function SmartDashboard() {
                   </div>
                 </div>
                 <div className="mt-4 flex items-center justify-between text-sm">
-                  <span className="text-slate-500">Currently tracking <strong className="text-slate-900 dark:text-white">14 deliveries</strong></span>
+                  <span className="text-xs text-slate-500">Currently tracking <strong className="text-slate-900 dark:text-white">14 deliveries</strong></span>
                   <button className="bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded font-bold hover:bg-slate-200 transition-colors">Open Map</button>
                 </div>
               </div>
