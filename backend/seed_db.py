@@ -61,6 +61,7 @@ def seed_database():
         "invoices",
         "payroll",
         "production_batches",
+        "production_incidents",
         "orders",
         "inventory",
         "clients",
@@ -105,6 +106,19 @@ def seed_database():
 
     def days_from_now(day_offset: int) -> str:
         return (now + timedelta(days=day_offset)).date().isoformat()
+
+    def packing_items(*entries):
+        items = []
+        for index, entry in enumerate(entries):
+            quantity, name = entry
+            items.append(
+                {
+                    "id": str(index + 1),
+                    "name": str(name),
+                    "quantity": max(1, int(quantity)),
+                }
+            )
+        return items
 
     users = [
         {
@@ -816,6 +830,21 @@ def seed_database():
             },
         ]
     )
+
+    order_packing_items = {
+        f"ORD-{year_token}-001": packing_items((5, "Cold Pressed Coconut Oil"), (2, "Sesame Oil")),
+        f"ORD-{year_token}-005": packing_items((3, "Virgin Sesame Oil"), (2, "Black Sesame Oil"), (1, "Labels")),
+        f"ORD-{year_token}-010": packing_items((6, "Rice Bran Oil"), (2, "Mustard Oil Premium"), (2, "Shipping Cartons")),
+        f"ORD-{year_token}-013": packing_items((4, "Groundnut Oil 1L"), (1, "Premium Labels")),
+        f"ORD-{year_token}-016": packing_items((5, "Cold Pressed Coconut Oil"), (2, "Sesame Oil 1L")),
+    }
+    fallback_processing_items = packing_items((2, "Cold Pressed Coconut Oil"), (1, "Shipping Cartons"))
+    for order in orders:
+        if order.get("status") != "Processing":
+            continue
+        order_id = str(order.get("order_id") or "")
+        order["packing_items"] = order_packing_items.get(order_id, fallback_processing_items)
+
     db["orders"].insert_many(orders)
     print("Inserted orders")
 
@@ -1295,6 +1324,16 @@ def seed_database():
             },
         ]
     )
+
+    staff_batch_ids = {"BATCH-001", "BATCH-004", "BATCH-005", "BATCH-015"}
+    manager_batch_ids = {"BATCH-002", "BATCH-010", "BATCH-013"}
+    for batch in production_batches:
+        batch_id = str(batch.get("batch_id") or "")
+        if batch_id in staff_batch_ids:
+            batch["staff_id"] = users[2]["_id"]
+        elif batch_id in manager_batch_ids:
+            batch["staff_id"] = users[1]["_id"]
+
     db["production_batches"].insert_many(production_batches)
     print("Inserted production batches")
 

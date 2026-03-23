@@ -349,20 +349,21 @@ function Products() {
       <Modal
         isOpen={Boolean(deletingProduct)}
         title="Warning: Delete Product"
+        description="This permanently removes the product from your catalog."
         onClose={closeDeleteWarning}
       >
         <div className="space-y-4">
-          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <div className="modal-panel border-red-200 bg-red-50 text-sm text-red-700">
             You are about to delete{' '}
             <span className="font-semibold">{deletingProduct?.name || 'this product'}</span>.
             {' '}This action cannot be undone.
           </div>
 
-          <div className="flex items-center justify-end gap-3">
+          <div className="modal-actions">
             <button
               type="button"
               onClick={closeDeleteWarning}
-              className="rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+              className="modal-btn-secondary"
             >
               Cancel
             </button>
@@ -370,7 +371,7 @@ function Products() {
               type="button"
               onClick={() => handleDeleteProduct(deletingProduct)}
               disabled={isDeleting}
-              className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-70"
+              className="modal-btn-danger"
             >
               {isDeleting ? 'Deleting...' : 'Delete Product'}
             </button>
@@ -381,54 +382,55 @@ function Products() {
       <Modal
         isOpen={Boolean(viewingProduct)}
         title="Product Properties"
+        description="Read-only product profile and audit timestamps."
         onClose={closeViewModal}
       >
-        <div className="space-y-4">
-          <div className="rounded-lg border border-emerald-100 bg-emerald-50/70 p-4">
+        <div className="space-y-5">
+          <div className="modal-panel border-emerald-100 bg-emerald-50/70">
             <p className="text-sm text-emerald-800">{viewingProduct?.name || 'Product'}</p>
             <p className="mt-1 text-lg font-semibold text-emerald-900">{viewingProduct?.sku || 'N/A'}</p>
           </div>
 
-          <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-            <div className="rounded-lg border border-gray-200 bg-white p-3">
-              <dt className="text-gray-500">Category</dt>
-              <dd className="mt-1 font-medium text-gray-900">{viewingProduct?.category || 'N/A'}</dd>
+          <dl className="modal-data-grid text-sm">
+            <div className="modal-data-item">
+              <dt className="modal-data-label">Category</dt>
+              <dd className="modal-data-value">{viewingProduct?.category || 'N/A'}</dd>
             </div>
-            <div className="rounded-lg border border-gray-200 bg-white p-3">
-              <dt className="text-gray-500">Price</dt>
-              <dd className="mt-1 font-medium text-gray-900">{formatCurrency(viewingProduct?.price)}</dd>
+            <div className="modal-data-item">
+              <dt className="modal-data-label">Price</dt>
+              <dd className="modal-data-value">{formatCurrency(viewingProduct?.price)}</dd>
             </div>
-            <div className="rounded-lg border border-gray-200 bg-white p-3">
-              <dt className="text-gray-500">Current Stock</dt>
-              <dd className="mt-1 font-medium text-gray-900">{(Number(viewingProduct?.stock) || 0).toLocaleString('en-IN')}</dd>
+            <div className="modal-data-item">
+              <dt className="modal-data-label">Current Stock</dt>
+              <dd className="modal-data-value">{(Number(viewingProduct?.stock) || 0).toLocaleString('en-IN')}</dd>
             </div>
-            <div className="rounded-lg border border-gray-200 bg-white p-3">
-              <dt className="text-gray-500">Status</dt>
+            <div className="modal-data-item">
+              <dt className="modal-data-label">Status</dt>
               <dd className="mt-1">
                 <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getStatusClasses(viewingProduct?.status)}`}>
                   {viewingProduct?.status || 'N/A'}
                 </span>
               </dd>
             </div>
-            <div className="rounded-lg border border-gray-200 bg-white p-3 sm:col-span-2">
-              <dt className="text-gray-500">Product ID</dt>
-              <dd className="mt-1 break-all font-medium text-gray-900">{viewingProduct?._id || 'N/A'}</dd>
+            <div className="modal-data-item sm:col-span-2">
+              <dt className="modal-data-label">Product ID</dt>
+              <dd className="modal-data-value break-all">{viewingProduct?._id || 'N/A'}</dd>
             </div>
-            <div className="rounded-lg border border-gray-200 bg-white p-3">
-              <dt className="text-gray-500">Created</dt>
-              <dd className="mt-1 font-medium text-gray-900">{formatDate(viewingProduct?.created_at)}</dd>
+            <div className="modal-data-item">
+              <dt className="modal-data-label">Created</dt>
+              <dd className="modal-data-value">{formatDate(viewingProduct?.created_at)}</dd>
             </div>
-            <div className="rounded-lg border border-gray-200 bg-white p-3">
-              <dt className="text-gray-500">Last Updated</dt>
-              <dd className="mt-1 font-medium text-gray-900">{formatDate(viewingProduct?.updated_at)}</dd>
+            <div className="modal-data-item">
+              <dt className="modal-data-label">Last Updated</dt>
+              <dd className="modal-data-value">{formatDate(viewingProduct?.updated_at)}</dd>
             </div>
           </dl>
 
-          <div className="flex justify-end pt-1">
+          <div className="modal-actions">
             <button
               type="button"
               onClick={closeViewModal}
-              className="rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+              className="modal-btn-secondary"
             >
               Close
             </button>
@@ -439,119 +441,122 @@ function Products() {
       <Modal
         isOpen={isModalOpen}
         title={editingProduct ? 'Edit Product' : 'Add Product'}
+        description="Capture product profile, pricing, and stock posture."
         onClose={closeModal}
       >
-        <form onSubmit={handleSaveProduct} className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="product-name" className="text-sm font-medium text-gray-700">
-              Product Name
-            </label>
-            <input
-              id="product-name"
-              type="text"
-              value={formData.name}
-              onChange={(event) => handleChange('name', event.target.value)}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="product-sku" className="text-sm font-medium text-gray-700">
-              SKU
-            </label>
-            <input
-              id="product-sku"
-              type="text"
-              value={formData.sku}
-              onChange={(event) => handleChange('sku', event.target.value)}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="product-category" className="text-sm font-medium text-gray-700">
-              Category
-            </label>
-            <select
-              id="product-category"
-              value={formData.category}
-              onChange={(event) => handleChange('category', event.target.value)}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-            >
-              {CATEGORY_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <form onSubmit={handleSaveProduct} className="space-y-5">
+          <div className="modal-shell space-y-4">
             <div className="space-y-2">
-              <label htmlFor="product-price" className="text-sm font-medium text-gray-700">
-                Price (₹)
+              <label htmlFor="product-name" className="modal-label">
+                Product Name
               </label>
               <input
-                id="product-price"
-                type="number"
-                min="0"
-                step="0.01"
-                value={formData.price}
-                onChange={(event) => handleChange('price', event.target.value)}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                id="product-name"
+                type="text"
+                value={formData.name}
+                onChange={(event) => handleChange('name', event.target.value)}
+                className="modal-input"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="product-stock" className="text-sm font-medium text-gray-700">
-                Current Stock
+              <label htmlFor="product-sku" className="modal-label">
+                SKU
               </label>
               <input
-                id="product-stock"
-                type="number"
-                min="0"
-                step="1"
-                value={formData.stock}
-                onChange={(event) => handleChange('stock', event.target.value)}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                id="product-sku"
+                type="text"
+                value={formData.sku}
+                onChange={(event) => handleChange('sku', event.target.value)}
+                className="modal-input"
                 required
               />
             </div>
+
+            <div className="space-y-2">
+              <label htmlFor="product-category" className="modal-label">
+                Category
+              </label>
+              <select
+                id="product-category"
+                value={formData.category}
+                onChange={(event) => handleChange('category', event.target.value)}
+                className="modal-input"
+              >
+                {CATEGORY_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label htmlFor="product-price" className="modal-label">
+                  Price (₹)
+                </label>
+                <input
+                  id="product-price"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={formData.price}
+                  onChange={(event) => handleChange('price', event.target.value)}
+                  className="modal-input"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="product-stock" className="modal-label">
+                  Current Stock
+                </label>
+                <input
+                  id="product-stock"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={formData.stock}
+                  onChange={(event) => handleChange('stock', event.target.value)}
+                  className="modal-input"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="product-status" className="modal-label">
+                Status
+              </label>
+              <select
+                id="product-status"
+                value={formData.status}
+                onChange={(event) => handleChange('status', event.target.value)}
+                className="modal-input"
+              >
+                {STATUS_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="product-status" className="text-sm font-medium text-gray-700">
-              Status
-            </label>
-            <select
-              id="product-status"
-              value={formData.status}
-              onChange={(event) => handleChange('status', event.target.value)}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-            >
-              {STATUS_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center justify-end gap-3 pt-2">
+          <div className="modal-actions">
             <button
               type="button"
               onClick={closeModal}
-              className="rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+              className="modal-btn-secondary"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className="rounded-md bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
+              className="modal-btn-primary"
             >
               {isSaving ? 'Saving...' : 'Save Product'}
             </button>

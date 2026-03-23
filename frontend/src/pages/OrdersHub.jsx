@@ -378,139 +378,143 @@ function OrdersHub() {
         isOpen={isCreateOrderModalOpen}
         onClose={closeCreateOrderModal}
         title="New Order"
+        description="Create a new client order and capture shipment readiness."
+        maxWidthClass="max-w-2xl"
       >
-        <form onSubmit={handleCreateOrder} className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="new-order-id" className="text-sm font-medium text-gray-700">
-              Order ID
-            </label>
-            <input
-              id="new-order-id"
-              type="text"
-              value={orderForm.order_id}
-              onChange={(event) => handleOrderField('order_id', event.target.value)}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <form onSubmit={handleCreateOrder} className="space-y-5">
+          <div className="modal-shell space-y-4">
             <div className="space-y-2">
-              <label htmlFor="new-order-client" className="text-sm font-medium text-gray-700">
-                Client
+              <label htmlFor="new-order-id" className="modal-label">
+                Order ID
+              </label>
+              <input
+                id="new-order-id"
+                type="text"
+                value={orderForm.order_id}
+                onChange={(event) => handleOrderField('order_id', event.target.value)}
+                className="modal-input"
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label htmlFor="new-order-client" className="modal-label">
+                  Client
+                </label>
+                <select
+                  id="new-order-client"
+                  value={orderForm.client_id}
+                  onChange={(event) => handleOrderField('client_id', event.target.value)}
+                  className="modal-input"
+                  required
+                >
+                  <option value="">Select Client</option>
+                  {clients.map((client) => (
+                    <option key={client._id} value={client._id}>
+                      {client.company_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="new-order-date" className="modal-label">
+                  Date
+                </label>
+                <input
+                  id="new-order-date"
+                  type="date"
+                  value={orderForm.date}
+                  onChange={(event) => handleOrderField('date', event.target.value)}
+                  className="modal-input"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label htmlFor="new-order-total-items" className="modal-label">
+                  Total Items
+                </label>
+                <input
+                  id="new-order-total-items"
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={orderForm.total_items}
+                  onChange={(event) => handleOrderField('total_items', event.target.value)}
+                  className="modal-input"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="new-order-total-amount" className="modal-label">
+                  Total Amount (₹)
+                </label>
+                <input
+                  id="new-order-total-amount"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={orderForm.total_amount}
+                  onChange={(event) => handleOrderField('total_amount', event.target.value)}
+                  className="modal-input"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="new-order-status" className="modal-label">
+                Status
               </label>
               <select
-                id="new-order-client"
-                value={orderForm.client_id}
-                onChange={(event) => handleOrderField('client_id', event.target.value)}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                required
+                id="new-order-status"
+                value={orderForm.status}
+                onChange={(event) => handleOrderField('status', event.target.value)}
+                className="modal-input"
               >
-                <option value="">Select Client</option>
-                {clients.map((client) => (
-                  <option key={client._id} value={client._id}>
-                    {client.company_name}
+                {ORDER_STATUS_OPTIONS.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
                   </option>
                 ))}
               </select>
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="new-order-date" className="text-sm font-medium text-gray-700">
-                Date
-              </label>
-              <input
-                id="new-order-date"
-                type="date"
-                value={orderForm.date}
-                onChange={(event) => handleOrderField('date', event.target.value)}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                required
-              />
-            </div>
+            {orderForm.status === 'Shipped' ? (
+              <div className="modal-panel space-y-2">
+                <label htmlFor="new-order-tracking" className="modal-label">
+                  Tracking Details
+                </label>
+                <input
+                  id="new-order-tracking"
+                  type="text"
+                  value={orderForm.tracking_details}
+                  onChange={(event) => handleOrderField('tracking_details', event.target.value)}
+                  placeholder="Tracking URL or courier reference"
+                  className="modal-input"
+                  required
+                />
+              </div>
+            ) : null}
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <label htmlFor="new-order-total-items" className="text-sm font-medium text-gray-700">
-                Total Items
-              </label>
-              <input
-                id="new-order-total-items"
-                type="number"
-                min="1"
-                step="1"
-                value={orderForm.total_items}
-                onChange={(event) => handleOrderField('total_items', event.target.value)}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="new-order-total-amount" className="text-sm font-medium text-gray-700">
-                Total Amount (₹)
-              </label>
-              <input
-                id="new-order-total-amount"
-                type="number"
-                min="0"
-                step="0.01"
-                value={orderForm.total_amount}
-                onChange={(event) => handleOrderField('total_amount', event.target.value)}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="new-order-status" className="text-sm font-medium text-gray-700">
-              Status
-            </label>
-            <select
-              id="new-order-status"
-              value={orderForm.status}
-              onChange={(event) => handleOrderField('status', event.target.value)}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-            >
-              {ORDER_STATUS_OPTIONS.map((status) => (
-                <option key={status} value={status}>
-                  {status}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {orderForm.status === 'Shipped' ? (
-            <div className="space-y-2">
-              <label htmlFor="new-order-tracking" className="text-sm font-medium text-gray-700">
-                Tracking Details
-              </label>
-              <input
-                id="new-order-tracking"
-                type="text"
-                value={orderForm.tracking_details}
-                onChange={(event) => handleOrderField('tracking_details', event.target.value)}
-                placeholder="Tracking URL or courier reference"
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                required
-              />
-            </div>
-          ) : null}
-
-          <div className="flex items-center justify-end gap-3 pt-1">
+          <div className="modal-actions">
             <button
               type="button"
               onClick={closeCreateOrderModal}
-              className="rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+              className="modal-btn-secondary"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isCreating}
-              className="rounded-md bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
+              className="modal-btn-primary"
             >
               {isCreating ? 'Saving...' : 'Create Order'}
             </button>
@@ -522,9 +526,10 @@ function OrdersHub() {
         isOpen={isOrderModalOpen}
         onClose={closeStatusModal}
         title="Update Order Status"
+        description="Track dispatch state and courier details for this order."
       >
-        <form onSubmit={handleUpdateOrderStatus} className="space-y-4">
-          <div className="rounded-lg border border-slate-200 bg-gradient-to-r from-slate-50 to-white px-4 py-3">
+        <form onSubmit={handleUpdateOrderStatus} className="space-y-5">
+          <div className="modal-panel bg-gradient-to-r from-slate-50 to-white">
             <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
               <div>
                 <p className="text-gray-500">Order ID</p>
@@ -548,60 +553,62 @@ function OrdersHub() {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="order-status" className="text-sm font-medium text-gray-700">
-              Update To
-            </label>
-            <select
-              id="order-status"
-              value={statusForm.status}
-              onChange={(event) => handleStatusField('status', event.target.value)}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-            >
-              {ORDER_STATUS_OPTIONS.map((status) => (
-                <option key={status} value={status}>
-                  {status}
-                </option>
-              ))}
-            </select>
+          <div className="modal-shell space-y-3">
+            <div className="space-y-2">
+              <label htmlFor="order-status" className="modal-label">
+                Update To
+              </label>
+              <select
+                id="order-status"
+                value={statusForm.status}
+                onChange={(event) => handleStatusField('status', event.target.value)}
+                className="modal-input"
+              >
+                {ORDER_STATUS_OPTIONS.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
 
-            <div className="pt-1">
-              <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium ${getModalStatusClasses(statusForm.status)}`}>
-                New: {statusForm.status}
-              </span>
+              <div className="pt-1">
+                <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium ${getModalStatusClasses(statusForm.status)}`}>
+                  New: {statusForm.status}
+                </span>
+              </div>
             </div>
+
+            {statusForm.status === 'Shipped' ? (
+              <div className="space-y-2">
+                <label htmlFor="tracking-details" className="modal-label">
+                  Tracking URL / Courier Details
+                </label>
+                <input
+                  id="tracking-details"
+                  type="text"
+                  value={statusForm.tracking_details}
+                  onChange={(event) => handleStatusField('tracking_details', event.target.value)}
+                  placeholder="https:// or courier reference"
+                  className="modal-input"
+                  required
+                />
+                <p className="text-xs text-gray-500">This detail will be saved with the order for shipment tracking.</p>
+              </div>
+            ) : null}
           </div>
 
-          {statusForm.status === 'Shipped' ? (
-            <div className="space-y-2">
-              <label htmlFor="tracking-details" className="text-sm font-medium text-gray-700">
-                Tracking URL / Courier Details
-              </label>
-              <input
-                id="tracking-details"
-                type="text"
-                value={statusForm.tracking_details}
-                onChange={(event) => handleStatusField('tracking_details', event.target.value)}
-                placeholder="https:// or courier reference"
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                required
-              />
-              <p className="text-xs text-gray-500">This detail will be saved with the order for shipment tracking.</p>
-            </div>
-          ) : null}
-
-          <div className="flex items-center justify-end gap-3 pt-1">
+          <div className="modal-actions">
             <button
               type="button"
               onClick={closeStatusModal}
-              className="rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+              className="modal-btn-secondary"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isUpdating}
-              className="rounded-md bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
+              className="modal-btn-primary"
             >
               {isUpdating ? 'Updating...' : 'Update'}
             </button>

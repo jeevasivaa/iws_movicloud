@@ -14,14 +14,23 @@ const EMPTY_CLIENT_FORM = {
   rating: '',
 }
 
+const EMPTY_CAMPAIGN_FORM = {
+  audience: 'all',
+  subject: '',
+  message: '',
+}
+
 function Marketing() {
   const { token } = useAuth()
   const [query, setQuery] = useState('')
   const [clients, setClients] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [isCampaignModalOpen, setIsCampaignModalOpen] = useState(false)
+  const [isSendingCampaign, setIsSendingCampaign] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [clientForm, setClientForm] = useState(EMPTY_CLIENT_FORM)
+  const [campaignForm, setCampaignForm] = useState(EMPTY_CAMPAIGN_FORM)
   const [error, setError] = useState('')
   const authConfig = useMemo(() => (token ? { headers: { Authorization: `Bearer ${token}` } } : {}), [token])
 
@@ -79,9 +88,22 @@ function Marketing() {
     setIsAddModalOpen(true)
   }
 
+  const openCampaignModal = () => {
+    setCampaignForm({
+      ...EMPTY_CAMPAIGN_FORM,
+      message: 'Hello,\n\nThank you for being a valued client of VSA Foods.\n\nRegards,\nVSA Foods Team',
+    })
+    setIsCampaignModalOpen(true)
+  }
+
   const closeAddModal = () => {
     setIsAddModalOpen(false)
     setClientForm(EMPTY_CLIENT_FORM)
+  }
+
+  const closeCampaignModal = () => {
+    setIsCampaignModalOpen(false)
+    setCampaignForm(EMPTY_CAMPAIGN_FORM)
   }
 
   const handleClientField = (field, value) => {
@@ -89,6 +111,109 @@ function Marketing() {
       ...current,
       [field]: value,
     }))
+  }
+
+  const handleCampaignField = (field, value) => {
+    setCampaignForm((current) => ({
+      ...current,
+      [field]: value,
+    }))
+  }
+
+  const campaignAudienceRows = useMemo(
+    () => (campaignForm.audience === 'filtered' ? filteredRows : clients),
+    [campaignForm.audience, clients, filteredRows],
+  )
+
+  const campaignRecipientEmails = useMemo(
+    () =>
+      campaignAudienceRows
+        .map((row) => String(row.email || '').trim())
+        .filter((email) => email.length > 0),
+    [campaignAudienceRows],
+  )
+
+  const handleSendCampaign = async (event) => {
+    event.preventDefault()
+
+    const subject = campaignForm.subject.trim()
+    const message = campaignForm.message.trim()
+
+    if (!subject || !message) {
+      toast.error('Campaign subject and message are required')
+      return
+    }
+
+    if (campaignRecipientEmails.length === 0) {
+      toast.error('No client emails available for this audience')
+      return
+    }
+
+    const bccRecipients = campaignRecipientEmails.slice(0, 50)
+    const mailtoUrl = `mailto:?bcc=${encodeURIComponent(bccRecipients.join(','))}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`
+
+    try {
+      setIsSendingCampaign(true)
+
+      try {
+        await apiClient.post(
+          '/api/notifications',
+          {
+            title: `Campaign: ${subject}`,
+            message: `Audience: ${campaignForm.audience}. Recipients: ${campaignRecipientEmails.length}.`,
+            type: 'info',
+            is_read: false,
+          },
+          authConfig,
+        )
+      } catch {
+        // Continue even if notification logging fails.
+      }
+
+      window.location.href = mailtoUrl
+      closeCampaignModal()
+
+      if (campaignRecipientEmails.length > bccRecipients.length) {
+        toast.success(`Opened draft for ${bccRecipients.length} recipients (first batch).`)
+      } else {
+        toast.success(`Opened campaign draft for ${campaignRecipientEmails.length} recipients.`)
+      }
+    } finally {
+      setIsSendingCampaign(false)
+    }
+  }
+
+  const handleSendClientEmail = (row) => {
+    if (!row.email) {
+      toast.error('Client email is unavailable')
+      return
+    }
+
+    const subject = encodeURIComponent('Regarding your account at VSA Foods')
+    const body = encodeURIComponent(`Hello ${row.contact_person || 'Team'},\n\n`)
+    window.location.href = `mailto:${row.email}?subject=${subject}&body=${body}`
+  }
+
+  const handleRequestFeedback = (row) => {
+    if (!row.email) {
+      toast.error('Client email is unavailable')
+      return
+    }
+
+    const subject = encodeURIComponent('Feedback request from VSA Foods')
+    const body = encodeURIComponent(
+      [
+        `Hello ${row.contact_person || 'Team'},`,
+        '',
+        'We would appreciate your feedback on your recent experience with VSA Foods.',
+        '',
+        'Regards,',
+        'VSA Foods Team',
+      ].join('\n'),
+    )
+
+    window.location.href = `mailto:${row.email}?subject=${subject}&body=${body}`
+    toast.success(`Opened feedback request for ${row.company_name}`)
   }
 
   const handleCreateClient = async (event) => {
@@ -139,7 +264,7 @@ function Marketing() {
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
-            onClick={() => toast('Campaign sending workflow is not configured yet.')}
+            onClick={openCampaignModal}
             className="inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
           >
             <Send size={16} />
@@ -216,15 +341,7 @@ function Marketing() {
               <div className="mt-4 grid grid-cols-2 gap-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    if (!row.email) {
-                      toast.error('Client email is unavailable')
-                      return
-                    }
-                    const subject = encodeURIComponent(`Regarding your account at VSA Foods`)
-                    const body = encodeURIComponent(`Hello ${row.contact_person || 'Team'},\n\n`)
-                    window.location.href = `mailto:${row.email}?subject=${subject}&body=${body}`
-                  }}
+                  onClick={() => handleSendClientEmail(row)}
                   className="inline-flex items-center justify-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
                 >
                   <Mail size={16} />
@@ -233,7 +350,7 @@ function Marketing() {
 
                 <button
                   type="button"
-                  onClick={() => toast(`Feedback flow for ${row.company_name} is not wired yet.`)}
+                  onClick={() => handleRequestFeedback(row)}
                   className="inline-flex items-center justify-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
                 >
                   <MessageSquare size={16} />
@@ -251,111 +368,195 @@ function Marketing() {
         </div>
       ) : null}
 
-      <Modal isOpen={isAddModalOpen} onClose={closeAddModal} title="Add Client">
-        <form onSubmit={handleCreateClient} className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="client-company-name" className="text-sm font-medium text-gray-700">
-              Company Name
-            </label>
-            <input
-              id="client-company-name"
-              type="text"
-              value={clientForm.company_name}
-              onChange={(event) => handleClientField('company_name', event.target.value)}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="client-contact-person" className="text-sm font-medium text-gray-700">
-              Contact Person
-            </label>
-            <input
-              id="client-contact-person"
-              type="text"
-              value={clientForm.contact_person}
-              onChange={(event) => handleClientField('contact_person', event.target.value)}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="client-email" className="text-sm font-medium text-gray-700">
-              Email
-            </label>
-            <input
-              id="client-email"
-              type="email"
-              value={clientForm.email}
-              onChange={(event) => handleClientField('email', event.target.value)}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <Modal
+        isOpen={isCampaignModalOpen}
+        onClose={closeCampaignModal}
+        title="Send Campaign"
+        description="Compose a targeted message and open a prefilled email draft."
+        maxWidthClass="max-w-2xl"
+      >
+        <form onSubmit={handleSendCampaign} className="space-y-5">
+          <div className="modal-shell space-y-4">
             <div className="space-y-2">
-              <label htmlFor="client-total-orders" className="text-sm font-medium text-gray-700">
-                Total Orders
+              <label htmlFor="campaign-audience" className="modal-label">
+                Audience
+              </label>
+              <select
+                id="campaign-audience"
+                value={campaignForm.audience}
+                onChange={(event) => handleCampaignField('audience', event.target.value)}
+                className="modal-input"
+              >
+                <option value="all">All Clients</option>
+                <option value="filtered">Current Search Results</option>
+              </select>
+            </div>
+
+            <div className="modal-panel">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Recipients with Email</p>
+              <p className="mt-1 text-lg font-semibold text-slate-900">{campaignRecipientEmails.length}</p>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="campaign-subject" className="modal-label">
+                Subject
               </label>
               <input
-                id="client-total-orders"
-                type="number"
-                min="0"
-                step="1"
-                value={clientForm.total_orders}
-                onChange={(event) => handleClientField('total_orders', event.target.value)}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                id="campaign-subject"
+                type="text"
+                value={campaignForm.subject}
+                onChange={(event) => handleCampaignField('subject', event.target.value)}
+                className="modal-input"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="client-rating" className="text-sm font-medium text-gray-700">
-                Rating
+              <label htmlFor="campaign-message" className="modal-label">
+                Message
               </label>
-              <input
-                id="client-rating"
-                type="number"
-                min="0"
-                max="5"
-                step="0.1"
-                value={clientForm.rating}
-                onChange={(event) => handleClientField('rating', event.target.value)}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              <textarea
+                id="campaign-message"
+                rows={8}
+                value={campaignForm.message}
+                onChange={(event) => handleCampaignField('message', event.target.value)}
+                className="modal-input"
                 required
               />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="client-last-order-date" className="text-sm font-medium text-gray-700">
-              Last Order Date
-            </label>
-            <input
-              id="client-last-order-date"
-              type="date"
-              value={clientForm.last_order_date}
-              onChange={(event) => handleClientField('last_order_date', event.target.value)}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-              required
-            />
+          <div className="modal-actions">
+            <button
+              type="button"
+              onClick={closeCampaignModal}
+              className="modal-btn-secondary"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSendingCampaign}
+              className="modal-btn-primary"
+            >
+              {isSendingCampaign ? 'Preparing...' : 'Open Draft'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal
+        isOpen={isAddModalOpen}
+        onClose={closeAddModal}
+        title="Add Client"
+        description="Store contact and engagement details for future outreach."
+      >
+        <form onSubmit={handleCreateClient} className="space-y-5">
+          <div className="modal-shell space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="client-company-name" className="modal-label">
+                Company Name
+              </label>
+              <input
+                id="client-company-name"
+                type="text"
+                value={clientForm.company_name}
+                onChange={(event) => handleClientField('company_name', event.target.value)}
+                className="modal-input"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="client-contact-person" className="modal-label">
+                Contact Person
+              </label>
+              <input
+                id="client-contact-person"
+                type="text"
+                value={clientForm.contact_person}
+                onChange={(event) => handleClientField('contact_person', event.target.value)}
+                className="modal-input"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="client-email" className="modal-label">
+                Email
+              </label>
+              <input
+                id="client-email"
+                type="email"
+                value={clientForm.email}
+                onChange={(event) => handleClientField('email', event.target.value)}
+                className="modal-input"
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label htmlFor="client-total-orders" className="modal-label">
+                  Total Orders
+                </label>
+                <input
+                  id="client-total-orders"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={clientForm.total_orders}
+                  onChange={(event) => handleClientField('total_orders', event.target.value)}
+                  className="modal-input"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="client-rating" className="modal-label">
+                  Rating
+                </label>
+                <input
+                  id="client-rating"
+                  type="number"
+                  min="0"
+                  max="5"
+                  step="0.1"
+                  value={clientForm.rating}
+                  onChange={(event) => handleClientField('rating', event.target.value)}
+                  className="modal-input"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="client-last-order-date" className="modal-label">
+                Last Order Date
+              </label>
+              <input
+                id="client-last-order-date"
+                type="date"
+                value={clientForm.last_order_date}
+                onChange={(event) => handleClientField('last_order_date', event.target.value)}
+                className="modal-input"
+                required
+              />
+            </div>
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-1">
+          <div className="modal-actions">
             <button
               type="button"
               onClick={closeAddModal}
-              className="rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+              className="modal-btn-secondary"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className="rounded-md bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
+              className="modal-btn-primary"
             >
               {isSaving ? 'Saving...' : 'Save Client'}
             </button>

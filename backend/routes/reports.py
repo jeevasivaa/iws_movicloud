@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify
 
 from utils.db import get_db
-from utils.decorators import admin_required
+from utils.decorators import role_required
 
 reports_bp = Blueprint("reports", __name__)
 db = get_db()
@@ -37,7 +37,7 @@ def _format_month_label(year_month: str) -> str:
 
 
 @reports_bp.route("/sales", methods=["GET"])
-@admin_required
+@role_required("admin", "manager", "staff", "finance")
 def get_sales_report():
     pipeline = [
         {
@@ -66,7 +66,7 @@ def get_sales_report():
 
 
 @reports_bp.route("/production-efficiency", methods=["GET"])
-@admin_required
+@role_required("admin", "manager", "staff", "finance")
 def get_production_efficiency():
     pipeline = [
         {

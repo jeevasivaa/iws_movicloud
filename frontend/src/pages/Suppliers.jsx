@@ -260,115 +260,122 @@ function Suppliers() {
         </div>
       ) : null}
 
-      <Modal isOpen={isAddModalOpen} onClose={closeAddModal} title={modalTitle}>
+      <Modal
+        isOpen={isAddModalOpen}
+        onClose={closeAddModal}
+        title={modalTitle}
+        description="Capture supplier profile, rating, and procurement status."
+      >
         <form onSubmit={handleSaveSupplier} className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="supplier-name" className="text-sm font-medium text-gray-700">
-              Name
-            </label>
-            <input
-              id="supplier-name"
-              type="text"
-              value={supplierForm.name}
-              onChange={(event) => handleSupplierField('name', event.target.value)}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="supplier-location" className="text-sm font-medium text-gray-700">
-              Location
-            </label>
-            <input
-              id="supplier-location"
-              type="text"
-              value={supplierForm.location}
-              onChange={(event) => handleSupplierField('location', event.target.value)}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="supplier-category" className="text-sm font-medium text-gray-700">
-              Category Supplied
-            </label>
-            <input
-              id="supplier-category"
-              type="text"
-              value={supplierForm.category_supplied}
-              onChange={(event) => handleSupplierField('category_supplied', event.target.value)}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="modal-shell space-y-4">
             <div className="space-y-2">
-              <label htmlFor="supplier-rating" className="text-sm font-medium text-gray-700">
-                Rating
+              <label htmlFor="supplier-name" className="modal-label">
+                Name
               </label>
               <input
-                id="supplier-rating"
-                type="number"
-                min="0"
-                max="5"
-                step="0.1"
-                value={supplierForm.rating}
-                onChange={(event) => handleSupplierField('rating', event.target.value)}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                id="supplier-name"
+                type="text"
+                value={supplierForm.name}
+                onChange={(event) => handleSupplierField('name', event.target.value)}
+                className="modal-input"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="supplier-orders" className="text-sm font-medium text-gray-700">
-                Total Orders
+              <label htmlFor="supplier-location" className="modal-label">
+                Location
               </label>
               <input
-                id="supplier-orders"
-                type="number"
-                min="0"
-                step="1"
-                value={supplierForm.total_orders}
-                onChange={(event) => handleSupplierField('total_orders', event.target.value)}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                id="supplier-location"
+                type="text"
+                value={supplierForm.location}
+                onChange={(event) => handleSupplierField('location', event.target.value)}
+                className="modal-input"
                 required
               />
             </div>
+
+            <div className="space-y-2">
+              <label htmlFor="supplier-category" className="modal-label">
+                Category Supplied
+              </label>
+              <input
+                id="supplier-category"
+                type="text"
+                value={supplierForm.category_supplied}
+                onChange={(event) => handleSupplierField('category_supplied', event.target.value)}
+                className="modal-input"
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label htmlFor="supplier-rating" className="modal-label">
+                  Rating
+                </label>
+                <input
+                  id="supplier-rating"
+                  type="number"
+                  min="0"
+                  max="5"
+                  step="0.1"
+                  value={supplierForm.rating}
+                  onChange={(event) => handleSupplierField('rating', event.target.value)}
+                  className="modal-input"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="supplier-orders" className="modal-label">
+                  Total Orders
+                </label>
+                <input
+                  id="supplier-orders"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={supplierForm.total_orders}
+                  onChange={(event) => handleSupplierField('total_orders', event.target.value)}
+                  className="modal-input"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="supplier-status" className="modal-label">
+                Status
+              </label>
+              <select
+                id="supplier-status"
+                value={supplierForm.status}
+                onChange={(event) => handleSupplierField('status', event.target.value)}
+                className="modal-input"
+              >
+                {STATUS_OPTIONS.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="supplier-status" className="text-sm font-medium text-gray-700">
-              Status
-            </label>
-            <select
-              id="supplier-status"
-              value={supplierForm.status}
-              onChange={(event) => handleSupplierField('status', event.target.value)}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-            >
-              {STATUS_OPTIONS.map((status) => (
-                <option key={status} value={status}>
-                  {status}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center justify-end gap-3 pt-1">
+          <div className="modal-actions">
             <button
               type="button"
               onClick={closeAddModal}
-              className="rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+              className="modal-btn-secondary"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className="rounded-md bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
+              className="modal-btn-primary"
             >
               {submitLabel}
             </button>

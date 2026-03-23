@@ -339,40 +339,41 @@ function ProductionControlTower() {
         isOpen={Boolean(selectedBatch)}
         onClose={closeBatchDetails}
         title={`Batch ${selectedBatch?.batch_id || ''}`}
+        description="Batch metadata, schedule window, and assignment snapshot."
       >
         <div className="space-y-4 text-sm">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-              <p className="text-gray-500">Product</p>
-              <p className="mt-1 font-semibold text-gray-900">{selectedBatch?.productName || 'Product'}</p>
+          <div className="modal-data-grid">
+            <div className="modal-data-item">
+              <p className="modal-data-label">Product</p>
+              <p className="modal-data-value">{selectedBatch?.productName || 'Product'}</p>
             </div>
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-              <p className="text-gray-500">Stage</p>
-              <p className="mt-1 font-semibold text-gray-900">{selectedBatch?.stage || 'Planned'}</p>
+            <div className="modal-data-item">
+              <p className="modal-data-label">Stage</p>
+              <p className="modal-data-value">{selectedBatch?.stage || 'Planned'}</p>
             </div>
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-              <p className="text-gray-500">Quantity</p>
-              <p className="mt-1 font-semibold text-gray-900">{(Number(selectedBatch?.quantity) || 0).toLocaleString('en-IN')}</p>
+            <div className="modal-data-item">
+              <p className="modal-data-label">Quantity</p>
+              <p className="modal-data-value">{(Number(selectedBatch?.quantity) || 0).toLocaleString('en-IN')}</p>
             </div>
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-              <p className="text-gray-500">Assigned</p>
-              <p className="mt-1 font-semibold text-gray-900">{selectedBatch?.assignedName || 'Not assigned'}</p>
+            <div className="modal-data-item">
+              <p className="modal-data-label">Assigned</p>
+              <p className="modal-data-value">{selectedBatch?.assignedName || 'Not assigned'}</p>
             </div>
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-              <p className="text-gray-500">Start Date</p>
-              <p className="mt-1 font-semibold text-gray-900">{formatDate(selectedBatch?.start_date)}</p>
+            <div className="modal-data-item">
+              <p className="modal-data-label">Start Date</p>
+              <p className="modal-data-value">{formatDate(selectedBatch?.start_date)}</p>
             </div>
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-              <p className="text-gray-500">End Date</p>
-              <p className="mt-1 font-semibold text-gray-900">{formatDate(selectedBatch?.end_date)}</p>
+            <div className="modal-data-item">
+              <p className="modal-data-label">End Date</p>
+              <p className="modal-data-value">{formatDate(selectedBatch?.end_date)}</p>
             </div>
           </div>
 
-          <div className="flex justify-end">
+          <div className="modal-actions">
             <button
               type="button"
               onClick={closeBatchDetails}
-              className="rounded-md border border-gray-200 bg-white px-4 py-2 font-medium text-gray-700 transition-colors hover:bg-gray-50"
+              className="modal-btn-secondary"
             >
               Close
             </button>
@@ -384,118 +385,121 @@ function ProductionControlTower() {
         isOpen={isBatchModalOpen}
         onClose={closeBatchModal}
         title="New Batch"
+        description="Create a production batch and define planned schedule."
       >
-        <form onSubmit={handleCreateBatch} className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="batch-id" className="text-sm font-medium text-gray-700">
-              Batch ID
-            </label>
-            <input
-              id="batch-id"
-              type="text"
-              value={batchForm.batch_id}
-              onChange={(event) => handleBatchField('batch_id', event.target.value)}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="batch-product" className="text-sm font-medium text-gray-700">
-              Product
-            </label>
-            <select
-              id="batch-product"
-              value={batchForm.product_id}
-              onChange={(event) => handleBatchField('product_id', event.target.value)}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-              required
-            >
-              <option value="">Select Product</option>
-              {productOptions.map((product) => (
-                <option key={product.id} value={product.id}>
-                  {product.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <form onSubmit={handleCreateBatch} className="space-y-5">
+          <div className="modal-shell space-y-4">
             <div className="space-y-2">
-              <label htmlFor="batch-quantity" className="text-sm font-medium text-gray-700">
-                Quantity
+              <label htmlFor="batch-id" className="modal-label">
+                Batch ID
               </label>
               <input
-                id="batch-quantity"
-                type="number"
-                min="1"
-                step="1"
-                value={batchForm.quantity}
-                onChange={(event) => handleBatchField('quantity', event.target.value)}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                id="batch-id"
+                type="text"
+                value={batchForm.batch_id}
+                onChange={(event) => handleBatchField('batch_id', event.target.value)}
+                className="modal-input"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="batch-stage" className="text-sm font-medium text-gray-700">
-                Stage
+              <label htmlFor="batch-product" className="modal-label">
+                Product
               </label>
               <select
-                id="batch-stage"
-                value={batchForm.stage}
-                onChange={(event) => handleBatchField('stage', normalizeStage(event.target.value))}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                id="batch-product"
+                value={batchForm.product_id}
+                onChange={(event) => handleBatchField('product_id', event.target.value)}
+                className="modal-input"
+                required
               >
-                <option value="Planned">Planned</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Completed">Completed</option>
+                <option value="">Select Product</option>
+                {productOptions.map((product) => (
+                  <option key={product.id} value={product.id}>
+                    {product.name}
+                  </option>
+                ))}
               </select>
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <label htmlFor="batch-start-date" className="text-sm font-medium text-gray-700">
-                Start Date
-              </label>
-              <input
-                id="batch-start-date"
-                type="date"
-                value={batchForm.start_date}
-                onChange={(event) => handleBatchField('start_date', event.target.value)}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                required
-              />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label htmlFor="batch-quantity" className="modal-label">
+                  Quantity
+                </label>
+                <input
+                  id="batch-quantity"
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={batchForm.quantity}
+                  onChange={(event) => handleBatchField('quantity', event.target.value)}
+                  className="modal-input"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="batch-stage" className="modal-label">
+                  Stage
+                </label>
+                <select
+                  id="batch-stage"
+                  value={batchForm.stage}
+                  onChange={(event) => handleBatchField('stage', normalizeStage(event.target.value))}
+                  className="modal-input"
+                >
+                  <option value="Planned">Planned</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Completed">Completed</option>
+                </select>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="batch-end-date" className="text-sm font-medium text-gray-700">
-                End Date
-              </label>
-              <input
-                id="batch-end-date"
-                type="date"
-                value={batchForm.end_date}
-                onChange={(event) => handleBatchField('end_date', event.target.value)}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                required
-              />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label htmlFor="batch-start-date" className="modal-label">
+                  Start Date
+                </label>
+                <input
+                  id="batch-start-date"
+                  type="date"
+                  value={batchForm.start_date}
+                  onChange={(event) => handleBatchField('start_date', event.target.value)}
+                  className="modal-input"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="batch-end-date" className="modal-label">
+                  End Date
+                </label>
+                <input
+                  id="batch-end-date"
+                  type="date"
+                  value={batchForm.end_date}
+                  onChange={(event) => handleBatchField('end_date', event.target.value)}
+                  className="modal-input"
+                  required
+                />
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-1">
+          <div className="modal-actions">
             <button
               type="button"
               onClick={closeBatchModal}
-              className="rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+              className="modal-btn-secondary"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSavingBatch}
-              className="rounded-md bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-600"
+              className="modal-btn-primary"
             >
               {isSavingBatch ? 'Saving...' : 'Save Batch'}
             </button>

@@ -5,7 +5,7 @@ from pymongo.errors import DuplicateKeyError  # type: ignore[import-untyped]
 
 from utils.db import get_db
 from utils.helpers import parse_object_id, to_float, to_int
-from utils.decorators import admin_required
+from utils.decorators import role_required
 
 products_bp = Blueprint("products", __name__)
 db = get_db()
@@ -23,14 +23,14 @@ def _validate_status(status):
 
 
 @products_bp.route("", methods=["GET"])
-@admin_required
+@role_required("admin", "manager", "staff")
 def get_products():
     products = [_serialize_product(product) for product in products_collection.find().sort("name", 1)]
     return jsonify(products), 200
 
 
 @products_bp.route("", methods=["POST"])
-@admin_required
+@role_required("admin", "manager")
 def create_product():
     data = request.get_json() or {}
 
@@ -64,7 +64,7 @@ def create_product():
 
 
 @products_bp.route("/<id>", methods=["PUT"])
-@admin_required
+@role_required("admin", "manager")
 def update_product(id):
     object_id = parse_object_id(id)
     if not object_id:
@@ -107,7 +107,7 @@ def update_product(id):
 
 
 @products_bp.route("/<id>", methods=["DELETE"])
-@admin_required
+@role_required("admin", "manager")
 def delete_product(id):
     object_id = parse_object_id(id)
     if not object_id:

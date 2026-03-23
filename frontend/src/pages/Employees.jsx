@@ -249,100 +249,107 @@ function Employees() {
         </div>
       ) : null}
 
-      <Modal isOpen={isAddModalOpen} onClose={closeAddModal} title="Add Employee">
-        <form onSubmit={handleCreateStaff} className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="staff-name" className="text-sm font-medium text-gray-700">
-              Name
-            </label>
-            <input
-              id="staff-name"
-              type="text"
-              value={staffForm.name}
-              onChange={(event) => handleStaffField('name', event.target.value)}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="staff-email" className="text-sm font-medium text-gray-700">
-              Email
-            </label>
-            <input
-              id="staff-email"
-              type="email"
-              value={staffForm.email}
-              onChange={(event) => handleStaffField('email', event.target.value)}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <Modal
+        isOpen={isAddModalOpen}
+        onClose={closeAddModal}
+        title="Add Employee"
+        description="Create a staff profile with role and department assignment."
+      >
+        <form onSubmit={handleCreateStaff} className="space-y-5">
+          <div className="modal-shell space-y-4">
             <div className="space-y-2">
-              <label htmlFor="staff-role" className="text-sm font-medium text-gray-700">
-                Role
+              <label htmlFor="staff-name" className="modal-label">
+                Name
               </label>
-              <select
-                id="staff-role"
-                value={staffForm.role}
-                onChange={(event) => handleStaffField('role', event.target.value)}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-              >
-                {ROLE_OPTIONS.map((role) => (
-                  <option key={role} value={role}>
-                    {role}
-                  </option>
-                ))}
-              </select>
+              <input
+                id="staff-name"
+                type="text"
+                value={staffForm.name}
+                onChange={(event) => handleStaffField('name', event.target.value)}
+                className="modal-input"
+                required
+              />
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="staff-status" className="text-sm font-medium text-gray-700">
-                Status
+              <label htmlFor="staff-email" className="modal-label">
+                Email
               </label>
-              <select
-                id="staff-status"
-                value={staffForm.status}
-                onChange={(event) => handleStaffField('status', event.target.value)}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-              >
-                {STATUS_OPTIONS.map((status) => (
-                  <option key={status} value={status}>
-                    {status}
-                  </option>
-                ))}
-              </select>
+              <input
+                id="staff-email"
+                type="email"
+                value={staffForm.email}
+                onChange={(event) => handleStaffField('email', event.target.value)}
+                className="modal-input"
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label htmlFor="staff-role" className="modal-label">
+                  Role
+                </label>
+                <select
+                  id="staff-role"
+                  value={staffForm.role}
+                  onChange={(event) => handleStaffField('role', event.target.value)}
+                  className="modal-input"
+                >
+                  {ROLE_OPTIONS.map((role) => (
+                    <option key={role} value={role}>
+                      {role}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="staff-status" className="modal-label">
+                  Status
+                </label>
+                <select
+                  id="staff-status"
+                  value={staffForm.status}
+                  onChange={(event) => handleStaffField('status', event.target.value)}
+                  className="modal-input"
+                >
+                  {STATUS_OPTIONS.map((status) => (
+                    <option key={status} value={status}>
+                      {status}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="staff-department" className="modal-label">
+                Department
+              </label>
+              <input
+                id="staff-department"
+                type="text"
+                value={staffForm.department}
+                onChange={(event) => handleStaffField('department', event.target.value)}
+                className="modal-input"
+                required
+              />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="staff-department" className="text-sm font-medium text-gray-700">
-              Department
-            </label>
-            <input
-              id="staff-department"
-              type="text"
-              value={staffForm.department}
-              onChange={(event) => handleStaffField('department', event.target.value)}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-              required
-            />
-          </div>
-
-          <div className="flex items-center justify-end gap-3 pt-1">
+          <div className="modal-actions">
             <button
               type="button"
               onClick={closeAddModal}
-              className="rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+              className="modal-btn-secondary"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className="rounded-md bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
+              className="modal-btn-primary"
             >
               {isSaving ? 'Saving...' : 'Save Employee'}
             </button>

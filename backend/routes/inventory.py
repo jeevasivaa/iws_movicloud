@@ -3,18 +3,26 @@ from datetime import datetime
 from flask import Blueprint, jsonify, request
 
 from utils.db import get_db
-from utils.decorators import admin_required
+from utils.decorators import admin_required, role_required
 from utils.helpers import normalize_iso_date, parse_object_id, to_int
 
 inventory_bp = Blueprint("inventory", __name__)
 db = get_db()
 inventory_collection = db["inventory"]
 settings_collection = db["settings"]
+movements_collection = db["inventory_movements"]
 
 
 def _serialize_item(item):
     item["_id"] = str(item["_id"])
     return item
+
+
+def _serialize_movement(movement):
+    movement["_id"] = str(movement["_id"])
+    if movement.get("inventory_id") is not None:
+        movement["inventory_id"] = str(movement["inventory_id"])
+    return movement
 
 
 def _validate_status(status):
@@ -35,15 +43,45 @@ def _read_low_stock_threshold(default: int = 100) -> int:
     return max(0, parsed)
 
 
+def _derive_status(current_stock: int, max_capacity: int) -> str:
+    capacity = max(0, to_int(max_capacity, 0))
+    stock = max(0, to_int(current_stock, 0))
+
+    if capacity <= 0:
+        return "Critical" if stock == 0 else "Adequate"
+
+    ratio = stock / capacity
+    if ratio <= 0.2:
+        return "Critical"
+    if ratio <= 0.5:
+        return "Low"
+    return "Adequate"
+
+
+def _create_stock_movement(item, change: int, resulting_stock: int, reason: str) -> None:
+    movements_collection.insert_one(
+        {
+            "inventory_id": item.get("_id"),
+            "item_name": item.get("item_name"),
+            "warehouse_location": item.get("warehouse_location"),
+            "change": to_int(change, 0),
+            "resulting_stock": to_int(resulting_stock, 0),
+            "reason": reason,
+            "timestamp": datetime.utcnow(),
+            "created_at": datetime.utcnow(),
+        }
+    )
+
+
 @inventory_bp.route("", methods=["GET"])
-@admin_required
+@role_required("admin", "manager", "staff")
 def get_inventory_items():
     rows = [_serialize_item(row) for row in inventory_collection.find().sort("item_name", 1)]
     return jsonify(rows), 200
 
 
 @inventory_bp.route("/kpis", methods=["GET"])
-@admin_required
+@role_required("admin", "manager", "staff")
 def get_inventory_kpis():
     threshold = _read_low_stock_threshold()
     critical_threshold = max(0, int(round(threshold * 0.2)))
@@ -64,8 +102,22 @@ def get_inventory_kpis():
     ), 200
 
 
+@inventory_bp.route("/movements", methods=["GET"])
+@role_required("admin", "manager", "staff")
+def get_inventory_movements():
+    limit = to_int(request.args.get("limit"), 100)
+    limit = max(1, min(500, limit))
+
+    rows = [
+        _serialize_movement(row)
+        for row in movements_collection.find().sort("timestamp", -1).limit(limit)
+    ]
+
+    return jsonify(rows), 200
+
+
 @inventory_bp.route("", methods=["POST"])
-@admin_required
+@role_required("admin", "manager")
 def create_inventory_item():
     data = request.get_json() or {}
     required_fields = [
@@ -98,15 +150,21 @@ def create_inventory_item():
 
     result = inventory_collection.insert_one(payload)
     created = inventory_collection.find_one({"_id": result.inserted_id})
+    if created:
+        _create_stock_movement(created, payload["current_stock"], payload["current_stock"], "entry_created")
     return jsonify(_serialize_item(created)), 201
 
 
 @inventory_bp.route("/<id>", methods=["PUT"])
-@admin_required
+@role_required("admin", "manager")
 def update_inventory_item(id):
     object_id = parse_object_id(id)
     if not object_id:
         return jsonify({"msg": "Invalid inventory id"}), 400
+
+    existing = inventory_collection.find_one({"_id": object_id})
+    if not existing:
+        return jsonify({"msg": "Inventory item not found"}), 404
 
     data = request.get_json() or {}
     update_fields = {}
@@ -139,11 +197,18 @@ def update_inventory_item(id):
         return jsonify({"msg": "Inventory item not found"}), 404
 
     updated = inventory_collection.find_one({"_id": object_id})
+    if "current_stock" in update_fields and updated:
+        previous_stock = to_int(existing.get("current_stock"), 0)
+        latest_stock = to_int(updated.get("current_stock"), 0)
+        change = latest_stock - previous_stock
+        if change != 0:
+            _create_stock_movement(updated, change, latest_stock, "stock_updated")
+
     return jsonify(_serialize_item(updated)), 200
 
 
 @inventory_bp.route("/<id>/stock", methods=["PATCH"])
-@admin_required
+@role_required("admin", "manager", "staff")
 def patch_inventory_stock(id):
     object_id = parse_object_id(id)
     if not object_id:
@@ -163,17 +228,7 @@ def patch_inventory_stock(id):
 
     current_stock = max(0, to_int(existing.get("current_stock"), 0) + delta)
     max_capacity = max(0, to_int(existing.get("max_capacity"), 0))
-
-    if max_capacity <= 0:
-        status = "Critical" if current_stock == 0 else "Adequate"
-    else:
-        ratio = current_stock / max_capacity
-        if ratio <= 0.2:
-            status = "Critical"
-        elif ratio <= 0.5:
-            status = "Low"
-        else:
-            status = "Adequate"
+    status = _derive_status(current_stock, max_capacity)
 
     inventory_collection.update_one(
         {"_id": object_id},
@@ -187,6 +242,53 @@ def patch_inventory_stock(id):
     )
 
     updated = inventory_collection.find_one({"_id": object_id})
+    if updated:
+        _create_stock_movement(updated, delta, current_stock, "quick_adjustment")
+
+    return jsonify(_serialize_item(updated)), 200
+
+
+@inventory_bp.route("/deduct", methods=["PATCH"])
+@role_required("admin", "manager", "staff")
+def deduct_inventory_item():
+    data = request.get_json() or {}
+    inventory_id = data.get("inventory_id")
+    quantity = to_int(data.get("quantity"), 0)
+
+    if not inventory_id:
+        return jsonify({"msg": "inventory_id is required"}), 400
+
+    if quantity <= 0:
+        return jsonify({"msg": "quantity must be a positive integer"}), 400
+
+    object_id = parse_object_id(inventory_id)
+    if not object_id:
+        return jsonify({"msg": "Invalid inventory id"}), 400
+
+    existing = inventory_collection.find_one({"_id": object_id})
+    if not existing:
+        return jsonify({"msg": "Inventory item not found"}), 404
+
+    current_stock = max(0, to_int(existing.get("current_stock"), 0))
+    next_stock = max(0, current_stock - quantity)
+    delta = next_stock - current_stock
+    status = _derive_status(next_stock, to_int(existing.get("max_capacity"), 0))
+
+    inventory_collection.update_one(
+        {"_id": object_id},
+        {
+            "$set": {
+                "current_stock": next_stock,
+                "status": status,
+                "updated_at": datetime.utcnow(),
+            }
+        },
+    )
+
+    updated = inventory_collection.find_one({"_id": object_id})
+    if updated and delta != 0:
+        _create_stock_movement(updated, delta, next_stock, "deducted_for_floor_use")
+
     return jsonify(_serialize_item(updated)), 200
 
 

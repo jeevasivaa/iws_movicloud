@@ -17,7 +17,7 @@ export const ROLE_LABELS = {
 export const HOME_BY_ROLE = {
   [ROLES.ADMIN]: '/dashboard',
   [ROLES.MANAGER]: '/production-control',
-  [ROLES.STAFF]: '/production-control',
+  [ROLES.STAFF]: '/dashboard',
   [ROLES.FINANCE]: '/billing',
   [ROLES.CLIENT]: '/orders',
 }

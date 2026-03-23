@@ -507,22 +507,23 @@ function Dashboard() {
         isOpen={isScheduleModalOpen}
         onClose={() => setIsScheduleModalOpen(false)}
         title="Today's Schedule"
+        description="Operational checkpoints planned for today."
       >
-        <div className="space-y-3">
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+        <div className="space-y-4">
+          <div className="modal-panel">
             <p className="text-sm text-gray-500">09:00 AM</p>
             <p className="mt-1 font-medium text-gray-900">Production stand-up with operations team</p>
           </div>
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+          <div className="modal-panel">
             <p className="text-sm text-gray-500">11:30 AM</p>
             <p className="mt-1 font-medium text-gray-900">Warehouse stock review and approvals</p>
           </div>
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+          <div className="modal-panel">
             <p className="text-sm text-gray-500">03:00 PM</p>
             <p className="mt-1 font-medium text-gray-900">Supplier coordination call</p>
           </div>
 
-          <div className="flex justify-end gap-2 pt-1">
+          <div className="modal-actions">
             <button
               type="button"
               onClick={() => {
@@ -530,7 +531,7 @@ function Dashboard() {
                 navigate('/production-control')
                 toast.success('Opening Production Control')
               }}
-              className="rounded-md bg-emerald-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-600"
+              className="modal-btn-primary"
             >
               Open Schedule Board
             </button>
@@ -542,8 +543,9 @@ function Dashboard() {
         isOpen={isQuickActionModalOpen}
         onClose={() => setIsQuickActionModalOpen(false)}
         title="Quick Actions"
+        description="Jump to common management actions instantly."
       >
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="modal-shell grid grid-cols-1 gap-3 sm:grid-cols-2">
           {quickActions.map((action) => (
             <button
               key={action.label}

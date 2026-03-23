@@ -43,6 +43,32 @@ function deriveInventoryStatus(currentStock, maxCapacity) {
   return 'Adequate'
 }
 
+function formatMovementTime(value) {
+  if (!value) {
+    return 'Just now'
+  }
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return 'Just now'
+  }
+
+  const diffMs = Date.now() - date.getTime()
+  const diffMinutes = Math.max(1, Math.round(diffMs / 60000))
+
+  if (diffMinutes < 60) {
+    return `${diffMinutes} min ago`
+  }
+
+  const diffHours = Math.round(diffMinutes / 60)
+  if (diffHours < 24) {
+    return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`
+  }
+
+  const diffDays = Math.round(diffHours / 24)
+  return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`
+}
+
 function normalizeInventoryRow(row) {
   const currentStock = Number(row.current_stock) || 0
   const maxCapacity = Number(row.max_capacity) || 0
@@ -62,6 +88,9 @@ function Inventory() {
   const [kpiCounts, setKpiCounts] = useState({ total_items: 0, low_stock_items: 0, critical_items: 0 })
   const [isLoading, setIsLoading] = useState(true)
   const [isStockModalOpen, setIsStockModalOpen] = useState(false)
+  const [isMovementModalOpen, setIsMovementModalOpen] = useState(false)
+  const [movementRows, setMovementRows] = useState([])
+  const [isMovementLoading, setIsMovementLoading] = useState(false)
   const [stockForm, setStockForm] = useState(EMPTY_STOCK_FORM)
   const [isSaving, setIsSaving] = useState(false)
   const [adjustingStockId, setAdjustingStockId] = useState(null)
@@ -273,6 +302,33 @@ function Inventory() {
     }
   }
 
+  const loadMovements = async () => {
+    if (!token) {
+      setMovementRows([])
+      return
+    }
+
+    try {
+      setIsMovementLoading(true)
+      const response = await apiClient.get('/api/inventory/movements?limit=100', authConfig)
+      setMovementRows(Array.isArray(response.data) ? response.data : [])
+    } catch (err) {
+      toast.error(getErrorMessage(err, 'Failed to load stock movements'))
+      setMovementRows([])
+    } finally {
+      setIsMovementLoading(false)
+    }
+  }
+
+  const openMovementModal = () => {
+    setIsMovementModalOpen(true)
+    loadMovements()
+  }
+
+  const closeMovementModal = () => {
+    setIsMovementModalOpen(false)
+  }
+
   return (
     <section className="space-y-6">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -284,7 +340,7 @@ function Inventory() {
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
-            onClick={() => toast('Stock movement timeline is not available yet.')}
+            onClick={openMovementModal}
             className="inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
           >
             <ArrowUpDown size={16} />
@@ -442,129 +498,212 @@ function Inventory() {
       </div>
 
       <Modal
+        isOpen={isMovementModalOpen}
+        onClose={closeMovementModal}
+        title="Stock Movement"
+        description="Recent adjustments from entries and quick stock updates."
+        maxWidthClass="max-w-4xl"
+      >
+        <div className="space-y-5">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-gray-500">Recent stock adjustments and inventory entries.</p>
+            <button
+              type="button"
+              onClick={loadMovements}
+              disabled={isMovementLoading}
+              className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {isMovementLoading ? 'Refreshing...' : 'Refresh'}
+            </button>
+          </div>
+
+          <div className="modal-shell overflow-x-auto p-0">
+            <table className="w-full min-w-[760px] text-left text-sm">
+              <thead className="bg-gray-50 text-gray-500">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Item</th>
+                  <th className="px-4 py-3 font-medium">Warehouse</th>
+                  <th className="px-4 py-3 font-medium">Change</th>
+                  <th className="px-4 py-3 font-medium">Resulting Stock</th>
+                  <th className="px-4 py-3 font-medium">Reason</th>
+                  <th className="px-4 py-3 font-medium">When</th>
+                </tr>
+              </thead>
+              <tbody>
+                {isMovementLoading ? (
+                  <tr>
+                    <td className="px-4 py-8 text-center text-gray-500" colSpan={6}>
+                      Loading movements...
+                    </td>
+                  </tr>
+                ) : movementRows.length === 0 ? (
+                  <tr>
+                    <td className="px-4 py-8 text-center text-gray-500" colSpan={6}>
+                      No movements found.
+                    </td>
+                  </tr>
+                ) : (
+                  movementRows.map((row) => {
+                    const change = Number(row.change) || 0
+                    const reason = String(row.reason || '').replace(/_/g, ' ')
+
+                    return (
+                      <tr key={row._id} className="border-t border-gray-100">
+                        <td className="px-4 py-3 text-gray-900">{row.item_name || 'Item'}</td>
+                        <td className="px-4 py-3 text-gray-700">{row.warehouse_location || '-'}</td>
+                        <td className={`px-4 py-3 font-medium ${change >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                          {change >= 0 ? `+${change}` : `${change}`}
+                        </td>
+                        <td className="px-4 py-3 text-gray-900">{(Number(row.resulting_stock) || 0).toLocaleString('en-IN')}</td>
+                        <td className="px-4 py-3 capitalize text-gray-700">{reason || '-'}</td>
+                        <td className="px-4 py-3 text-gray-500">{formatMovementTime(row.timestamp)}</td>
+                      </tr>
+                    )
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="modal-actions">
+            <button
+              type="button"
+              onClick={closeMovementModal}
+              className="modal-btn-secondary"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
         isOpen={isStockModalOpen}
         onClose={closeStockModal}
         title="Add / Update Stock"
+        description="Create a warehouse stock entry with capacity and expiry."
       >
-        <form onSubmit={handleCreateStock} className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="inventory-item-name" className="text-sm font-medium text-gray-700">
-              Item Name
-            </label>
-            <input
-              id="inventory-item-name"
-              type="text"
-              value={stockForm.item_name}
-              list="inventory-product-list"
-              onChange={(event) => handleStockFormField('item_name', event.target.value)}
-              placeholder="Select or enter item"
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-              required
-            />
-            <datalist id="inventory-product-list">
-              {productNames.map((name) => (
-                <option key={name} value={name} />
-              ))}
-            </datalist>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <form onSubmit={handleCreateStock} className="space-y-5">
+          <div className="modal-shell space-y-4">
             <div className="space-y-2">
-              <label htmlFor="inventory-type" className="text-sm font-medium text-gray-700">
-                Type
-              </label>
-              <select
-                id="inventory-type"
-                value={stockForm.type}
-                onChange={(event) => handleStockFormField('type', event.target.value)}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-              >
-                {INVENTORY_TYPES.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="warehouse-location" className="text-sm font-medium text-gray-700">
-                Warehouse Location
-              </label>
-              <select
-                id="warehouse-location"
-                value={stockForm.warehouse_location}
-                onChange={(event) => handleStockFormField('warehouse_location', event.target.value)}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-              >
-                {WAREHOUSE_OPTIONS.map((warehouse) => (
-                  <option key={warehouse} value={warehouse}>
-                    {warehouse}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <label htmlFor="current-stock-level" className="text-sm font-medium text-gray-700">
-                Current Stock Level
+              <label htmlFor="inventory-item-name" className="modal-label">
+                Item Name
               </label>
               <input
-                id="current-stock-level"
-                type="number"
-                min="0"
-                step="1"
-                value={stockForm.current_stock}
-                onChange={(event) => handleStockFormField('current_stock', event.target.value)}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                id="inventory-item-name"
+                type="text"
+                value={stockForm.item_name}
+                list="inventory-product-list"
+                onChange={(event) => handleStockFormField('item_name', event.target.value)}
+                placeholder="Select or enter item"
+                className="modal-input"
                 required
               />
+              <datalist id="inventory-product-list">
+                {productNames.map((name) => (
+                  <option key={name} value={name} />
+                ))}
+              </datalist>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label htmlFor="inventory-type" className="modal-label">
+                  Type
+                </label>
+                <select
+                  id="inventory-type"
+                  value={stockForm.type}
+                  onChange={(event) => handleStockFormField('type', event.target.value)}
+                  className="modal-input"
+                >
+                  {INVENTORY_TYPES.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="warehouse-location" className="modal-label">
+                  Warehouse Location
+                </label>
+                <select
+                  id="warehouse-location"
+                  value={stockForm.warehouse_location}
+                  onChange={(event) => handleStockFormField('warehouse_location', event.target.value)}
+                  className="modal-input"
+                >
+                  {WAREHOUSE_OPTIONS.map((warehouse) => (
+                    <option key={warehouse} value={warehouse}>
+                      {warehouse}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label htmlFor="current-stock-level" className="modal-label">
+                  Current Stock Level
+                </label>
+                <input
+                  id="current-stock-level"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={stockForm.current_stock}
+                  onChange={(event) => handleStockFormField('current_stock', event.target.value)}
+                  className="modal-input"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="max-capacity" className="modal-label">
+                  Max Capacity
+                </label>
+                <input
+                  id="max-capacity"
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={stockForm.max_capacity}
+                  onChange={(event) => handleStockFormField('max_capacity', event.target.value)}
+                  className="modal-input"
+                  required
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="max-capacity" className="text-sm font-medium text-gray-700">
-                Max Capacity
+              <label htmlFor="inventory-expiry-date" className="modal-label">
+                Expiry Date (Optional)
               </label>
               <input
-                id="max-capacity"
-                type="number"
-                min="1"
-                step="1"
-                value={stockForm.max_capacity}
-                onChange={(event) => handleStockFormField('max_capacity', event.target.value)}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                required
+                id="inventory-expiry-date"
+                type="date"
+                value={stockForm.expiry_date}
+                onChange={(event) => handleStockFormField('expiry_date', event.target.value)}
+                className="modal-input"
               />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="inventory-expiry-date" className="text-sm font-medium text-gray-700">
-              Expiry Date (Optional)
-            </label>
-            <input
-              id="inventory-expiry-date"
-              type="date"
-              value={stockForm.expiry_date}
-              onChange={(event) => handleStockFormField('expiry_date', event.target.value)}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-            />
-          </div>
-
-          <div className="flex items-center justify-end gap-3 pt-2">
+          <div className="modal-actions">
             <button
               type="button"
               onClick={closeStockModal}
-              className="rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+              className="modal-btn-secondary"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className="rounded-md bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
+              className="modal-btn-primary"
             >
               {isSaving ? 'Saving...' : 'Save Stock'}
             </button>

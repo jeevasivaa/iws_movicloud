@@ -4,7 +4,7 @@ from flask import Blueprint, jsonify, request
 from pymongo.errors import DuplicateKeyError  # type: ignore[import-untyped]
 
 from utils.db import get_db
-from utils.decorators import admin_required
+from utils.decorators import admin_required, role_required
 from utils.helpers import parse_object_id
 
 staff_bp = Blueprint("staff", __name__)
@@ -19,7 +19,7 @@ def _serialize_staff_member(user):
 
 
 @staff_bp.route("", methods=["GET"])
-@admin_required
+@role_required("admin", "manager", "staff")
 def get_staff():
     query = {"role": {"$ne": "client"}}
     staff = [_serialize_staff_member(user) for user in users_collection.find(query).sort("name", 1)]

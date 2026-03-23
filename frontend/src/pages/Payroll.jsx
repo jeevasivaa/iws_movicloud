@@ -247,49 +247,50 @@ function Payroll() {
         isOpen={Boolean(viewingRow)}
         onClose={closePayslipModal}
         title={`Payslip · ${viewingRow?.employee_name || ''}`}
+        description="Review salary breakup and payout status."
       >
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
-              <p className="text-gray-500">Employee</p>
-              <p className="mt-1 font-semibold text-gray-900">{viewingRow?.employee_name || 'N/A'}</p>
+        <div className="space-y-5">
+          <div className="modal-data-grid">
+            <div className="modal-data-item">
+              <p className="modal-data-label">Employee</p>
+              <p className="modal-data-value">{viewingRow?.employee_name || 'N/A'}</p>
             </div>
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
-              <p className="text-gray-500">Role</p>
-              <p className="mt-1 font-semibold text-gray-900">{viewingRow?.employee_role || 'N/A'}</p>
+            <div className="modal-data-item">
+              <p className="modal-data-label">Role</p>
+              <p className="modal-data-value">{viewingRow?.employee_role || 'N/A'}</p>
             </div>
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
-              <p className="text-gray-500">Month</p>
-              <p className="mt-1 font-semibold text-gray-900">{viewingRow?.month || 'N/A'}</p>
+            <div className="modal-data-item">
+              <p className="modal-data-label">Month</p>
+              <p className="modal-data-value">{viewingRow?.month || 'N/A'}</p>
             </div>
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
-              <p className="text-gray-500">Status</p>
-              <p className="mt-1 font-semibold text-gray-900">{viewingRow?.status || 'N/A'}</p>
+            <div className="modal-data-item">
+              <p className="modal-data-label">Status</p>
+              <p className="modal-data-value">{viewingRow?.status || 'N/A'}</p>
             </div>
           </div>
 
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
-            <div className="space-y-2 text-sm text-gray-700">
+          <div className="modal-panel bg-gradient-to-r from-slate-50 to-emerald-50/50">
+            <div className="space-y-2 text-sm text-slate-700">
               <div className="flex items-center justify-between">
                 <span>Base Salary</span>
-                <span className="font-medium text-gray-900">{formatCurrency(viewingRow?.base_salary)}</span>
+                <span className="font-medium text-slate-900">{formatCurrency(viewingRow?.base_salary)}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span>Deductions</span>
                 <span className="font-medium text-red-500">{formatCurrency(viewingRow?.deductions)}</span>
               </div>
-              <div className="flex items-center justify-between border-t border-gray-200 pt-2">
-                <span className="font-semibold text-gray-900">Net Pay</span>
-                <span className="font-semibold text-gray-900">{formatCurrency(viewingRow?.net_pay)}</span>
+              <div className="flex items-center justify-between border-t border-slate-200 pt-2">
+                <span className="font-semibold text-slate-900">Net Pay</span>
+                <span className="font-semibold text-slate-900">{formatCurrency(viewingRow?.net_pay)}</span>
               </div>
             </div>
           </div>
 
-          <div className="flex justify-end">
+          <div className="modal-actions">
             <button
               type="button"
               onClick={closePayslipModal}
-              className="rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+              className="modal-btn-secondary"
             >
               Close
             </button>

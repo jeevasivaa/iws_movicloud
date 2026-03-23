@@ -55,6 +55,31 @@ function downloadTextFile(fileName, content) {
   URL.revokeObjectURL(objectUrl)
 }
 
+function escapeCsvCell(value) {
+  const normalized = String(value ?? '')
+  if (normalized.includes(',') || normalized.includes('"') || normalized.includes('\n')) {
+    return `"${normalized.replace(/"/g, '""')}"`
+  }
+  return normalized
+}
+
+function downloadCsvFile(fileName, headers, rows) {
+  const csvRows = [
+    headers.map((header) => escapeCsvCell(header)).join(','),
+    ...rows.map((row) => row.map((cell) => escapeCsvCell(cell)).join(',')),
+  ]
+
+  const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8' })
+  const objectUrl = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = objectUrl
+  anchor.download = fileName
+  document.body.appendChild(anchor)
+  anchor.click()
+  document.body.removeChild(anchor)
+  URL.revokeObjectURL(objectUrl)
+}
+
 function ExecutiveAnalyticsDashboard() {
   const { token } = useAuth()
   const [salesData, setSalesData] = useState([])
@@ -287,16 +312,19 @@ function ExecutiveAnalyticsDashboard() {
       title: 'Inventory Report',
       subtitle: 'Stock levels, movement logs, expiry tracking',
       meta: `${formatNumber(inventorySummary.totalItems)} tracked items`,
+      key: 'inventory',
     },
     {
       title: 'Supplier Performance',
       subtitle: 'Ratings, delivery times, and order volume',
       meta: `${formatNumber(supplierSummary.totalOrders)} cumulative orders`,
+      key: 'suppliers',
     },
     {
       title: 'Payroll Summary',
       subtitle: 'Salary disbursements and deductions',
       meta: `${formatCurrency(payrollSummary.netPay)} net disbursed`,
+      key: 'payroll',
     },
   ]
 
@@ -321,7 +349,78 @@ function ExecutiveAnalyticsDashboard() {
     toast.success('Exported reports snapshot')
   }
 
+  const handleExportAllCsv = () => {
+    const rows = [
+      ['top_sales_month', topSalesMonth ? topSalesMonth.month : 'N/A'],
+      ['top_sales_value', topSalesMonth ? Number(topSalesMonth.sales || 0) : 0],
+      ['avg_efficiency_percent', Number(avgEfficiency.toFixed(1))],
+      ['inventory_total_items', inventorySummary.totalItems],
+      ['inventory_low_count', inventorySummary.lowCount],
+      ['inventory_critical_count', inventorySummary.criticalCount],
+      ['active_suppliers', supplierSummary.activeSuppliers],
+      ['supplier_total_orders', supplierSummary.totalOrders],
+      ['supplier_avg_rating', Number(supplierSummary.averageRating.toFixed(1))],
+      ['payroll_net_pay', Number(payrollSummary.netPay.toFixed(2))],
+      ['payroll_deductions', Number(payrollSummary.deductions.toFixed(2))],
+      ['payroll_paid_records', payrollSummary.paidCount],
+      ['payroll_total_records', payrollRows.length],
+      ['generated_at', new Date().toISOString()],
+    ]
+
+    downloadCsvFile('executive_reports_snapshot.csv', ['metric', 'value'], rows)
+    toast.success('Exported reports snapshot (CSV)')
+  }
+
   const handleExportCard = (card) => {
+    if (card.key === 'inventory') {
+      const headers = ['item_name', 'type', 'warehouse_location', 'current_stock', 'max_capacity', 'status', 'expiry_date']
+      const rows = inventoryRows.map((row) => [
+        row.item_name,
+        row.type,
+        row.warehouse_location,
+        Number(row.current_stock) || 0,
+        Number(row.max_capacity) || 0,
+        row.status,
+        row.expiry_date || '',
+      ])
+
+      downloadCsvFile('inventory_report.csv', headers, rows)
+      toast.success('Exported Inventory Report (CSV)')
+      return
+    }
+
+    if (card.key === 'suppliers') {
+      const headers = ['name', 'location', 'category_supplied', 'rating', 'total_orders', 'status']
+      const rows = supplierRows.map((row) => [
+        row.name,
+        row.location,
+        row.category_supplied,
+        Number(row.rating) || 0,
+        Number(row.total_orders) || 0,
+        row.status,
+      ])
+
+      downloadCsvFile('supplier_performance.csv', headers, rows)
+      toast.success('Exported Supplier Performance (CSV)')
+      return
+    }
+
+    if (card.key === 'payroll') {
+      const headers = ['staff_id', 'month', 'base_salary', 'deductions', 'net_pay', 'status']
+      const rows = payrollRows.map((row) => [
+        row.staff_id,
+        row.month,
+        Number(row.base_salary) || 0,
+        Number(row.deductions) || 0,
+        Number(row.net_pay) || 0,
+        row.status,
+      ])
+
+      downloadCsvFile('payroll_summary.csv', headers, rows)
+      toast.success('Exported Payroll Summary (CSV)')
+      return
+    }
+
     const lines = [
       card.title,
       card.subtitle,
@@ -359,7 +458,15 @@ function ExecutiveAnalyticsDashboard() {
               className="inline-flex items-center gap-2 rounded-md bg-emerald-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-600"
             >
               <Download size={17} />
-              Export All
+              Export TXT
+            </button>
+            <button
+              type="button"
+              onClick={handleExportAllCsv}
+              className="inline-flex items-center gap-2 rounded-md border border-emerald-200 bg-white px-4 py-2.5 text-sm font-medium text-emerald-700 transition-colors hover:bg-emerald-50"
+            >
+              <Download size={17} />
+              Export CSV
             </button>
           </div>
         </div>
@@ -549,7 +656,7 @@ function ExecutiveAnalyticsDashboard() {
               className="mt-5 inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
             >
               <Download size={16} />
-              Export PDF
+              Export CSV
             </button>
           </article>
         ))}

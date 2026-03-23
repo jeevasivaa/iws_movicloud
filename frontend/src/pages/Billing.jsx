@@ -473,36 +473,40 @@ function Billing() {
         isOpen={Boolean(viewingInvoice)}
         onClose={closeInvoicePreview}
         title={`Invoice ${viewingInvoice?.invoice_number || ''}`}
+        description="Review invoice details before sharing or download."
         maxWidthClass="max-w-2xl"
       >
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
-              <p className="text-gray-500">Client</p>
-              <p className="mt-1 font-semibold text-gray-900">{viewingInvoice?.clientName || 'Client'}</p>
+        <div className="space-y-5">
+          <div className="modal-data-grid">
+            <div className="modal-data-item">
+              <p className="modal-data-label">Client</p>
+              <p className="modal-data-value">{viewingInvoice?.clientName || 'Client'}</p>
             </div>
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
-              <p className="text-gray-500">Date</p>
-              <p className="mt-1 font-semibold text-gray-900">{viewingInvoice?.date || 'N/A'}</p>
+            <div className="modal-data-item">
+              <p className="modal-data-label">Date</p>
+              <p className="modal-data-value">{viewingInvoice?.date || 'N/A'}</p>
             </div>
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
-              <p className="text-gray-500">Status</p>
-              <p className="mt-1 font-semibold text-gray-900">{viewingInvoice?.status || 'Pending'}</p>
+            <div className="modal-data-item">
+              <p className="modal-data-label">Status</p>
+              <p className="modal-data-value">{viewingInvoice?.status || 'Pending'}</p>
             </div>
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
-              <p className="text-gray-500">Amount</p>
-              <p className="mt-1 font-semibold text-gray-900">{formatCurrency(viewingInvoice?.amount)}</p>
+            <div className="modal-data-item">
+              <p className="modal-data-label">Amount</p>
+              <p className="modal-data-value">{formatCurrency(viewingInvoice?.amount)}</p>
             </div>
           </div>
 
-          <div className="rounded-lg border border-gray-200 bg-white">
-            <div className="border-b border-gray-200 px-4 py-3 text-sm font-semibold text-gray-900">Line Items</div>
+          <div className="modal-shell p-0">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3">
+              <p className="text-sm font-semibold text-slate-900">Line Items</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{viewedInvoiceItems.length} entries</p>
+            </div>
             <div className="max-h-72 overflow-auto">
               {viewedInvoiceItems.length === 0 ? (
-                <div className="px-4 py-6 text-sm text-gray-500">No line items available.</div>
+                <div className="px-4 py-6 text-sm text-slate-500">No line items available.</div>
               ) : (
                 <table className="w-full text-left text-sm">
-                  <thead className="bg-gray-50 text-gray-500">
+                  <thead className="bg-slate-50 text-slate-500">
                     <tr>
                       <th className="px-4 py-2 font-medium">Description</th>
                       <th className="px-4 py-2 font-medium">Qty</th>
@@ -512,11 +516,11 @@ function Billing() {
                   </thead>
                   <tbody>
                     {viewedInvoiceItems.map((item) => (
-                      <tr key={item.key} className="border-t border-gray-100">
-                        <td className="px-4 py-2 text-gray-900">{item.description}</td>
-                        <td className="px-4 py-2 text-gray-700">{item.quantity}</td>
-                        <td className="px-4 py-2 text-gray-700">{formatCurrency(item.unitPrice)}</td>
-                        <td className="px-4 py-2 font-medium text-gray-900">{formatCurrency(item.lineTotal)}</td>
+                      <tr key={item.key} className="border-t border-slate-100">
+                        <td className="px-4 py-2 text-slate-900">{item.description}</td>
+                        <td className="px-4 py-2 text-slate-700">{item.quantity}</td>
+                        <td className="px-4 py-2 text-slate-700">{formatCurrency(item.unitPrice)}</td>
+                        <td className="px-4 py-2 font-medium text-slate-900">{formatCurrency(item.lineTotal)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -525,11 +529,11 @@ function Billing() {
             </div>
           </div>
 
-          <div className="flex justify-end">
+          <div className="modal-actions">
             <button
               type="button"
               onClick={closeInvoicePreview}
-              className="rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+              className="modal-btn-secondary"
             >
               Close
             </button>
@@ -541,19 +545,20 @@ function Billing() {
         isOpen={isInvoiceModalOpen}
         onClose={closeInvoiceModal}
         title="Create Invoice"
+        description="Build an invoice with line items and tax totals."
         maxWidthClass="max-w-2xl"
       >
         <form onSubmit={handleCreateInvoice} className="space-y-5">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <label htmlFor="invoice-client" className="text-sm font-medium text-gray-700">
+              <label htmlFor="invoice-client" className="modal-label">
                 Client Details
               </label>
               <select
                 id="invoice-client"
                 value={invoiceForm.client_id}
                 onChange={(event) => handleTopLevelField('client_id', event.target.value)}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                className="modal-input"
                 required
               >
                 <option value="">Select Client</option>
@@ -566,7 +571,7 @@ function Billing() {
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="invoice-date" className="text-sm font-medium text-gray-700">
+              <label htmlFor="invoice-date" className="modal-label">
                 Invoice Date
               </label>
               <input
@@ -574,14 +579,14 @@ function Billing() {
                 type="date"
                 value={invoiceForm.date}
                 onChange={(event) => handleTopLevelField('date', event.target.value)}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                className="modal-input"
                 required
               />
             </div>
           </div>
 
-          <div className="space-y-3 rounded-lg border border-gray-200 p-4">
-            <div className="grid grid-cols-12 gap-3 text-xs font-medium uppercase tracking-wide text-gray-500">
+          <div className="modal-shell space-y-3">
+            <div className="hidden grid-cols-12 gap-3 text-xs font-semibold uppercase tracking-wide text-slate-500 sm:grid">
               <span className="col-span-5">Item Name</span>
               <span className="col-span-2">Quantity</span>
               <span className="col-span-2">Unit Price</span>
@@ -590,13 +595,16 @@ function Billing() {
             </div>
 
             {lineItems.map((item, index) => (
-              <div key={`line-item-${index}`} className="grid grid-cols-12 gap-3">
+              <div
+                key={`line-item-${index}`}
+                className="grid grid-cols-1 gap-3 rounded-lg border border-slate-200 bg-slate-50/70 p-3 sm:grid-cols-12"
+              >
                 <input
                   type="text"
                   value={invoiceForm.items[index]?.item_name || ''}
                   onChange={(event) => handleItemField(index, 'item_name', event.target.value)}
                   placeholder="Enter item"
-                  className="col-span-5 rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="modal-input sm:col-span-5"
                 />
 
                 <input
@@ -605,7 +613,7 @@ function Billing() {
                   step="1"
                   value={invoiceForm.items[index]?.quantity || ''}
                   onChange={(event) => handleItemField(index, 'quantity', event.target.value)}
-                  className="col-span-2 rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="modal-input sm:col-span-2"
                 />
 
                 <input
@@ -614,18 +622,19 @@ function Billing() {
                   step="0.01"
                   value={invoiceForm.items[index]?.unit_price || ''}
                   onChange={(event) => handleItemField(index, 'unit_price', event.target.value)}
-                  className="col-span-2 rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="modal-input sm:col-span-2"
                 />
 
-                <div className="col-span-2 flex items-center rounded-md border border-gray-100 bg-gray-50 px-3 py-2 text-sm font-medium text-gray-700">
-                  {formatCurrency(item.lineTotal)}
+                <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 sm:col-span-2 sm:block sm:pt-2.5">
+                  <span className="text-xs font-medium uppercase tracking-wide text-slate-500 sm:hidden">Row Total</span>
+                  <span>{formatCurrency(item.lineTotal)}</span>
                 </div>
 
-                <div className="col-span-1 flex items-center justify-end">
+                <div className="flex items-center justify-end sm:col-span-1">
                   <button
                     type="button"
                     onClick={() => handleRemoveLineItem(index)}
-                    className="rounded-md p-2 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                    className="rounded-md p-2 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
                     disabled={invoiceForm.items.length === 1}
                     aria-label="Remove line item"
                   >
@@ -638,46 +647,46 @@ function Billing() {
             <button
               type="button"
               onClick={handleAddLineItem}
-              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-medium text-emerald-700 transition-colors hover:bg-emerald-50"
+              className="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50/80 px-3 py-2 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-100"
             >
               <Plus size={14} />
               Add Line Item
             </button>
           </div>
 
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-            <div className="space-y-2 text-sm text-gray-700">
+          <div className="modal-panel bg-gradient-to-r from-slate-50 to-emerald-50/50">
+            <div className="space-y-2 text-sm text-slate-700">
               <div className="flex items-center justify-between">
                 <span>Subtotal</span>
-                <span className="font-medium text-gray-900">{formatCurrency(subtotal)}</span>
+                <span className="font-medium text-slate-900">{formatCurrency(subtotal)}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span>CGST (9%)</span>
-                <span className="font-medium text-gray-900">{formatCurrency(cgst)}</span>
+                <span className="font-medium text-slate-900">{formatCurrency(cgst)}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span>SGST (9%)</span>
-                <span className="font-medium text-gray-900">{formatCurrency(sgst)}</span>
+                <span className="font-medium text-slate-900">{formatCurrency(sgst)}</span>
               </div>
-              <div className="flex items-center justify-between border-t border-gray-200 pt-2">
-                <span className="text-base font-semibold text-gray-900">Grand Total</span>
-                <span className="text-base font-semibold text-gray-900">{formatCurrency(grandTotal)}</span>
+              <div className="flex items-center justify-between border-t border-slate-200 pt-2">
+                <span className="text-base font-semibold text-slate-900">Grand Total</span>
+                <span className="text-base font-semibold text-slate-900">{formatCurrency(grandTotal)}</span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-3">
+          <div className="modal-actions">
             <button
               type="button"
               onClick={closeInvoiceModal}
-              className="rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+              className="modal-btn-secondary"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSaving || clients.length === 0}
-              className="rounded-md bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
+              className="modal-btn-primary"
             >
               {isSaving ? 'Saving...' : 'Save & Generate Invoice'}
             </button>

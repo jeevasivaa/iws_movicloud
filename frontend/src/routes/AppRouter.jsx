@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import AppLayout from '../components/layout/AppLayout'
 import AdminLayout from '../components/layout/AdminLayout'
+import StaffLayout from '../components/layout/StaffLayout'
 import ProtectedRoute from '../components/auth/ProtectedRoute'
 import { useAuth } from '../context/useAuth'
 import { HOME_BY_ROLE, ROLES } from '../constants/roles'
@@ -14,7 +15,6 @@ const Suppliers = lazy(() => import('../pages/Suppliers'))
 const Clients = lazy(() => import('../pages/Clients'))
 const OrdersHub = lazy(() => import('../pages/OrdersHub'))
 const ProductionControlTower = lazy(() => import('../pages/ProductionControlTower'))
-const StaffTaskView = lazy(() => import('../pages/StaffTaskView'))
 const Inventory = lazy(() => import('../pages/Inventory'))
 const ExecutiveAnalyticsDashboard = lazy(() => import('../pages/ExecutiveAnalyticsDashboard'))
 const AIInsights = lazy(() => import('../pages/AIInsights'))
@@ -26,6 +26,10 @@ const Settings = lazy(() => import('../pages/Settings'))
 const Marketing = lazy(() => import('../pages/Marketing'))
 const Notifications = lazy(() => import('../pages/Notifications'))
 const Unauthorized = lazy(() => import('../pages/Unauthorized'))
+const StaffDashboard = lazy(() => import('../pages/StaffDashboard'))
+const StaffProduction = lazy(() => import('../pages/StaffProduction'))
+const StaffInventory = lazy(() => import('../pages/StaffInventory'))
+const StaffOrders = lazy(() => import('../pages/StaffOrders'))
 
 function RouteLoadingFallback() {
   return (
@@ -38,7 +42,7 @@ function RouteLoadingFallback() {
 function AppRouter() {
   const { isAuthenticated, user } = useAuth()
   const homeRoute = user ? HOME_BY_ROLE[user.role] || '/dashboard' : '/auth'
-  const ActiveLayout = user?.role === ROLES.ADMIN ? AdminLayout : AppLayout
+  const ActiveLayout = user?.role === ROLES.ADMIN ? AdminLayout : user?.role === ROLES.STAFF ? StaffLayout : AppLayout
 
   return (
     <Suspense fallback={<RouteLoadingFallback />}>
@@ -68,7 +72,7 @@ function AppRouter() {
 
           {/* General Dashboard + Alerts Routes */}
           <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.MANAGER, ROLES.STAFF, ROLES.FINANCE]} />}>
-            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboard" element={user?.role === ROLES.STAFF ? <StaffDashboard /> : <Dashboard />} />
             <Route path="/notifications" element={<Notifications />} />
           </Route>
 
@@ -76,9 +80,9 @@ function AppRouter() {
           <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.MANAGER, ROLES.STAFF]} />}>
             <Route
               path="/production-control"
-              element={user?.role === ROLES.STAFF ? <StaffTaskView /> : <ProductionControlTower />}
+              element={user?.role === ROLES.STAFF ? <StaffProduction /> : <ProductionControlTower />}
             />
-            <Route path="/inventory" element={<Inventory />} />
+            <Route path="/inventory" element={user?.role === ROLES.STAFF ? <StaffInventory /> : <Inventory />} />
           </Route>
 
           {/* Finance Routes (Admin, Finance) */}
@@ -90,8 +94,8 @@ function AppRouter() {
           </Route>
 
           {/* Orders Routes */}
-          <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.MANAGER, ROLES.CLIENT]} />}>
-            <Route path="/orders" element={<OrdersHub />} />
+          <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.MANAGER, ROLES.STAFF, ROLES.CLIENT]} />}>
+            <Route path="/orders" element={user?.role === ROLES.STAFF ? <StaffOrders /> : <OrdersHub />} />
           </Route>
         </Route>
 

@@ -3,7 +3,7 @@ from datetime import datetime
 from flask import Blueprint, jsonify, request
 
 from utils.db import get_db
-from utils.decorators import admin_required
+from utils.decorators import admin_required, role_required
 from utils.helpers import normalize_iso_date, parse_object_id, to_float, to_int
 
 marketing_bp = Blueprint("marketing", __name__)
@@ -17,7 +17,7 @@ def _serialize_client(client):
 
 
 @marketing_bp.route("", methods=["GET"])
-@admin_required
+@role_required("admin", "manager", "staff")
 def get_clients():
     clients = [_serialize_client(client) for client in clients_collection.find().sort("company_name", 1)]
     return jsonify(clients), 200

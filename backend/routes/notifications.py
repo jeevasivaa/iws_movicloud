@@ -3,7 +3,7 @@ from datetime import datetime
 from flask import Blueprint, jsonify, request
 
 from utils.db import get_db
-from utils.decorators import admin_required
+from utils.decorators import admin_required, role_required
 from utils.helpers import parse_object_id
 
 notifications_bp = Blueprint("notifications", __name__)
@@ -21,7 +21,7 @@ def _validate_type(value):
 
 
 @notifications_bp.route("", methods=["GET"])
-@admin_required
+@role_required("admin", "manager", "staff", "finance")
 def get_notifications():
     rows = [_serialize_notification(row) for row in notifications_collection.find().sort("timestamp", -1)]
     return jsonify(rows), 200
@@ -56,7 +56,7 @@ def create_notification():
 
 
 @notifications_bp.route("/mark-all-read", methods=["PUT"])
-@admin_required
+@role_required("admin", "manager", "staff", "finance")
 def mark_all_read():
     result = notifications_collection.update_many(
         {"is_read": False},
