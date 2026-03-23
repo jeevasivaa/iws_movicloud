@@ -1,185 +1,153 @@
-import React from 'react'
-import { 
-  Factory, 
-  Users, 
-  Package, 
-  Play, 
-  Search, 
-  Clock, 
-  ChevronRight,
-  MoreVertical,
-  CheckCircle2
-} from 'lucide-react'
+import { CheckCircle2, Eye, Factory, Plus, Timer, Warehouse } from 'lucide-react'
 
-const SUMMARY_KPIS = [
-  { label: 'Active batches', value: '12', icon: Factory, color: 'text-blue-600' },
-  { label: 'Completed Today', value: '8', icon: CheckCircle2, color: 'text-teal-600' },
-  { label: 'Total Units', value: '14,280', icon: Package, color: 'text-[#1e3a8a]' },
+const PRODUCTION_KPIS = [
+  { label: 'Active Batches', value: '4', icon: Factory, iconClass: 'text-emerald-600' },
+  { label: 'In Progress', value: '3', icon: Timer, iconClass: 'text-amber-600' },
+  { label: 'Completed Today', value: '1', icon: CheckCircle2, iconClass: 'text-emerald-600' },
+  { label: 'Total Units', value: '1,450', icon: Warehouse, iconClass: 'text-blue-600' },
 ]
 
-const KANBAN_COLUMNS = [
+const BATCH_ROWS = [
   {
-    id: 'queued',
-    title: 'Queued',
-    batches: [
-      { id: 'BCH-882', name: 'Tender Coconut Water', stage: 'Extraction', progress: 0, staff: 'Zane Roy', avatar: 'ZR', units: '5,000', eta: 'Mar 24' },
-      { id: 'BCH-885', name: 'Sparkling Lemonade', stage: 'Packaging', progress: 0, staff: 'Maya George', avatar: 'MG', units: '2,500', eta: 'Mar 24' },
-    ]
+    batchId: 'BATCH-001',
+    product: 'Cold Pressed Coconut Oil',
+    stage: 'Bottling',
+    progress: 75,
+    assigned: 'Vikram Singh',
+    units: 500,
+    started: '2024-03-01',
+    eta: '2024-03-04',
   },
   {
-    id: 'in-progress',
-    title: 'In Progress',
-    batches: [
-      { id: 'BCH-879', name: 'Aloe Vera Juice', stage: 'Bottling', progress: 65, staff: 'Priya Nair', avatar: 'PN', units: '3,000', eta: 'Mar 23' },
-      { id: 'BCH-880', name: 'Guava Nectar', stage: 'Extraction', progress: 40, staff: 'James Wilson', avatar: 'JW', units: '4,500', eta: 'Mar 23' },
-    ]
+    batchId: 'BATCH-002',
+    product: 'Virgin Sesame Oil',
+    stage: 'Extraction',
+    progress: 40,
+    assigned: 'Sunita Patel',
+    units: 300,
+    started: '2024-03-02',
+    eta: '2024-03-06',
   },
   {
-    id: 'dispatch',
-    title: 'Ready for Dispatch',
-    batches: [
-      { id: 'BCH-875', name: 'Mango Pulp', stage: 'Packaging', progress: 100, staff: 'Sarah Chen', avatar: 'SC', units: '10,000', eta: 'Completed' },
-    ]
-  }
+    batchId: 'BATCH-003',
+    product: 'Organic Groundnut Oil',
+    stage: 'Packaging',
+    progress: 90,
+    assigned: 'Arun Mehta',
+    units: 450,
+    started: '2024-02-28',
+    eta: '2024-03-03',
+  },
+  {
+    batchId: 'BATCH-004',
+    product: 'Premium Castor Oil',
+    stage: 'Raw Material Prep',
+    progress: 15,
+    assigned: 'Vikram Singh',
+    units: 200,
+    started: '2024-03-05',
+    eta: '2024-03-10',
+  },
 ]
 
-const BatchCard = ({ batch }) => {
-  const getStageBadge = (stage) => {
-    switch (stage) {
-      case 'Bottling': return 'bg-blue-50 text-blue-700 border-blue-100'
-      case 'Extraction': return 'bg-teal-50 text-teal-700 border-teal-100'
-      case 'Packaging': return 'bg-amber-50 text-amber-700 border-amber-100'
-      default: return 'bg-slate-50 text-slate-600 border-slate-100'
-    }
-  }
-
-  return (
-    <div className="vsa-card p-6 hover:-translate-y-1.5 hover:shadow-xl transition-all duration-500 group cursor-pointer border-slate-200/60 bg-white">
-      <div className="flex justify-between items-start mb-5">
-        <div>
-          <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">#{batch.id}</span>
-          <h4 className="text-[15px] font-black text-slate-700 leading-tight group-hover:text-[#1e3a8a] transition-colors">
-            {batch.name}
-          </h4>
-        </div>
-        <button className="p-1.5 text-slate-300 hover:text-slate-600 transition-colors">
-          <MoreVertical size={18} />
-        </button>
-      </div>
-
-      <div className="mb-6">
-        <span className={`badge ${getStageBadge(batch.stage)} text-[10px] py-1 px-3`}>
-          {batch.stage}
-        </span>
-      </div>
-
-      {/* Progress Bar */}
-      <div className="space-y-2.5 mb-7">
-        <div className="flex justify-between items-center text-[11px] font-black uppercase tracking-widest text-slate-400">
-          <span>Batch Progress</span>
-          <span className={batch.progress === 100 ? 'text-teal-600' : 'text-[#1e3a8a]'}>{batch.progress}%</span>
-        </div>
-        <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-          <div 
-            className={`h-full transition-all duration-1000 ease-out shadow-[0_0_8px_rgba(30,58,138,0.2)] ${
-              batch.progress === 100 ? 'bg-teal-500' : 'bg-[#1e3a8a]'
-            }`} 
-            style={{ width: `${batch.progress}%` }} 
-          />
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between pt-5 border-t border-slate-100">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-[10px] font-black text-[#1e3a8a] shadow-sm">
-            {batch.avatar}
-          </div>
-          <span className="text-[12px] font-bold text-slate-500">{batch.staff}</span>
-        </div>
-        <div className="text-right">
-          <p className="text-[12px] font-black text-slate-700 leading-none mb-1">{batch.units} Units</p>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{batch.eta}</p>
-        </div>
-      </div>
-    </div>
-  )
+function getStageClasses(stage) {
+  if (stage === 'Bottling') return 'bg-blue-100 text-blue-700'
+  if (stage === 'Extraction') return 'bg-amber-100 text-amber-700'
+  if (stage === 'Packaging') return 'bg-green-100 text-green-700'
+  return 'bg-red-100 text-red-700'
 }
 
 function ProductionControlTower() {
   return (
-    <div className="space-y-10 animate-fade-in">
-      {/* Header Area */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-2">
+    <section className="space-y-6">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Production Tower</h1>
-          <p className="text-slate-500 font-semibold mt-2">Operational command for manufacturing and quality control.</p>
+          <h1 className="text-3xl font-semibold text-gray-900">Production</h1>
+          <p className="mt-1 text-base text-gray-500">Track batches, stages, and production schedules</p>
         </div>
-        <div className="flex gap-3">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400" />
-            <input 
-              type="text" 
-              placeholder="Filter active batches..."
-              className="pl-11 pr-5 py-3 bg-white border border-slate-200/80 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-blue-500/5 focus:border-[#1e3a8a] outline-none w-72 transition-all shadow-sm"
-            />
-          </div>
-          <button className="btn-primary py-3 px-8 text-[11px] uppercase tracking-widest shadow-md">
-            <Play className="w-4 h-4 fill-current mr-2" />
-            Launch Batch
-          </button>
-        </div>
-      </div>
 
-      {/* Summary KPI Widgets */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {SUMMARY_KPIS.map((kpi, i) => (
-          <div key={i} className="vsa-card p-7 flex items-center gap-6 border-slate-200/60 shadow-sm hover:shadow-md transition-shadow">
-            <div className={`w-14 h-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center ${kpi.color} shadow-inner`}>
-              <kpi.icon size={28} />
-            </div>
-            <div>
-              <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5">{kpi.label}</p>
-              <h3 className="text-3xl font-black text-slate-800">{kpi.value}</h3>
-            </div>
-          </div>
-        ))}
-      </div>
+        <button
+          type="button"
+          className="inline-flex items-center justify-center gap-2 rounded-md bg-emerald-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-600"
+        >
+          <Plus size={16} />
+          New Batch
+        </button>
+      </header>
 
-      {/* Kanban Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-        {KANBAN_COLUMNS.map((column) => (
-          <div key={column.id} className="space-y-6">
-            <div className="flex items-center justify-between px-3 mb-8">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {PRODUCTION_KPIS.map((kpi) => {
+          const Icon = kpi.icon
+
+          return (
+            <article key={kpi.label} className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
               <div className="flex items-center gap-4">
-                <div className={`w-2 h-2 rounded-full shadow-lg ${
-                  column.id === 'in-progress' ? 'bg-[#1e3a8a] shadow-blue-200' : 
-                  column.id === 'dispatch' ? 'bg-teal-500 shadow-teal-200' : 'bg-slate-300 shadow-slate-100'
-                }`} />
-                <h2 className="text-[12px] font-black uppercase tracking-[0.3em] text-slate-500">
-                  {column.title}
-                </h2>
+                <div className="rounded-lg bg-gray-50 p-3">
+                  <Icon size={22} className={kpi.iconClass} />
+                </div>
+
+                <div>
+                  <p className="text-sm text-gray-500">{kpi.label}</p>
+                  <p className="text-4xl font-semibold text-gray-900">{kpi.value}</p>
+                </div>
               </div>
-              <span className="bg-white text-slate-500 text-[11px] font-black px-3 py-1 rounded-full border border-slate-200 shadow-sm">
-                {column.batches.length}
+            </article>
+          )
+        })}
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        {BATCH_ROWS.map((row) => (
+          <article key={row.batchId} className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm text-gray-500">{row.batchId}</p>
+                <h2 className="mt-1 text-2xl font-semibold text-gray-900">{row.product}</h2>
+              </div>
+
+              <span className={`inline-flex rounded-full px-3 py-1 text-sm font-medium ${getStageClasses(row.stage)}`}>
+                {row.stage}
               </span>
             </div>
-            
-            <div className="space-y-5">
-              {column.batches.map((batch) => (
-                <BatchCard key={batch.id} batch={batch} />
-              ))}
+
+            <div className="mt-4">
+              <div className="mb-1 flex items-center justify-between text-sm text-gray-500">
+                <span>Progress</span>
+                <span>{row.progress}%</span>
+              </div>
+              <div className="h-3 w-full rounded-full bg-gray-100">
+                <div className="h-3 rounded-full bg-emerald-500" style={{ width: `${row.progress}%` }} />
+              </div>
             </div>
 
-            {column.id === 'queued' && (
-              <button className="w-full py-5 border-2 border-dashed border-slate-200 rounded-2xl text-[11px] font-black uppercase tracking-widest text-slate-400 hover:border-blue-300 hover:text-[#1e3a8a] hover:bg-blue-50/30 transition-all flex items-center justify-center gap-3 mt-6">
-                <Play size={14} className="fill-current" />
-                Schedule Next
+            <div className="mt-4 grid grid-cols-2 gap-2 text-sm text-gray-500">
+              <p>
+                Assigned: <span className="text-gray-900">{row.assigned}</span>
+              </p>
+              <p>
+                Units: <span className="text-gray-900">{row.units}</span>
+              </p>
+              <p>
+                Started: <span className="text-gray-900">{row.started}</span>
+              </p>
+              <p>
+                ETA: <span className="text-gray-900">{row.eta}</span>
+              </p>
+            </div>
+
+            <div className="mt-4 flex justify-end">
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 rounded-md p-2 text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-900"
+              >
+                <Eye size={17} />
+                <span className="text-sm font-medium">View Details</span>
               </button>
-            )}
-          </div>
+            </div>
+          </article>
         ))}
       </div>
-    </div>
+    </section>
   )
 }
 

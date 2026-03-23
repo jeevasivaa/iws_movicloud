@@ -1,149 +1,107 @@
-import { Brain, Box, DollarSign, Gauge, Truck } from 'lucide-react'
+import { BarChart3, Download, LineChart } from 'lucide-react'
 
-const kpis = [
-  {
-    id: 'revenue',
-    label: 'Monthly Revenue',
-    value: 'USD 4.8M',
-    trend: '+9.4% vs target',
-    positive: true,
-    icon: DollarSign,
-  },
-  {
-    id: 'margin',
-    label: 'Gross Margin',
-    value: '31.2%',
-    trend: '+1.8% MoM',
-    positive: true,
-    icon: Gauge,
-  },
-  {
-    id: 'capacity',
-    label: 'Capacity Utilization',
-    value: '84%',
-    trend: '-2.1% in South line',
-    positive: false,
-    icon: Box,
-  },
-  {
-    id: 'delivery',
-    label: 'On-Time Delivery',
-    value: '93%',
-    trend: '+3.1% QoQ',
-    positive: true,
-    icon: Truck,
-  },
-]
+const SALES_BARS = [420000, 380000, 550000, 470000, 620000, 580000]
+const EFFICIENCY_LINE = [82, 78, 88, 85, 91, 87]
 
-const topProducts = [
-  { name: 'Tender Coconut Water 250ml', share: 60, color: 'bg-[#1e3a8a]' },
-  { name: 'Tender Coconut Water 500ml', share: 25, color: 'bg-teal-500' },
-  { name: 'Coconut Concentrate 20L', share: 15, color: 'bg-slate-400' },
-]
-
-const aiInsights = [
-  'Revenue can exceed forecast by 6.2% if UAE channel promo starts before week 3.',
-  'Bottle cap volatility may suppress margin by 0.9 pts unless vendor shift is approved.',
-  'Premium mix adjustment in hospitality segment can unlock USD 320K annual upside.',
+const REPORT_CARDS = [
+  {
+    title: 'Inventory Report',
+    subtitle: 'Stock levels, movement logs, expiry tracking',
+  },
+  {
+    title: 'Supplier Performance',
+    subtitle: 'Ratings, delivery times, order history',
+  },
+  {
+    title: 'Payroll Summary',
+    subtitle: 'Salary disbursements, tax deductions',
+  },
 ]
 
 function ExecutiveAnalyticsDashboard() {
   return (
-    <section className="space-y-6 bg-slate-50">
-      <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h1 className="text-3xl font-black tracking-tight text-slate-900">Executive Analytics</h1>
-        <p className="mt-2 text-sm font-semibold text-slate-500">Enterprise performance command for VSA Beverages</p>
+    <section className="space-y-6">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-semibold text-gray-900">Reports</h1>
+          <p className="mt-1 text-base text-gray-500">Generate and export business reports</p>
+        </div>
+
+        <button
+          type="button"
+          className="inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+        >
+          <Download size={17} />
+          Export All
+        </button>
       </header>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {kpis.map((kpi) => {
-          const Icon = kpi.icon
-          return (
-            <article key={kpi.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md">
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{kpi.label}</p>
-                <Icon className="h-4 w-4 text-slate-400" />
-              </div>
-              <p className="mt-3 text-3xl font-black tracking-tight text-slate-900">{kpi.value}</p>
-              <p className={`mt-2 text-xs font-black uppercase tracking-widest ${kpi.positive ? 'text-emerald-600' : 'text-red-600'}`}>
-                {kpi.trend}
-              </p>
-            </article>
-          )
-        })}
-      </div>
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <article className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-4 flex items-center gap-2">
+            <BarChart3 size={18} className="text-emerald-600" />
+            <h2 className="text-2xl font-semibold text-gray-900">Sales Report</h2>
+          </div>
 
-      <div className="grid gap-6 xl:grid-cols-5">
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-3">
-          <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">Revenue vs Target</h2>
-          <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
-            <svg viewBox="0 0 700 280" className="h-64 w-full" role="img" aria-label="Revenue versus target trend">
-              <defs>
-                <linearGradient id="actualGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#0ea5e9" stopOpacity="0.35" />
-                  <stop offset="100%" stopColor="#0ea5e9" stopOpacity="0.05" />
-                </linearGradient>
-              </defs>
-              <path d="M40 220 L660 220" stroke="#cbd5e1" strokeDasharray="6 6" />
-              <path d="M40 180 C160 140, 230 170, 320 130 C410 90, 510 110, 660 70" fill="none" stroke="#1e3a8a" strokeWidth="4" />
-              <path d="M40 200 C150 170, 240 180, 330 150 C430 125, 520 145, 660 120" fill="none" stroke="#14b8a6" strokeWidth="4" />
-              <path d="M40 200 C150 170, 240 180, 330 150 C430 125, 520 145, 660 120 L660 220 L40 220 Z" fill="url(#actualGradient)" />
-            </svg>
-            <div className="mt-3 flex flex-wrap gap-4 text-xs font-bold uppercase tracking-widest">
-              <span className="inline-flex items-center gap-2 text-slate-600"><span className="h-2.5 w-2.5 rounded-full bg-[#1e3a8a]" />Target</span>
-              <span className="inline-flex items-center gap-2 text-slate-600"><span className="h-2.5 w-2.5 rounded-full bg-teal-500" />Actual</span>
+          <div className="h-80 rounded-lg border border-gray-100 p-4">
+            <div className="flex h-full items-end gap-3">
+              {SALES_BARS.map((value, index) => {
+                const height = Math.max(12, Math.round((value / 650000) * 100))
+                return (
+                  <div key={index} className="flex flex-1 flex-col items-center gap-2">
+                    <div className="w-full rounded-t-md bg-emerald-500" style={{ height: `${height}%` }} />
+                    <span className="text-xs text-gray-500">{['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'][index]}</span>
+                  </div>
+                )
+              })}
             </div>
           </div>
         </article>
 
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-2">
-          <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-500">Top Products</h2>
-          <div className="mt-4 space-y-4">
-            {topProducts.map((product) => (
-              <div key={product.name}>
-                <div className="mb-1 flex items-center justify-between text-xs font-bold text-slate-600">
-                  <span>{product.name}</span>
-                  <span>{product.share}%</span>
-                </div>
-                <div className="h-2.5 rounded-full bg-slate-100">
-                  <div className={`h-full rounded-full ${product.color}`} style={{ width: `${product.share}%` }} />
-                </div>
-              </div>
-            ))}
+        <article className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-4 flex items-center gap-2">
+            <LineChart size={18} className="text-blue-600" />
+            <h2 className="text-2xl font-semibold text-gray-900">Production Efficiency</h2>
           </div>
 
-          <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-3">
-            <p className="text-xs font-black uppercase tracking-widest text-amber-700">Warning</p>
-            <p className="mt-1 text-sm font-semibold text-amber-900">500ml line margin trending lower due to packaging cost increases.</p>
+          <div className="h-80 rounded-lg border border-gray-100 p-4">
+            <svg viewBox="0 0 500 220" className="h-full w-full" role="img" aria-label="Production efficiency line chart">
+              <polyline
+                fill="none"
+                stroke="#3b82f6"
+                strokeWidth="3"
+                points={EFFICIENCY_LINE.map((value, index) => `${40 + index * 80},${210 - (value - 60) * 4}`).join(' ')}
+              />
+              {EFFICIENCY_LINE.map((value, index) => (
+                <circle key={index} cx={40 + index * 80} cy={210 - (value - 60) * 4} r="5" fill="#3b82f6" />
+              ))}
+            </svg>
+
+            <div className="mt-3 flex justify-between px-2 text-xs text-gray-500">
+              {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'].map((month) => (
+                <span key={month}>{month}</span>
+              ))}
+            </div>
           </div>
         </article>
       </div>
 
-      <article className="relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-900 p-6 text-white shadow-sm">
-        <div className="pointer-events-none absolute -right-8 -top-8 h-44 w-44 rounded-full bg-teal-400/20 blur-3xl" />
-        <div className="relative">
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-teal-200">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-teal-300" />
-              Live AI
-            </span>
-            <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-300">AI Strategic Insights</h2>
-          </div>
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        {REPORT_CARDS.map((card) => (
+          <article key={card.title} className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h3 className="text-xl font-semibold text-gray-900">{card.title}</h3>
+            <p className="mt-1 text-sm text-gray-500">{card.subtitle}</p>
 
-          <div className="mt-4 flex items-start gap-3">
-            <Brain className="mt-1 h-5 w-5 text-teal-300" />
-            <ul className="space-y-2 text-sm text-slate-100">
-              {aiInsights.map((insight) => (
-                <li key={insight} className="rounded-lg bg-white/5 p-3">
-                  {insight}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </article>
-
-      <footer className="pb-2 text-center text-xs font-semibold text-slate-500">© 2024 VSA Beverages</footer>
+            <button
+              type="button"
+              className="mt-5 inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+            >
+              <Download size={16} />
+              Export PDF
+            </button>
+          </article>
+        ))}
+      </div>
     </section>
   )
 }

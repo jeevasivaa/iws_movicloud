@@ -1,200 +1,174 @@
 import { useMemo, useState } from 'react'
-import { 
-  Search, 
-  UserPlus, 
-  MoreVertical, 
-  ShieldCheck, 
-  Activity, 
-  AlertCircle, 
-  Clock,
-  CheckCircle2,
-  Users,
-  Zap
-} from 'lucide-react'
+import { Mail, Phone, Plus, Search } from 'lucide-react'
 
-const USERS = [
-  { id: '1', name: 'Priya Nair', email: 'admin@vsabeverages.com', role: 'Admin', lastActive: '2 mins ago', status: 'Active', avatar: 'PN' },
-  { id: '2', name: 'James Wilson', email: 'manager@vsabeverages.com', role: 'Manager', lastActive: '1 hour ago', status: 'Active', avatar: 'JW' },
-  { id: '3', name: 'Sarah Chen', email: 'finance@vsabeverages.com', role: 'Finance', lastActive: '3 hours ago', status: 'Offline', avatar: 'SC' },
-  { id: '4', name: 'Zane Roy', email: 'staff@vsabeverages.com', role: 'Staff', lastActive: '5 mins ago', status: 'Active', avatar: 'ZR' },
-  { id: '5', name: 'Maya George', email: 'maya@vsabeverages.com', role: 'Staff', lastActive: 'Yesterday', status: 'Offline', avatar: 'MG' },
+const STAFF_ROWS = [
+  {
+    id: 'EMP-001',
+    name: 'Vikram Singh',
+    initials: 'VS',
+    role: 'Production Lead',
+    email: 'vikram@vsafoods.com',
+    phone: '+91 98765 43210',
+    department: 'Production',
+    shift: 'Morning Shift',
+    status: 'Active',
+    avatarColor: 'bg-emerald-100 text-emerald-700',
+  },
+  {
+    id: 'EMP-002',
+    name: 'Anita Desai',
+    initials: 'AD',
+    role: 'Quality Inspector',
+    email: 'anita@vsafoods.com',
+    phone: '+91 98765 43211',
+    department: 'Quality',
+    shift: 'Morning Shift',
+    status: 'Active',
+    avatarColor: 'bg-blue-100 text-blue-700',
+  },
+  {
+    id: 'EMP-003',
+    name: 'Ravi Kumar',
+    initials: 'RK',
+    role: 'Warehouse Manager',
+    email: 'ravi@vsafoods.com',
+    phone: '+91 98765 43212',
+    department: 'Inventory',
+    shift: 'Evening Shift',
+    status: 'Active',
+    avatarColor: 'bg-purple-100 text-purple-700',
+  },
+  {
+    id: 'EMP-004',
+    name: 'Sunita Patel',
+    initials: 'SP',
+    role: 'Machine Operator',
+    email: 'sunita@vsafoods.com',
+    phone: '+91 98765 43213',
+    department: 'Production',
+    shift: 'Morning Shift',
+    status: 'On Leave',
+    avatarColor: 'bg-orange-100 text-orange-700',
+  },
+  {
+    id: 'EMP-005',
+    name: 'Arun Mehta',
+    initials: 'AM',
+    role: 'Packing Supervisor',
+    email: 'arun@vsafoods.com',
+    phone: '+91 98765 43214',
+    department: 'Packaging',
+    shift: 'Night Shift',
+    status: 'Active',
+    avatarColor: 'bg-yellow-100 text-yellow-700',
+  },
+  {
+    id: 'EMP-006',
+    name: 'Meera Joshi',
+    initials: 'MJ',
+    role: 'Lab Technician',
+    email: 'meera@vsafoods.com',
+    phone: '+91 98765 43215',
+    department: 'Quality',
+    shift: 'Morning Shift',
+    status: 'Active',
+    avatarColor: 'bg-pink-100 text-pink-700',
+  },
 ]
 
-const AUDIT_LOGS = [
-  { id: 1, action: 'Finance generated Invoice #102', time: '12:45 PM' },
-  { id: 2, action: 'Manager updated inventory', time: '11:20 AM' },
-  { id: 3, action: 'Admin changed system settings', time: '09:15 AM' },
-  { id: 4, action: 'Staff #ZR started production batch', time: '08:30 AM' },
-]
+function getStatusClasses(status) {
+  if (status === 'Active') return 'bg-green-100 text-green-700'
+  if (status === 'On Leave') return 'bg-amber-100 text-amber-700'
+  return 'bg-red-100 text-red-700'
+}
 
 function Employees() {
   const [query, setQuery] = useState('')
 
-  const filteredUsers = useMemo(() => {
-    return USERS.filter(user => 
-      user.name.toLowerCase().includes(query.toLowerCase()) || 
-      user.email.toLowerCase().includes(query.toLowerCase())
+  const filteredRows = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase()
+
+    if (!normalizedQuery) {
+      return STAFF_ROWS
+    }
+
+    return STAFF_ROWS.filter((row) =>
+      [row.name, row.role, row.department, row.email, row.phone].join(' ').toLowerCase().includes(normalizedQuery),
     )
   }, [query])
 
-  const getRoleBadge = (role) => {
-    switch (role) {
-      case 'Admin': return 'bg-purple-50 text-purple-700 border-purple-100'
-      case 'Manager': return 'badge-info'
-      case 'Finance': return 'badge-success'
-      case 'Staff': return 'badge-warning'
-      default: return ''
-    }
-  }
-
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-black text-slate-900 tracking-tight">Access & Security</h1>
-        <p className="text-sm font-semibold text-slate-500">System-wide user control and authentication logs.</p>
+    <section className="space-y-6">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-semibold text-gray-900">Staff</h1>
+          <p className="mt-1 text-base text-gray-500">Manage employees, shifts, and attendance</p>
+        </div>
+
+        <button
+          type="button"
+          className="inline-flex items-center justify-center gap-2 rounded-md bg-emerald-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-600"
+        >
+          <Plus size={16} />
+          Add Employee
+        </button>
+      </header>
+
+      <div className="relative w-full max-w-xl">
+        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+        <input
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search staff..."
+          className="h-11 w-full rounded-lg border border-gray-200 bg-white pl-11 pr-4 text-sm text-gray-900 placeholder:text-gray-500 outline-none transition-colors focus:border-emerald-300"
+        />
       </div>
 
-      {/* Top KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'Active Users', value: '1,284', icon: Users, color: 'text-[#1e3a8a]' },
-          { label: 'Uptime', value: '99.99%', icon: Activity, color: 'text-teal-600' },
-          { label: 'Requests', value: '3', icon: Clock, color: 'text-amber-600' },
-          { label: 'Alerts', value: '0', icon: AlertCircle, color: 'text-slate-400' },
-        ].map((kpi, i) => (
-          <div key={i} className="vsa-card p-5">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{kpi.label}</p>
-                <p className={`text-2xl font-black mt-1 ${kpi.color}`}>{kpi.value}</p>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {filteredRows.map((row) => (
+          <article key={row.id} className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="flex items-start gap-4">
+              <div
+                className={`flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full text-lg font-semibold ${row.avatarColor}`}
+              >
+                {row.initials}
               </div>
-              <div className="p-2 bg-slate-50 rounded-xl">
-                <kpi.icon className="w-5 h-5 text-slate-400" />
+
+              <div className="min-w-0">
+                <h2 className="text-xl font-semibold text-gray-900">{row.name}</h2>
+                <p className="text-sm text-gray-500">{row.role}</p>
               </div>
             </div>
-          </div>
+
+            <div className="mt-4 space-y-2 text-sm text-gray-500">
+              <p className="flex items-center gap-2">
+                <Mail size={15} />
+                {row.email}
+              </p>
+              <p className="flex items-center gap-2">
+                <Phone size={15} />
+                {row.phone}
+              </p>
+            </div>
+
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-700">{row.department}</span>
+              <span className="rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-700">{row.shift}</span>
+              <span className={`ml-auto rounded-full px-3 py-1 text-sm font-medium ${getStatusClasses(row.status)}`}>
+                {row.status}
+              </span>
+            </div>
+          </article>
         ))}
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* Main Section: User Management Table */}
-        <div className="flex-1 vsa-card overflow-hidden">
-          <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/30">
-            <h2 className="text-lg font-black text-slate-900">User Directory</h2>
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input 
-                  type="text" 
-                  placeholder="Search..."
-                  className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-semibold focus:ring-4 focus:ring-blue-500/5 focus:border-[#1e3a8a] outline-none w-64 transition-all"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                />
-              </div>
-              <button className="btn-primary py-2 px-4 text-xs">
-                <UserPlus className="w-4 h-4" />
-                Invite
-              </button>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="bg-slate-50/50 text-slate-400 text-[10px] font-black uppercase tracking-widest">
-                  <th className="px-6 py-4">Identity</th>
-                  <th className="px-6 py-4">Role</th>
-                  <th className="px-6 py-4">Last Active</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-slate-50/30 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-[11px] font-black text-[#1e3a8a] border border-slate-200">
-                          {user.avatar}
-                        </div>
-                        <div>
-                          <p className="text-sm font-black text-slate-900 leading-none mb-1">{user.name}</p>
-                          <p className="text-[11px] font-semibold text-slate-400">{user.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`badge ${getRoleBadge(user.role)}`}>
-                        {user.role}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-xs font-semibold text-slate-500">{user.lastActive}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-1.5 h-1.5 rounded-full ${user.status === 'Active' ? 'bg-teal-500' : 'bg-slate-300'}`} />
-                        <span className="text-xs font-bold text-slate-600">{user.status}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <button className="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-400">
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      {filteredRows.length === 0 ? (
+        <div className="rounded-xl border border-gray-200 bg-white px-6 py-10 text-center text-sm text-gray-500 shadow-sm">
+          No staff members found for this search.
         </div>
-
-        {/* Right Panel: System Audit Log */}
-        <div className="w-full lg:w-80 space-y-6">
-          <div className="vsa-card p-6 bg-white">
-            <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-teal-600" />
-              Security Audit
-            </h3>
-            
-            <div className="space-y-6">
-              {AUDIT_LOGS.map((log) => (
-                <div key={log.id} className="relative pl-5 pb-6 last:pb-0">
-                  <div className="absolute left-[2px] top-1.5 bottom-0 w-[1px] bg-slate-100 last:hidden" />
-                  <div className="absolute left-0 top-1.5 w-1 h-1 rounded-full bg-slate-300" />
-                  
-                  <p className="text-[11px] font-bold text-slate-900 leading-relaxed">
-                    {log.action}
-                  </p>
-                  <p className="text-[9px] font-black text-slate-400 mt-1 uppercase tracking-widest">
-                    {log.time}
-                  </p>
-                </div>
-              ))}
-            </div>
-
-            <button className="w-full mt-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 hover:bg-slate-100 rounded-xl transition-colors border border-slate-100">
-              Full Logs
-            </button>
-          </div>
-
-          <div className="bg-[#0f172a] p-6 rounded-xl shadow-lg text-white relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
-            <div className="flex items-center gap-2 mb-4">
-              <Zap className="w-4 h-4 text-teal-400 fill-teal-400" />
-              <span className="text-[10px] font-black uppercase tracking-wider text-teal-400">Encryption Active</span>
-            </div>
-            <p className="text-xs font-semibold text-slate-400 mb-4 leading-relaxed">
-              All administrative actions are cryptographically signed and immutable.
-            </p>
-            <div className="flex items-center gap-2 text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">
-              <CheckCircle2 className="w-3 h-3" />
-              Secure Protocol V4.2
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+      ) : null}
+    </section>
   )
 }
 
