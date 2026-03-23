@@ -1,86 +1,120 @@
-from flask import Blueprint, request, jsonify
-from utils.db import get_db
-from utils.decorators import role_required
-from flask_jwt_extended import jwt_required
-from bson import ObjectId
 from datetime import datetime
+
+from flask import Blueprint, jsonify, request
+from pymongo.errors import DuplicateKeyError  # type: ignore[import-untyped]
+
+from utils.db import get_db
+from utils.decorators import admin_required
+from utils.helpers import maybe_object_id, normalize_iso_date, parse_object_id, to_int
 
 production_bp = Blueprint("production", __name__)
 db = get_db()
-batches_collection = db.batches
+production_collection = db["production_batches"]
 
-@production_bp.route("/board", methods=["GET"])
-@jwt_required()
-@role_required("operations", "admin")
-def get_production_board():
-    stages = ["Planned", "In Production", "QC", "Completed"]
-    board = {stage: [] for stage in stages}
-    
-    batches = list(batches_collection.find())
-    for batch in batches:
-        stage = batch.get("stage", "Planned")
-        if stage in board:
-            board[stage].append(batch)
-            
-    return jsonify(board), 200
 
-@production_bp.route("/batch", methods=["POST"])
-@jwt_required()
-@role_required("operations", "admin")
+def _serialize_batch(batch):
+    batch["_id"] = str(batch["_id"])
+    if batch.get("product_id") is not None:
+        batch["product_id"] = str(batch["product_id"])
+    return batch
+
+
+def _validate_stage(stage):
+    return stage in {"Planned", "In Progress", "Completed"}
+
+
+@production_bp.route("", methods=["GET"])
+@admin_required
+def get_batches():
+    rows = [_serialize_batch(row) for row in production_collection.find().sort("start_date", -1)]
+    return jsonify(rows), 200
+
+
+@production_bp.route("", methods=["POST"])
+@admin_required
 def create_batch():
-    data = request.get_json()
-    batch_id = data.get("batch_id")
-    product_name = data.get("product_name")
-    operator_name = data.get("operator_name")
-    progress_percentage = int(data.get("progress_percentage", 0))
+    data = request.get_json() or {}
+    required_fields = ["batch_id", "product_id", "quantity", "stage", "start_date", "end_date"]
+    missing_fields = [field for field in required_fields if data.get(field) in [None, ""]]
+    if missing_fields:
+        return jsonify({"msg": f"Missing required fields: {', '.join(missing_fields)}"}), 400
 
-    if not batch_id or not product_name:
-        return jsonify({"msg": "Missing batch_id or product_name"}), 400
+    stage = data.get("stage")
+    if not _validate_stage(stage):
+        return jsonify({"msg": "Invalid stage. Use Planned, In Progress, or Completed"}), 400
 
-    batch_data = {
-        "batch_id": batch_id,
-        "product_name": product_name,
-        "stage": "Planned",
-        "progress_percentage": progress_percentage,
-        "operator_name": operator_name,
-        "created_at": datetime.utcnow()
+    payload = {
+        "batch_id": str(data.get("batch_id")).strip().upper(),
+        "product_id": maybe_object_id(data.get("product_id")),
+        "quantity": to_int(data.get("quantity")),
+        "stage": stage,
+        "start_date": normalize_iso_date(data.get("start_date")),
+        "end_date": normalize_iso_date(data.get("end_date")),
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
     }
-    
-    result = batches_collection.insert_one(batch_data)
-    return jsonify({"msg": "Batch created", "id": str(result.inserted_id)}), 201
 
-@production_bp.route("/batch/<id>/move", methods=["PATCH"])
-@jwt_required()
-@role_required("operations", "admin")
-def move_batch(id):
-    data = request.get_json()
-    new_stage = data.get("new_stage")
-    
-    valid_stages = ["Planned", "In Production", "QC", "Completed"]
-    if new_stage not in valid_stages:
-        return jsonify({"msg": "Invalid stage"}), 400
+    try:
+        result = production_collection.insert_one(payload)
+    except DuplicateKeyError:
+        return jsonify({"msg": "Batch id already exists"}), 409
 
-    result = batches_collection.update_one(
-        {"_id": ObjectId(id)},
-        {"$set": {"stage": new_stage, "updated_at": datetime.utcnow()}}
-    )
-    
+    created = production_collection.find_one({"_id": result.inserted_id})
+    return jsonify(_serialize_batch(created)), 201
+
+
+@production_bp.route("/<id>", methods=["PUT"])
+@admin_required
+def update_batch(id):
+    object_id = parse_object_id(id)
+    if not object_id:
+        return jsonify({"msg": "Invalid production id"}), 400
+
+    data = request.get_json() or {}
+    update_fields = {}
+
+    if "batch_id" in data:
+        update_fields["batch_id"] = str(data.get("batch_id")).strip().upper()
+    if "product_id" in data:
+        update_fields["product_id"] = maybe_object_id(data.get("product_id"))
+    if "quantity" in data:
+        update_fields["quantity"] = to_int(data.get("quantity"))
+    if "stage" in data:
+        stage = data.get("stage")
+        if not _validate_stage(stage):
+            return jsonify({"msg": "Invalid stage. Use Planned, In Progress, or Completed"}), 400
+        update_fields["stage"] = stage
+    if "start_date" in data:
+        update_fields["start_date"] = normalize_iso_date(data.get("start_date"))
+    if "end_date" in data:
+        update_fields["end_date"] = normalize_iso_date(data.get("end_date"))
+
+    if not update_fields:
+        return jsonify({"msg": "No updatable fields provided"}), 400
+
+    update_fields["updated_at"] = datetime.utcnow()
+
+    try:
+        result = production_collection.update_one({"_id": object_id}, {"$set": update_fields})
+    except DuplicateKeyError:
+        return jsonify({"msg": "Batch id already exists"}), 409
+
     if result.matched_count == 0:
-        return jsonify({"msg": "Batch not found"}), 404
-        
-    return jsonify({"msg": f"Batch moved to {new_stage}"}), 200
+        return jsonify({"msg": "Production batch not found"}), 404
 
-@production_bp.route("/stats", methods=["GET"])
-@jwt_required()
-@role_required("operations", "admin")
-def get_production_stats():
-    active_stages = ["Planned", "In Production", "QC"]
-    active_batches_count = batches_collection.count_documents({"stage": {"$in": active_stages}})
-    
-    # Mocking overall utilization for now as per prompt example
-    stats = {
-        "active_batches": active_batches_count,
-        "overall_utilization": 78 # Example value
-    }
-    
-    return jsonify(stats), 200
+    updated = production_collection.find_one({"_id": object_id})
+    return jsonify(_serialize_batch(updated)), 200
+
+
+@production_bp.route("/<id>", methods=["DELETE"])
+@admin_required
+def delete_batch(id):
+    object_id = parse_object_id(id)
+    if not object_id:
+        return jsonify({"msg": "Invalid production id"}), 400
+
+    result = production_collection.delete_one({"_id": object_id})
+    if result.deleted_count == 0:
+        return jsonify({"msg": "Production batch not found"}), 404
+
+    return jsonify({"msg": "Production batch deleted"}), 200

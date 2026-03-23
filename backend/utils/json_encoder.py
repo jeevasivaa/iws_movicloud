@@ -1,11 +1,13 @@
-import json
-from datetime import datetime, date
-from bson import ObjectId
+from datetime import date, datetime
 
-class CustomJSONEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, ObjectId):
-            return str(obj)
-        if isinstance(obj, (datetime, date)):
-            return obj.isoformat()
-        return super(CustomJSONEncoder, self).default(obj)
+from bson import ObjectId  # pyright: ignore[reportMissingImports]
+from flask.json.provider import DefaultJSONProvider
+
+
+class CustomJSONProvider(DefaultJSONProvider):
+    def default(self, o):  # type: ignore[override]
+        if isinstance(o, ObjectId):
+            return str(o)
+        if isinstance(o, (datetime, date)):
+            return o.isoformat()
+        return super().default(o)

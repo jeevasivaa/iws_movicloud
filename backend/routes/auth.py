@@ -1,12 +1,12 @@
 from flask import Blueprint, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_jwt_extended import create_access_token
+from flask_jwt_extended import create_access_token  # type: ignore[import-untyped]
 from utils.db import get_db
 from datetime import datetime
 
 auth_bp = Blueprint("auth", __name__)
 db = get_db()
-users_collection = db.users
+users_collection = db["users"]
 
 @auth_bp.route("/register", methods=["POST"])
 def register():

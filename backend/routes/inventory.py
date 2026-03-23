@@ -1,86 +1,136 @@
-from flask import Blueprint, request, jsonify
-from utils.db import get_db
-from bson import ObjectId
 from datetime import datetime
+
+from flask import Blueprint, jsonify, request
+
+from utils.db import get_db
+from utils.decorators import admin_required
+from utils.helpers import normalize_iso_date, parse_object_id, to_int
 
 inventory_bp = Blueprint("inventory", __name__)
 db = get_db()
-inventory_collection = db.inventory
+inventory_collection = db["inventory"]
 
-def get_inventory_status(stock, threshold):
-    if stock <= 0:
-        return "DEPLETED"
-    elif stock < threshold:
-        return "LOW STOCK"
-    else:
-        return "IN STOCK"
 
-@inventory_bp.route("/", methods=["GET"])
-def get_inventory():
-    category = request.args.get("category")
-    query = {}
-    if category:
-        query["category"] = category
-    
-    items = list(inventory_collection.find(query))
-    return jsonify(items), 200
+def _serialize_item(item):
+    item["_id"] = str(item["_id"])
+    return item
 
-@inventory_bp.route("/", methods=["POST"])
-def add_inventory_item():
-    data = request.get_json()
-    sku = data.get("sku")
-    name = data.get("name")
-    category = data.get("category")
-    stock_on_hand = int(data.get("stock_on_hand", 0))
-    reorder_threshold = int(data.get("reorder_threshold", 10))
 
-    if not sku or not name or not category:
-        return jsonify({"msg": "Missing required fields"}), 400
+def _validate_status(status):
+    return status in {"Adequate", "Low", "Critical"}
 
-    status = get_inventory_status(stock_on_hand, reorder_threshold)
-    
-    item_data = {
-        "sku": sku,
-        "name": name,
-        "category": category,
-        "stock_on_hand": stock_on_hand,
-        "reorder_threshold": reorder_threshold,
+
+@inventory_bp.route("", methods=["GET"])
+@admin_required
+def get_inventory_items():
+    rows = [_serialize_item(row) for row in inventory_collection.find().sort("item_name", 1)]
+    return jsonify(rows), 200
+
+
+@inventory_bp.route("/kpis", methods=["GET"])
+@admin_required
+def get_inventory_kpis():
+    total_items = inventory_collection.count_documents({})
+    low_stock_items = inventory_collection.count_documents({"status": "Low"})
+    critical_items = inventory_collection.count_documents({"status": "Critical"})
+
+    return jsonify(
+        {
+            "total_items": total_items,
+            "low_stock_items": low_stock_items,
+            "critical_items": critical_items,
+        }
+    ), 200
+
+
+@inventory_bp.route("", methods=["POST"])
+@admin_required
+def create_inventory_item():
+    data = request.get_json() or {}
+    required_fields = [
+        "item_name",
+        "type",
+        "warehouse_location",
+        "current_stock",
+        "max_capacity",
+        "expiry_date",
+        "status",
+    ]
+    missing_fields = [field for field in required_fields if data.get(field) in [None, ""]]
+    if missing_fields:
+        return jsonify({"msg": f"Missing required fields: {', '.join(missing_fields)}"}), 400
+
+    status = data.get("status")
+    if not _validate_status(status):
+        return jsonify({"msg": "Invalid status. Use Adequate, Low, or Critical"}), 400
+
+    payload = {
+        "item_name": str(data.get("item_name")).strip(),
+        "type": str(data.get("type")).strip(),
+        "warehouse_location": str(data.get("warehouse_location")).strip(),
+        "current_stock": to_int(data.get("current_stock")),
+        "max_capacity": to_int(data.get("max_capacity")),
+        "expiry_date": normalize_iso_date(data.get("expiry_date")),
         "status": status,
-        "last_updated": datetime.utcnow()
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
     }
-    
-    result = inventory_collection.insert_one(item_data)
-    return jsonify({"msg": "Item added", "id": str(result.inserted_id)}), 201
+
+    result = inventory_collection.insert_one(payload)
+    created = inventory_collection.find_one({"_id": result.inserted_id})
+    return jsonify(_serialize_item(created)), 201
+
 
 @inventory_bp.route("/<id>", methods=["PUT"])
-def update_inventory_stock(id):
-    data = request.get_json()
-    stock_on_hand = data.get("stock_on_hand")
-    
-    if stock_on_hand is None:
-        return jsonify({"msg": "stock_on_hand is required"}), 400
+@admin_required
+def update_inventory_item(id):
+    object_id = parse_object_id(id)
+    if not object_id:
+        return jsonify({"msg": "Invalid inventory id"}), 400
 
-    item = inventory_collection.find_one({"_id": ObjectId(id)})
-    if not item:
-        return jsonify({"msg": "Item not found"}), 404
+    data = request.get_json() or {}
+    update_fields = {}
 
-    stock_on_hand = int(stock_on_hand)
-    reorder_threshold = item.get("reorder_threshold", 10)
-    status = get_inventory_status(stock_on_hand, reorder_threshold)
-    
-    inventory_collection.update_one(
-        {"_id": ObjectId(id)},
-        {"$set": {
-            "stock_on_hand": stock_on_hand,
-            "status": status,
-            "last_updated": datetime.utcnow()
-        }}
-    )
-    
-    return jsonify({"msg": "Stock updated", "status": status}), 200
+    if "item_name" in data:
+        update_fields["item_name"] = str(data.get("item_name")).strip()
+    if "type" in data:
+        update_fields["type"] = str(data.get("type")).strip()
+    if "warehouse_location" in data:
+        update_fields["warehouse_location"] = str(data.get("warehouse_location")).strip()
+    if "current_stock" in data:
+        update_fields["current_stock"] = to_int(data.get("current_stock"))
+    if "max_capacity" in data:
+        update_fields["max_capacity"] = to_int(data.get("max_capacity"))
+    if "expiry_date" in data:
+        update_fields["expiry_date"] = normalize_iso_date(data.get("expiry_date"))
+    if "status" in data:
+        status = data.get("status")
+        if not _validate_status(status):
+            return jsonify({"msg": "Invalid status. Use Adequate, Low, or Critical"}), 400
+        update_fields["status"] = status
 
-@inventory_bp.route("/alerts", methods=["GET"])
-def get_inventory_alerts():
-    query = {"status": {"$in": ["LOW STOCK", "DEPLETED"]}}
-    items = list(inventory_collection.find(query))
-    return jsonify(items), 200
+    if not update_fields:
+        return jsonify({"msg": "No updatable fields provided"}), 400
+
+    update_fields["updated_at"] = datetime.utcnow()
+
+    result = inventory_collection.update_one({"_id": object_id}, {"$set": update_fields})
+    if result.matched_count == 0:
+        return jsonify({"msg": "Inventory item not found"}), 404
+
+    updated = inventory_collection.find_one({"_id": object_id})
+    return jsonify(_serialize_item(updated)), 200
+
+
+@inventory_bp.route("/<id>", methods=["DELETE"])
+@admin_required
+def delete_inventory_item(id):
+    object_id = parse_object_id(id)
+    if not object_id:
+        return jsonify({"msg": "Invalid inventory id"}), 400
+
+    result = inventory_collection.delete_one({"_id": object_id})
+    if result.deleted_count == 0:
+        return jsonify({"msg": "Inventory item not found"}), 404
+
+    return jsonify({"msg": "Inventory item deleted"}), 200
