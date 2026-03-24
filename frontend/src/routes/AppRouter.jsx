@@ -63,7 +63,6 @@ function AppRouter() {
           <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.MANAGER]} />}>
             <Route path="/employees" element={<Employees />} />
             <Route path="/settings" element={<Settings />} />
-            <Route path="/executive-analytics" element={<ExecutiveAnalyticsDashboard />} />
             <Route path="/marketing" element={<Marketing />} />
             <Route path="/products" element={<Products />} />
             <Route path="/suppliers" element={<Suppliers />} />
@@ -85,12 +84,13 @@ function AppRouter() {
             <Route path="/inventory" element={user?.role === ROLES.STAFF ? <StaffInventory /> : <Inventory />} />
           </Route>
 
-          {/* Finance Routes (Admin, Finance) */}
-          <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.FINANCE]} />}>
+          {/* Finance Routes (Admin, Manager, Finance) */}
+          <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.MANAGER, ROLES.FINANCE]} />}>
             <Route path="/billing" element={<Billing />} />
             <Route path="/invoices" element={<Invoices />} />
             <Route path="/expenses" element={<Expenses />} />
             <Route path="/payroll" element={<Payroll />} />
+            <Route path="/executive-analytics" element={<ExecutiveAnalyticsDashboard />} />
           </Route>
 
           {/* Orders Routes */}
