@@ -3,7 +3,7 @@ from datetime import datetime
 from flask import Blueprint, jsonify, request
 
 from utils.db import get_db
-from utils.decorators import admin_required
+from utils.decorators import role_required
 from utils.helpers import maybe_object_id, normalize_month, parse_object_id, to_float
 
 payroll_bp = Blueprint("payroll", __name__)
@@ -23,14 +23,14 @@ def _validate_status(status):
 
 
 @payroll_bp.route("", methods=["GET"])
-@admin_required
+@role_required("admin", "manager", "finance")
 def get_payroll_rows():
     rows = [_serialize_payroll(row) for row in payroll_collection.find().sort("month", -1)]
     return jsonify(rows), 200
 
 
 @payroll_bp.route("/summary", methods=["GET"])
-@admin_required
+@role_required("admin", "manager", "finance")
 def get_payroll_summary():
     current_month = datetime.utcnow().strftime("%Y-%m")
 
@@ -57,7 +57,7 @@ def get_payroll_summary():
 
 
 @payroll_bp.route("", methods=["POST"])
-@admin_required
+@role_required("admin", "manager", "finance")
 def create_payroll_row():
     data = request.get_json() or {}
     required_fields = ["staff_id", "base_salary", "deductions", "net_pay", "month", "status"]
@@ -86,7 +86,7 @@ def create_payroll_row():
 
 
 @payroll_bp.route("/<id>", methods=["PUT"])
-@admin_required
+@role_required("admin", "manager", "finance")
 def update_payroll_row(id):
     object_id = parse_object_id(id)
     if not object_id:
@@ -125,7 +125,7 @@ def update_payroll_row(id):
 
 
 @payroll_bp.route("/<id>", methods=["DELETE"])
-@admin_required
+@role_required("admin", "manager", "finance")
 def delete_payroll_row(id):
     object_id = parse_object_id(id)
     if not object_id:
