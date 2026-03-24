@@ -1,4 +1,5 @@
-import { BarChart3, Download, LineChart } from 'lucide-react'
+import { BarChart3, Download, LineChart, X } from 'lucide-react'
+import { useState } from 'react'
 
 const SALES_BARS = [420000, 380000, 550000, 470000, 620000, 580000]
 const EFFICIENCY_LINE = [82, 78, 88, 85, 91, 87]
@@ -19,6 +20,21 @@ const REPORT_CARDS = [
 ]
 
 function ExecutiveAnalyticsDashboard() {
+  const [exportFormat, setExportFormat] = useState(null)
+
+  const handleExportAll = () => {
+    const format = prompt('Export format: (csv/pdf/excel)').toLowerCase()
+    if (format === 'csv' || format === 'pdf' || format === 'excel') {
+      alert(`All reports exported as ${format.toUpperCase()}`)
+    } else {
+      alert('Invalid format. Please use csv, pdf, or excel')
+    }
+  }
+
+  const handleExportPDF = (reportName) => {
+    alert(`${reportName} exported as PDF`)
+  }
+
   return (
     <section className="space-y-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -29,6 +45,7 @@ function ExecutiveAnalyticsDashboard() {
 
         <button
           type="button"
+          onClick={handleExportAll}
           className="inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
         >
           <Download size={17} />
@@ -94,6 +111,7 @@ function ExecutiveAnalyticsDashboard() {
 
             <button
               type="button"
+              onClick={() => handleExportPDF(card.title)}
               className="mt-5 inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
             >
               <Download size={16} />

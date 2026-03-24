@@ -1,4 +1,5 @@
-import { Download, Eye, Plus, Send } from 'lucide-react'
+import { Download, Eye, Plus, Send, X } from 'lucide-react'
+import { useState } from 'react'
 
 const BILLING_KPIS = [
   { label: 'Total Billed', value: '₹2,28,700', valueClass: 'text-gray-900' },
@@ -44,6 +45,27 @@ function getStatusClasses(status) {
 }
 
 function Billing() {
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false)
+  const [invoiceData, setInvoiceData] = useState({
+    clientName: '',
+    amount: '',
+    description: '',
+  })
+
+  const handleCreateInvoice = () => {
+    setShowInvoiceModal(true)
+  }
+
+  const handleSubmitInvoice = () => {
+    if (!invoiceData.clientName || !invoiceData.amount) {
+      alert('Please fill in all required fields')
+      return
+    }
+    alert(`Invoice created for ${invoiceData.clientName} - ₹${invoiceData.amount}`)
+    setInvoiceData({ clientName: '', amount: '', description: '' })
+    setShowInvoiceModal(false)
+  }
+
   return (
     <section className="space-y-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -54,6 +76,7 @@ function Billing() {
 
         <button
           type="button"
+          onClick={handleCreateInvoice}
           className="inline-flex items-center justify-center gap-2 rounded-md bg-emerald-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-600"
         >
           <Plus size={16} />
@@ -129,6 +152,71 @@ function Billing() {
           </tbody>
         </table>
       </div>
+
+      {/* Create Invoice Modal */}
+      {showInvoiceModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-2xl rounded-lg bg-white p-6 shadow-lg">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-semibold text-gray-900">Create Invoice</h2>
+              <button
+                onClick={() => setShowInvoiceModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="mt-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Client Name *</label>
+                <input
+                  type="text"
+                  value={invoiceData.clientName}
+                  onChange={(e) => setInvoiceData({ ...invoiceData, clientName: e.target.value })}
+                  placeholder="Enter client name"
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-400"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Amount (₹) *</label>
+                <input
+                  type="number"
+                  value={invoiceData.amount}
+                  onChange={(e) => setInvoiceData({ ...invoiceData, amount: e.target.value })}
+                  placeholder="Enter amount"
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-400"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Description</label>
+                <textarea
+                  value={invoiceData.description}
+                  onChange={(e) => setInvoiceData({ ...invoiceData, description: e.target.value })}
+                  placeholder="Enter invoice details"
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-400"
+                  rows="3"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setShowInvoiceModal(false)}
+                className="rounded-md border border-gray-300 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitInvoice}
+                className="rounded-md bg-emerald-500 px-4 py-2 text-white transition-colors hover:bg-emerald-600"
+              >
+                Create Invoice
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   )
 }

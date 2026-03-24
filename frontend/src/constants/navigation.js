@@ -21,12 +21,12 @@ export const navigationGroups = [
     items: [
       { label: 'Billing', path: '/billing', icon: 'CreditCard', allowedRoles: ['admin', 'finance'] },
       { label: 'Payroll', path: '/payroll', icon: 'Wallet', allowedRoles: ['admin', 'finance'] },
+      { label: 'Reports', path: '/executive-analytics', icon: 'BarChart3', allowedRoles: ['admin', 'manager', 'finance'] },
     ],
   },
   {
     group: 'Intelligence',
     items: [
-      { label: 'Reports', path: '/executive-analytics', icon: 'BarChart3', allowedRoles: ['admin', 'manager', 'finance'] },
       { label: 'Marketing', path: '/marketing', icon: 'Sparkles', allowedRoles: ['admin', 'manager'] },
       { label: 'Notifications', path: '/notifications', icon: 'Bell', allowedRoles: ['admin', 'manager', 'staff', 'finance'] },
       { label: 'Settings', path: '/settings', icon: 'Settings', allowedRoles: ['admin', 'manager'] },

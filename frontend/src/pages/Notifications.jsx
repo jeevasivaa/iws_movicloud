@@ -1,4 +1,5 @@
 import { AlertTriangle, Bell, Box, CheckCircle2, Clock3, Factory } from 'lucide-react'
+import { useState } from 'react'
 
 const NOTIFICATION_ROWS = [
   {
@@ -49,6 +50,18 @@ const NOTIFICATION_ROWS = [
 ]
 
 function Notifications() {
+  const [notifications, setNotifications] = useState(NOTIFICATION_ROWS)
+
+  const handleMarkAllRead = () => {
+    setNotifications(
+      notifications.map((notif) => ({
+        ...notif,
+        highlighted: false,
+      }))
+    )
+    alert('All notifications marked as read')
+  }
+
   return (
     <section className="space-y-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -59,6 +72,7 @@ function Notifications() {
 
         <button
           type="button"
+          onClick={handleMarkAllRead}
           className="inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
         >
           <Bell size={16} />
@@ -67,7 +81,7 @@ function Notifications() {
       </header>
 
       <div className="space-y-4">
-        {NOTIFICATION_ROWS.map((row) => {
+        {notifications.map((row) => {
           const Icon = row.icon
 
           return (

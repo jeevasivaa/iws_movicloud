@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import {
   Clock3,
   Plus,
@@ -6,6 +6,7 @@ import {
   ShoppingCart,
   Factory,
   TriangleAlert,
+  X,
 } from 'lucide-react'
 import {
   BarChart,
@@ -116,6 +117,21 @@ const KPI_ITEMS = [
 
 const Dashboard = () => {
   const { user } = useAuth()
+  const [showScheduleModal, setShowScheduleModal] = useState(false)
+  const [showQuickActionMenu, setShowQuickActionMenu] = useState(false)
+
+  const handleViewSchedule = () => {
+    setShowScheduleModal(true)
+  }
+
+  const handleQuickAction = () => {
+    setShowQuickActionMenu(!showQuickActionMenu)
+  }
+
+  const handleQuickActionClick = (action) => {
+    alert(`${action} initiated!`)
+    setShowQuickActionMenu(false)
+  }
 
   return (
     <div className="space-y-7 animate-fade-in">
@@ -128,14 +144,63 @@ const Dashboard = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <button className="inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-lg font-semibold text-slate-700 transition-colors hover:bg-slate-50">
+          <button
+            onClick={handleViewSchedule}
+            className="inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-lg font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+          >
             <Clock3 size={20} />
             View Schedule
           </button>
-          <button className="inline-flex items-center gap-3 rounded-2xl bg-[#3fa874] px-5 py-2.5 text-lg font-semibold text-white transition-colors hover:bg-[#348f62]">
-            <Plus size={20} />
-            Quick Action
-          </button>
+          <div className="relative">
+            <button
+              onClick={handleQuickAction}
+              className="inline-flex items-center gap-3 rounded-2xl bg-[#3fa874] px-5 py-2.5 text-lg font-semibold text-white transition-colors hover:bg-[#348f62]"
+            >
+              <Plus size={20} />
+              Quick Action
+            </button>
+            {showQuickActionMenu && (
+              <div className="absolute right-0 mt-2 w-56 rounded-lg border border-slate-200 bg-white shadow-lg z-10">
+                <div className="p-2">
+                  <button
+                    type="button"
+                    onClick={() => handleQuickActionClick('Create New Order')}
+                    className="w-full px-4 py-3 text-left text-sm font-medium text-slate-700 rounded-md hover:bg-slate-100 transition-colors"
+                  >
+                    📦 Create New Order
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickActionClick('Start Production Batch')}
+                    className="w-full px-4 py-3 text-left text-sm font-medium text-slate-700 rounded-md hover:bg-slate-100 transition-colors"
+                  >
+                    🏭 Start Production Batch
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickActionClick('Generate Invoice')}
+                    className="w-full px-4 py-3 text-left text-sm font-medium text-slate-700 rounded-md hover:bg-slate-100 transition-colors"
+                  >
+                    💰 Generate Invoice
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickActionClick('Create Purchase Order')}
+                    className="w-full px-4 py-3 text-left text-sm font-medium text-slate-700 rounded-md hover:bg-slate-100 transition-colors"
+                  >
+                    🛒 Create Purchase Order
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickActionClick('Add Staff Member')}
+                    className="w-full px-4 py-3 text-left text-sm font-medium text-slate-700 rounded-md hover:bg-slate-100 transition-colors"
+                  >
+                    👤 Add Staff Member
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
@@ -303,6 +368,55 @@ const Dashboard = () => {
           </ul>
         </article>
       </section>
+
+      {/* Close menu when clicking outside */}
+      {showQuickActionMenu && (
+        <div
+          className="fixed inset-0 z-5"
+          onClick={() => setShowQuickActionMenu(false)}
+        />
+      )}
+
+      {/* Schedule Modal */}
+      {showScheduleModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-2xl rounded-lg bg-white p-6 shadow-lg">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-semibold text-gray-900">Schedule</h2>
+              <button
+                onClick={() => setShowScheduleModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="mt-6 space-y-4">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <p className="font-medium text-gray-900">Today's Schedule</p>
+                <p className="mt-2 text-sm text-gray-600">No scheduled tasks for today</p>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <p className="font-medium text-gray-900">Upcoming Events</p>
+                <ul className="mt-2 space-y-2 text-sm text-gray-600">
+                  <li>• Production Batch BATCH-003 completion - Tomorrow 2:00 PM</li>
+                  <li>• Supplier meeting with AgroFresh Farms - March 26</li>
+                  <li>• Payroll processing deadline - March 30</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setShowScheduleModal(false)}
+                className="rounded-md border border-gray-300 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-50"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
