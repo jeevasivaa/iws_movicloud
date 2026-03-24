@@ -3,7 +3,7 @@ from datetime import datetime
 from flask import Blueprint, jsonify, request
 
 from utils.db import get_db
-from utils.decorators import role_required
+from utils.decorators import admin_required
 from utils.helpers import parse_object_id, to_float, to_int
 
 suppliers_bp = Blueprint("suppliers", __name__)
@@ -22,14 +22,14 @@ def _validate_status(status):
 
 
 @suppliers_bp.route("", methods=["GET"])
-@role_required("admin", "manager")
+@admin_required
 def get_suppliers():
     suppliers = [_serialize_supplier(supplier) for supplier in suppliers_collection.find().sort("name", 1)]
     return jsonify(suppliers), 200
 
 
 @suppliers_bp.route("", methods=["POST"])
-@role_required("admin", "manager")
+@admin_required
 def create_supplier():
     data = request.get_json() or {}
     required_fields = ["name", "location", "category_supplied", "rating", "total_orders", "status"]
@@ -58,7 +58,7 @@ def create_supplier():
 
 
 @suppliers_bp.route("/<id>", methods=["PUT"])
-@role_required("admin", "manager")
+@admin_required
 def update_supplier(id):
     object_id = parse_object_id(id)
     if not object_id:
@@ -97,7 +97,7 @@ def update_supplier(id):
 
 
 @suppliers_bp.route("/<id>", methods=["DELETE"])
-@role_required("admin", "manager")
+@admin_required
 def delete_supplier(id):
     object_id = parse_object_id(id)
     if not object_id:

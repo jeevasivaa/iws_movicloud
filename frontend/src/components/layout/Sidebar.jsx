@@ -1,10 +1,11 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import {
   BarChart3,
   Bell,
   ClipboardList,
   CreditCard,
   Factory,
+  LogOut,
   LayoutDashboard,
   Package2,
   Settings,
@@ -36,9 +37,23 @@ const iconMap = {
 }
 
 function Sidebar({ mobileOpen, onClose, userRole }) {
-  const { user } = useAuth()
+  const navigate = useNavigate()
+  const { user, logout } = useAuth()
   const effectiveRole = userRole || user?.role
   const visibleNavigationGroups = getNavigationForRole(effectiveRole)
+  const displayName = user?.name || 'User'
+  const displayEmail = user?.email || 'user@vsafoods.com'
+  const initials = displayName
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || '')
+    .join('') || 'U'
+
+  const handleLogout = async () => {
+    await logout()
+    navigate('/auth', { replace: true })
+  }
 
   return (
     <>
@@ -50,7 +65,7 @@ function Sidebar({ mobileOpen, onClose, userRole }) {
       />
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 transform border-r border-slate-200 bg-white transition-all duration-300 ease-in-out lg:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-slate-200 bg-white transition-all duration-300 ease-in-out lg:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
       >
         {/* Sidebar Header */}
@@ -75,7 +90,7 @@ function Sidebar({ mobileOpen, onClose, userRole }) {
         </div>
 
         {/* Navigation */}
-        <nav className="h-[calc(100vh-5rem)] overflow-y-auto px-0 py-8 custom-scrollbar">
+        <nav className="flex-1 overflow-y-auto px-0 py-8 custom-scrollbar">
           {visibleNavigationGroups.map((group) => (
             <div key={group.group} className="mb-8">
               <p className="px-6 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-4">
@@ -112,6 +127,28 @@ function Sidebar({ mobileOpen, onClose, userRole }) {
             </div>
           ))}
         </nav>
+
+        <div className="border-t border-slate-200 px-4 py-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 text-sm font-black text-white">
+              {initials}
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-lg font-semibold tracking-tight text-slate-900">{displayName}</p>
+              <p className="truncate text-sm text-slate-500">{displayEmail}</p>
+            </div>
+
+            <button
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+              type="button"
+              onClick={handleLogout}
+              title="Logout"
+            >
+              <LogOut size={18} strokeWidth={2} />
+            </button>
+          </div>
+        </div>
       </aside>
     </>
   )

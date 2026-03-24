@@ -9,6 +9,7 @@ import { HOME_BY_ROLE, ROLES } from '../constants/roles'
 
 const AuthFlow = lazy(() => import('../pages/AuthFlow'))
 const Dashboard = lazy(() => import('../pages/Dashboard'))
+const FinanceDashboard = lazy(() => import('../pages/FinanceDashboard'))
 const Employees = lazy(() => import('../pages/Employees'))
 const Products = lazy(() => import('../pages/Products'))
 const Suppliers = lazy(() => import('../pages/Suppliers'))
@@ -22,6 +23,7 @@ const Billing = lazy(() => import('../pages/Billing'))
 const Payroll = lazy(() => import('../pages/Payroll'))
 const Invoices = lazy(() => import('../pages/Invoices'))
 const Expenses = lazy(() => import('../pages/Expenses'))
+const FinanceCustomers = lazy(() => import('../pages/FinanceCustomers'))
 const Settings = lazy(() => import('../pages/Settings'))
 const Marketing = lazy(() => import('../pages/Marketing'))
 const Notifications = lazy(() => import('../pages/Notifications'))
@@ -71,7 +73,16 @@ function AppRouter() {
 
           {/* General Dashboard + Alerts Routes */}
           <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.MANAGER, ROLES.STAFF, ROLES.FINANCE]} />}>
-            <Route path="/dashboard" element={user?.role === ROLES.STAFF ? <StaffDashboard /> : <Dashboard />} />
+            <Route
+              path="/dashboard"
+              element={
+                user?.role === ROLES.STAFF
+                  ? <StaffDashboard />
+                  : user?.role === ROLES.FINANCE
+                    ? <FinanceDashboard />
+                    : <Dashboard />
+              }
+            />
             <Route path="/notifications" element={<Notifications />} />
           </Route>
 
@@ -88,9 +99,14 @@ function AppRouter() {
           <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.MANAGER, ROLES.FINANCE]} />}>
             <Route path="/billing" element={<Billing />} />
             <Route path="/invoices" element={<Invoices />} />
-            <Route path="/expenses" element={<Expenses />} />
             <Route path="/payroll" element={<Payroll />} />
             <Route path="/executive-analytics" element={<ExecutiveAnalyticsDashboard />} />
+          </Route>
+
+          {/* Finance Workspace Routes (Admin, Finance) */}
+          <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.FINANCE]} />}>
+            <Route path="/expenses" element={<Expenses />} />
+            <Route path="/customers" element={<FinanceCustomers />} />
           </Route>
 
           {/* Orders Routes */}
