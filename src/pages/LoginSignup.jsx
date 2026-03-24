@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { login, signup } from '../services/authService'
+import { login, signup, STAFF_ROLES } from '../services/authService'
 
 function LoginSignup() {
   const navigate = useNavigate()
   const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [selectedRole, setSelectedRole] = useState(STAFF_ROLES[0])
   const [rememberMe, setRememberMe] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -15,9 +16,9 @@ function LoginSignup() {
     setLoading(true)
     try {
       if (isLogin) {
-        await login(email, password)
+        await login(email, password, selectedRole)
       } else {
-        await signup({ email, password })
+        await signup({ email, password, role: selectedRole })
       }
       navigate('/dashboard')
     } catch (err) {
@@ -127,6 +128,22 @@ function LoginSignup() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
+              </div>
+              <div data-purpose="form-field-group">
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5" htmlFor="staff-role">Role</label>
+                <select
+                  className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all outline-none"
+                  id="staff-role"
+                  name="staff-role"
+                  value={selectedRole}
+                  onChange={(e) => setSelectedRole(e.target.value)}
+                >
+                  {STAFF_ROLES.map((role) => (
+                    <option key={role} value={role}>
+                      {role}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div data-purpose="form-field-group">
                 <div className="flex items-center justify-between mb-1.5">
