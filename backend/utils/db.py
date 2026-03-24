@@ -10,7 +10,7 @@ from pymongo.errors import ConfigurationError  # type: ignore[import-untyped]
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 BACKEND_DIR = os.path.dirname(BASE_DIR)
-load_dotenv(os.path.join(BACKEND_DIR, '.env'))
+load_dotenv(os.path.join(BACKEND_DIR, ".env"))
 
 MONGO_URI = os.getenv("MONGO_URI")
 MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "iws")
@@ -73,7 +73,9 @@ def _is_single_ascending_index(index: Any, field: str) -> bool:
     return dict(key) == {field: ASCENDING}
 
 
-def _create_unique_non_empty_string_index(collection: str, field: str, name: str) -> None:
+def _create_unique_non_empty_string_index(
+    collection: str, field: str, name: str
+) -> None:
     collection_ref = db[collection]
     partial_filter_expression = {
         "$and": [
@@ -122,7 +124,18 @@ def ensure_indexes() -> None:
     _create_unique_non_empty_string_index("users", "email", "email_unique_non_empty")
     _create_unique_non_empty_string_index("products", "sku", "sku_unique_non_empty")
     db["suppliers"].create_index([("name", ASCENDING)])
-    _create_unique_non_empty_string_index("invoices", "invoice_number", "invoice_number_unique_non_empty")
-    _create_unique_non_empty_string_index("orders", "order_id", "order_id_unique_non_empty")
-    _create_unique_non_empty_string_index("production_batches", "batch_id", "batch_id_unique_non_empty")
-    _create_unique_non_empty_string_index("settings", "key", "settings_key_unique_non_empty")
+    _create_unique_non_empty_string_index(
+        "invoices", "invoice_number", "invoice_number_unique_non_empty"
+    )
+    _create_unique_non_empty_string_index(
+        "orders", "order_id", "order_id_unique_non_empty"
+    )
+    _create_unique_non_empty_string_index(
+        "production_batches", "batch_id", "batch_id_unique_non_empty"
+    )
+    _create_unique_non_empty_string_index(
+        "expenses", "reference_id", "expense_reference_unique_non_empty"
+    )
+    _create_unique_non_empty_string_index(
+        "settings", "key", "settings_key_unique_non_empty"
+    )
