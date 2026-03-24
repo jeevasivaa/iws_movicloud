@@ -16,31 +16,10 @@ def _serialize_client(client):
     return client
 
 
-def _serialize_client_for_finance(client):
-    return {
-        "_id": str(client["_id"]),
-        "company_name": client.get("company_name", ""),
-        "gstin": client.get("gstin", "-"),
-        "billing_address": client.get("billing_address", "-"),
-        "email": client.get("email", ""),
-        "contact_person": client.get("contact_person", ""),
-    }
-
-
 @marketing_bp.route("", methods=["GET"])
-@role_required("admin", "manager", "staff", "finance")
+@role_required("admin", "manager", "staff")
 def get_clients():
-    if request.args.get("scope") == "finance":
-        clients = [
-            _serialize_client_for_finance(client)
-            for client in clients_collection.find().sort("company_name", 1)
-        ]
-        return jsonify(clients), 200
-
-    clients = [
-        _serialize_client(client)
-        for client in clients_collection.find().sort("company_name", 1)
-    ]
+    clients = [_serialize_client(client) for client in clients_collection.find().sort("company_name", 1)]
     return jsonify(clients), 200
 
 
@@ -48,21 +27,10 @@ def get_clients():
 @admin_required
 def create_client():
     data = request.get_json() or {}
-    required_fields = [
-        "company_name",
-        "contact_person",
-        "email",
-        "total_orders",
-        "last_order_date",
-        "rating",
-    ]
-    missing_fields = [
-        field for field in required_fields if data.get(field) in [None, ""]
-    ]
+    required_fields = ["company_name", "contact_person", "email", "total_orders", "last_order_date", "rating"]
+    missing_fields = [field for field in required_fields if data.get(field) in [None, ""]]
     if missing_fields:
-        return jsonify(
-            {"msg": f"Missing required fields: {', '.join(missing_fields)}"}
-        ), 400
+        return jsonify({"msg": f"Missing required fields: {', '.join(missing_fields)}"}), 400
 
     payload = {
         "company_name": str(data.get("company_name")).strip(),
@@ -99,9 +67,7 @@ def update_client(id):
     if "total_orders" in data:
         update_fields["total_orders"] = to_int(data.get("total_orders"))
     if "last_order_date" in data:
-        update_fields["last_order_date"] = normalize_iso_date(
-            data.get("last_order_date")
-        )
+        update_fields["last_order_date"] = normalize_iso_date(data.get("last_order_date"))
     if "rating" in data:
         update_fields["rating"] = round(to_float(data.get("rating")), 1)
 

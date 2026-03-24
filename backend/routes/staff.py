@@ -19,7 +19,7 @@ def _serialize_staff_member(user):
 
 
 @staff_bp.route("", methods=["GET"])
-@role_required("admin", "manager", "staff", "finance")
+@role_required("admin", "manager", "staff")
 def get_staff():
     query = {"role": {"$ne": "client"}}
     staff = [_serialize_staff_member(user) for user in users_collection.find(query).sort("name", 1)]
@@ -27,7 +27,7 @@ def get_staff():
 
 
 @staff_bp.route("", methods=["POST"])
-@admin_required
+@role_required("admin", "manager")
 def create_staff_member():
     data = request.get_json() or {}
     required_fields = ["name", "email", "role", "department", "status"]

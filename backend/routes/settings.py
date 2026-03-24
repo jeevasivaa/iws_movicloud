@@ -3,7 +3,7 @@ from datetime import datetime
 from flask import Blueprint, jsonify, request
 
 from utils.db import get_db
-from utils.decorators import admin_required
+from utils.decorators import role_required
 
 settings_bp = Blueprint("settings", __name__)
 db = get_db()
@@ -16,14 +16,14 @@ def _serialize_setting(setting):
 
 
 @settings_bp.route("", methods=["GET"])
-@admin_required
+@role_required("admin", "manager")
 def get_settings():
     rows = [_serialize_setting(row) for row in settings_collection.find().sort("key", 1)]
     return jsonify(rows), 200
 
 
 @settings_bp.route("", methods=["PUT"])
-@admin_required
+@role_required("admin", "manager")
 def upsert_settings():
     payload = request.get_json() or {}
     now = datetime.utcnow()

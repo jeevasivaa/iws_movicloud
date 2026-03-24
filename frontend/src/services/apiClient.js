@@ -52,6 +52,25 @@ export function getErrorMessage(error, fallback = 'Something went wrong') {
   return fallback
 }
 
+function normalizeApiPath(path) {
+  if (typeof path !== 'string') {
+    return path
+  }
+
+  const trimmedPath = path.trim()
+  if (!trimmedPath) {
+    return trimmedPath
+  }
+
+  const normalizedBase = String(API_BASE_URL || '').replace(/\/+$/, '').toLowerCase()
+  if (normalizedBase.endsWith('/api') && /^\/api(\/|$)/i.test(trimmedPath)) {
+    const withoutApiPrefix = trimmedPath.replace(/^\/api(?=\/|$)/i, '')
+    return withoutApiPrefix || '/'
+  }
+
+  return trimmedPath
+}
+
 export async function apiRequest(path, options = {}) {
   const {
     method = 'GET',
@@ -67,7 +86,7 @@ export async function apiRequest(path, options = {}) {
   }
 
   const response = await apiClient.request({
-    url: path,
+    url: normalizeApiPath(path),
     method,
     data: body,
     headers: requestHeaders,

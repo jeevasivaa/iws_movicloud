@@ -1,170 +1,259 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { BarChart3, Download, LineChart as LineChartIcon } from 'lucide-react'
-import toast from 'react-hot-toast'
+import { Download } from 'lucide-react'
+import { jsPDF } from 'jspdf'
 import {
-  Bar,
   BarChart,
-  CartesianGrid,
-  Legend,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
+  Bar,
   XAxis,
   YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  LineChart,
+  Line,
 } from 'recharts'
 import { useAuth } from '../context/useAuth'
-import { apiGet } from '../services/apiClient'
+import { apiGet, getErrorMessage } from '../services/apiClient'
 
-function formatCurrency(value) {
-  const amount = Number(value) || 0
-  return `₹${amount.toLocaleString('en-IN')}`
-}
+const SALES_DATA = [
+  { name: 'Jan', value: 42000 },
+  { name: 'Feb', value: 38000 },
+  { name: 'Mar', value: 55000 },
+  { name: 'Apr', value: 47000 },
+  { name: 'May', value: 62000 },
+  { name: 'Jun', value: 58000 },
+]
 
-function downloadTextFile(fileName, content) {
-  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
-  const objectUrl = URL.createObjectURL(blob)
-  const anchor = document.createElement('a')
-  anchor.href = objectUrl
-  anchor.download = fileName
-  document.body.appendChild(anchor)
-  anchor.click()
-  document.body.removeChild(anchor)
-  URL.revokeObjectURL(objectUrl)
-}
+const PRODUCTION_DATA = [
+  { name: 'Mon', value: 120 },
+  { name: 'Tue', value: 145 },
+  { name: 'Wed', value: 133 },
+  { name: 'Thu', value: 162 },
+  { name: 'Fri', value: 142 },
+  { name: 'Sat', value: 95 },
+]
 
-function toDateValue(label) {
-  const [monthToken = '', yearToken = ''] = String(label || '').split(' ')
-  const monthMap = {
-    Jan: 0,
-    Feb: 1,
-    Mar: 2,
-    Apr: 3,
-    May: 4,
-    Jun: 5,
-    Jul: 6,
-    Aug: 7,
-    Sep: 8,
-    Oct: 9,
-    Nov: 10,
-    Dec: 11,
-  }
-
-  const month = monthMap[monthToken]
-  const parsedYear = Number(yearToken)
-  if (month === undefined || Number.isNaN(parsedYear)) {
-    return 0
-  }
-
-  const year = parsedYear < 100 ? 2000 + parsedYear : parsedYear
-  return new Date(year, month, 1).getTime()
-}
+const REPORT_CARDS = [
+  {
+    title: 'Inventory Report',
+    subtitle: 'Stock levels, movement logs, expiry tracking',
+  },
+  {
+    title: 'Supplier Performance',
+    subtitle: 'Ratings, delivery times, order history',
+  },
+  {
+    title: 'Payroll Summary',
+    subtitle: 'Salary disbursements, tax deductions',
+  },
+]
 
 function ExecutiveAnalyticsDashboard() {
   const { token } = useAuth()
-  const [salesData, setSalesData] = useState([])
-  const [efficiencyData, setEfficiencyData] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [refreshIndex, setRefreshIndex] = useState(0)
 
-  const loadReports = useCallback(async (signal) => {
-    if (!token) {
-      setSalesData([])
-      setEfficiencyData([])
-      setError('Authentication token missing. Please sign in again.')
-      setLoading(false)
-      return
+  const downloadTextFile = (filename, content, mimeType = 'text/plain;charset=utf-8;') => {
+    const blob = new Blob([content], { type: mimeType })
+    const link = document.createElement('a')
+    const objectUrl = URL.createObjectURL(blob)
+    link.href = objectUrl
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(objectUrl)
+  }
+
+  const toCsv = (rows) =>
+    rows
+      .map((row) =>
+        row
+          .map((cell) => `"${String(cell ?? '').replace(/"/g, '""')}"`)
+          .join(','),
+      )
+      .join('\n')
+
+  const handleExportAll = () => {
+    const salesRows = SALES_DATA.map((row) => [row.name, row.value])
+    const efficiencyRows = PRODUCTION_DATA.map((row) => [row.name, row.value])
+    const reportRows = REPORT_CARDS.map((card) => [card.title, card.subtitle])
+
+    const csv = toCsv([
+      ['Report', 'Metric', 'Value'],
+      ...salesRows.map(([month, sales]) => ['Sales Report', month, sales]),
+      ...efficiencyRows.map(([month, efficiency]) => ['Production Efficiency', month, efficiency]),
+      ...reportRows.map(([title, subtitle]) => [title, 'Summary', subtitle]),
+    ])
+
+    downloadTextFile('executive-analytics-report.csv', csv, 'text/csv;charset=utf-8;')
+  }
+
+  const addWrappedText = (pdf, text, x, y, width, lineHeight = 18) => {
+    const lines = pdf.splitTextToSize(String(text || ''), width)
+    pdf.text(lines, x, y)
+    return y + (lines.length * lineHeight)
+  }
+
+  const ensurePageSpace = (pdf, y, requiredHeight = 24) => {
+    if (y + requiredHeight > 780) {
+      pdf.addPage()
+      return 60
     }
+    return y
+  }
+
+  const drawTableHeader = (pdf, y, columns) => {
+    let cursorX = 40
+    pdf.setFont('helvetica', 'bold')
+    pdf.setFontSize(11)
+    columns.forEach((col) => {
+      pdf.text(col.label, cursorX, y)
+      cursorX += col.width
+    })
+    pdf.setDrawColor(220, 220, 220)
+    pdf.line(40, y + 8, 555, y + 8)
+    return y + 24
+  }
+
+  const drawTableRows = (pdf, y, columns, rows) => {
+    pdf.setFont('helvetica', 'normal')
+    pdf.setFontSize(10)
+
+    rows.forEach((row) => {
+      let cursorX = 40
+      y = ensurePageSpace(pdf, y, 20)
+      columns.forEach((col) => {
+        const value = row[col.key]
+        const text = value === null || value === undefined ? '-' : String(value)
+        pdf.text(text, cursorX, y)
+        cursorX += col.width
+      })
+      y += 18
+    })
+
+    return y
+  }
+
+  const buildInventoryRows = async () => {
+    const items = await apiGet('/api/inventory', token)
+    return (Array.isArray(items) ? items : []).slice(0, 20).map((item) => ({
+      item_name: item.item_name,
+      current_stock: item.current_stock,
+      max_capacity: item.max_capacity,
+      status: item.status,
+    }))
+  }
+
+  const buildSupplierRows = async () => {
+    const suppliers = await apiGet('/api/suppliers', token)
+    return (Array.isArray(suppliers) ? suppliers : []).slice(0, 20).map((supplier) => ({
+      name: supplier.name,
+      location: supplier.location,
+      rating: supplier.rating,
+      total_orders: supplier.total_orders,
+      status: supplier.status,
+    }))
+  }
+
+  const buildPayrollRows = async () => {
+    const payrollRows = await apiGet('/api/payroll', token)
+    return (Array.isArray(payrollRows) ? payrollRows : []).slice(0, 20).map((row) => ({
+      month: row.month,
+      net_pay: Number(row.net_pay || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 }),
+      deductions: Number(row.deductions || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 }),
+      status: row.status,
+    }))
+  }
+
+  const handleExportPDF = async (reportCard) => {
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' })
+    const reportName = reportCard.title
+    const reportSummary = reportCard.subtitle
+    const exportedAt = new Date().toLocaleString()
+    let y = 60
+
+    pdf.setFont('helvetica', 'bold')
+    pdf.setFontSize(20)
+    pdf.text(reportName, 40, y)
+    y += 28
+
+    pdf.setFont('helvetica', 'normal')
+    pdf.setFontSize(12)
+    pdf.text('Executive Analytics Dashboard', 40, y)
+    y += 20
+    pdf.text(`Exported: ${exportedAt}`, 40, y)
+    y += 16
+
+    pdf.setDrawColor(220, 220, 220)
+    pdf.line(40, y + 8, 555, y + 8)
+    y += 38
+
+    pdf.setFont('helvetica', 'bold')
+    pdf.setFontSize(13)
+    pdf.text('Summary', 40, y)
+    y += 22
+
+    pdf.setFont('helvetica', 'normal')
+    pdf.setFontSize(12)
+    y = addWrappedText(pdf, reportSummary, 40, y, 500, 18)
+    y += 18
 
     try {
-      setLoading(true)
-      setError('')
+      let rows = []
+      let columns = []
 
-      const [salesResponse, efficiencyResponse] = await Promise.all([
-        apiGet('/api/reports/sales', token, { signal }),
-        apiGet('/api/reports/production-efficiency', token, { signal }),
-      ])
-
-      const normalizedSales = Array.isArray(salesResponse)
-        ? salesResponse
-            .map((row) => ({
-              month: String(row.month || ''),
-              sales: Number(row.sales) || 0,
-            }))
-            .sort((a, b) => toDateValue(a.month) - toDateValue(b.month))
-        : []
-
-      const normalizedEfficiency = Array.isArray(efficiencyResponse)
-        ? efficiencyResponse
-            .map((row) => ({
-              month: String(row.month || ''),
-              efficiency: Number(row.efficiency) || 0,
-            }))
-            .sort((a, b) => toDateValue(a.month) - toDateValue(b.month))
-        : []
-
-      setSalesData(normalizedSales)
-      setEfficiencyData(normalizedEfficiency)
-    } catch (err) {
-      if (signal?.aborted) {
-        return
+      if (reportName === 'Inventory Report') {
+        columns = [
+          { key: 'item_name', label: 'Item', width: 160 },
+          { key: 'current_stock', label: 'Current', width: 90 },
+          { key: 'max_capacity', label: 'Capacity', width: 90 },
+          { key: 'status', label: 'Status', width: 90 },
+        ]
+        rows = await buildInventoryRows()
+      } else if (reportName === 'Supplier Performance') {
+        columns = [
+          { key: 'name', label: 'Supplier', width: 140 },
+          { key: 'location', label: 'Location', width: 110 },
+          { key: 'rating', label: 'Rating', width: 60 },
+          { key: 'total_orders', label: 'Orders', width: 70 },
+          { key: 'status', label: 'Status', width: 90 },
+        ]
+        rows = await buildSupplierRows()
+      } else if (reportName === 'Payroll Summary') {
+        columns = [
+          { key: 'month', label: 'Month', width: 120 },
+          { key: 'net_pay', label: 'Net Pay', width: 140 },
+          { key: 'deductions', label: 'Deductions', width: 140 },
+          { key: 'status', label: 'Status', width: 90 },
+        ]
+        rows = await buildPayrollRows()
       }
 
-      setSalesData([])
-      setEfficiencyData([])
-      setError(err?.message || 'Failed to load reports data')
-    } finally {
-      setLoading(false)
+      y = ensurePageSpace(pdf, y, 50)
+      pdf.setFont('helvetica', 'bold')
+      pdf.setFontSize(13)
+      pdf.text('Data', 40, y)
+      y += 22
+
+      if (!rows.length) {
+        pdf.setFont('helvetica', 'normal')
+        pdf.setFontSize(11)
+        pdf.text('No rows available for this report.', 40, y)
+      } else {
+        y = drawTableHeader(pdf, y, columns)
+        drawTableRows(pdf, y, columns, rows)
+      }
+    } catch (error) {
+      y = ensurePageSpace(pdf, y, 40)
+      pdf.setFont('helvetica', 'bold')
+      pdf.setFontSize(12)
+      pdf.text('Data', 40, y)
+      y += 20
+      pdf.setFont('helvetica', 'normal')
+      pdf.setFontSize(11)
+      pdf.text(`Unable to load report rows: ${getErrorMessage(error, 'Request failed')}`, 40, y)
     }
-  }, [token])
 
-  useEffect(() => {
-    const controller = new AbortController()
-    loadReports(controller.signal)
-    return () => controller.abort()
-  }, [loadReports, refreshIndex])
-
-  const salesTotal = useMemo(
-    () => salesData.reduce((total, row) => total + (Number(row.sales) || 0), 0),
-    [salesData],
-  )
-
-  const averageEfficiency = useMemo(() => {
-    if (!efficiencyData.length) {
-      return 0
-    }
-
-    const total = efficiencyData.reduce((sum, row) => sum + (Number(row.efficiency) || 0), 0)
-    return Math.round((total / efficiencyData.length) * 10) / 10
-  }, [efficiencyData])
-
-  const hasSalesData = salesData.length > 0
-  const hasEfficiencyData = efficiencyData.length > 0
-
-  const exportAllAsText = () => {
-    const salesSection = salesData.length
-      ? salesData.map((row) => `${row.month}: ${formatCurrency(row.sales)}`).join('\n')
-      : 'No sales data available.'
-
-    const efficiencySection = efficiencyData.length
-      ? efficiencyData.map((row) => `${row.month}: ${row.efficiency}%`).join('\n')
-      : 'No efficiency data available.'
-
-    const content = [
-      'Executive Reports Summary',
-      `Total Sales: ${formatCurrency(salesTotal)}`,
-      `Average Production Efficiency: ${averageEfficiency}%`,
-      '',
-      '[Sales by Month]',
-      salesSection,
-      '',
-      '[Production Efficiency by Month]',
-      efficiencySection,
-    ].join('\n')
-
-    downloadTextFile('executive_reports_summary.txt', content)
-    toast.success('Reports exported successfully')
+    const safeFileName = reportName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+    pdf.save(`${safeFileName || 'report'}.pdf`)
   }
 
   return (
@@ -177,7 +266,7 @@ function ExecutiveAnalyticsDashboard() {
 
         <button
           type="button"
-          onClick={exportAllAsText}
+          onClick={handleExportAll}
           className="inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
         >
           <Download size={17} />
@@ -185,87 +274,89 @@ function ExecutiveAnalyticsDashboard() {
         </button>
       </header>
 
-      {error ? (
-        <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          <span>{error}</span>
-          <button
-            type="button"
-            onClick={() => setRefreshIndex((value) => value + 1)}
-            className="rounded-md border border-red-200 bg-white px-3 py-1 font-medium text-red-700 transition-colors hover:bg-red-100"
-          >
-            Retry
-          </button>
-        </div>
-      ) : null}
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <article className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <p className="text-sm text-gray-500">Total Sales (Visible Range)</p>
-          <p className="mt-2 text-4xl font-semibold text-gray-900">{formatCurrency(salesTotal)}</p>
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="mb-5 text-5xl leading-none font-semibold text-slate-800">Monthly Sales</h2>
+          <div className="h-[380px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={SALES_DATA}>
+                <CartesianGrid stroke="#e2e8f0" strokeDasharray="4 4" />
+                <XAxis
+                  dataKey="name"
+                  axisLine={{ stroke: '#94a3b8' }}
+                  tickLine={false}
+                  tick={{ fill: '#6b7280', fontSize: 14, fontWeight: 500 }}
+                />
+                <YAxis
+                  axisLine={{ stroke: '#94a3b8' }}
+                  tickLine={false}
+                  domain={[0, 80000]}
+                  ticks={[0, 20000, 40000, 60000, 80000]}
+                  tick={{ fill: '#6b7280', fontSize: 14, fontWeight: 500 }}
+                />
+                <Tooltip
+                  formatter={(value) => [`₹${Number(value).toLocaleString('en-IN')}`, 'Sales']}
+                  contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0' }}
+                />
+                <Bar dataKey="value" fill="#43a979" radius={[10, 10, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </article>
 
-        <article className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <p className="text-sm text-gray-500">Average Production Efficiency</p>
-          <p className="mt-2 text-4xl font-semibold text-emerald-600">{averageEfficiency}%</p>
+        <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="mb-5 text-5xl leading-none font-semibold text-slate-800">Production Output</h2>
+          <div className="h-[380px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={PRODUCTION_DATA}>
+                <CartesianGrid stroke="#e2e8f0" strokeDasharray="4 4" />
+                <XAxis
+                  dataKey="name"
+                  axisLine={{ stroke: '#94a3b8' }}
+                  tickLine={false}
+                  tick={{ fill: '#6b7280', fontSize: 14, fontWeight: 500 }}
+                />
+                <YAxis
+                  axisLine={{ stroke: '#94a3b8' }}
+                  tickLine={false}
+                  domain={[0, 160]}
+                  ticks={[0, 40, 80, 120, 160]}
+                  tick={{ fill: '#6b7280', fontSize: 14, fontWeight: 500 }}
+                />
+                <Tooltip
+                  formatter={(value) => [value, 'Units']}
+                  contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0' }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="value"
+                  stroke="#3f7fc3"
+                  strokeWidth={4}
+                  dot={{ r: 6, fill: '#3f7fc3' }}
+                  activeDot={{ r: 8 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </article>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <article className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <div className="mb-4 flex items-center gap-2">
-            <BarChart3 size={18} className="text-emerald-600" />
-            <h2 className="text-2xl font-semibold text-gray-900">Sales Report</h2>
-          </div>
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        {REPORT_CARDS.map((card) => (
+          <article key={card.title} className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h3 className="text-xl font-semibold text-gray-900">{card.title}</h3>
+            <p className="mt-1 text-sm text-gray-500">{card.subtitle}</p>
 
-          <div className="h-80 rounded-lg border border-gray-100 p-4">
-            {loading ? (
-              <div className="flex h-full items-center justify-center text-sm text-gray-500">Loading sales graph...</div>
-            ) : hasSalesData ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={salesData} margin={{ top: 8, right: 12, left: 4, bottom: 8 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="month" tick={{ fill: '#6b7280', fontSize: 12 }} />
-                  <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} tickFormatter={(value) => `${Math.round(Number(value) / 1000)}k`} />
-                  <Tooltip formatter={(value) => [formatCurrency(value), 'Sales']} />
-                  <Legend />
-                  <Bar dataKey="sales" name="Sales" fill="#10b981" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex h-full items-center justify-center text-sm text-gray-500">No sales data available.</div>
-            )}
-          </div>
-        </article>
-
-        <article className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <div className="mb-4 flex items-center gap-2">
-            <LineChartIcon size={18} className="text-blue-600" />
-            <h2 className="text-2xl font-semibold text-gray-900">Production Efficiency</h2>
-          </div>
-
-          <div className="h-80 rounded-lg border border-gray-100 p-4">
-            {loading ? (
-              <div className="flex h-full items-center justify-center text-sm text-gray-500">Loading efficiency graph...</div>
-            ) : hasEfficiencyData ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={efficiencyData} margin={{ top: 8, right: 12, left: 4, bottom: 8 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="month" tick={{ fill: '#6b7280', fontSize: 12 }} />
-                  <YAxis
-                    domain={[0, 100]}
-                    tick={{ fill: '#6b7280', fontSize: 12 }}
-                    tickFormatter={(value) => `${Number(value)}%`}
-                  />
-                  <Tooltip formatter={(value) => [`${Number(value)}%`, 'Efficiency']} />
-                  <Legend />
-                  <Line type="monotone" dataKey="efficiency" name="Efficiency" stroke="#2563eb" strokeWidth={2.5} dot={{ r: 3 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex h-full items-center justify-center text-sm text-gray-500">No efficiency data available.</div>
-            )}
-          </div>
-        </article>
+            <button
+              type="button"
+              onClick={() => handleExportPDF(card)}
+              className="mt-5 inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+            >
+              <Download size={16} />
+              Export PDF
+            </button>
+          </article>
+        ))}
       </div>
     </section>
   )

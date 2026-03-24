@@ -48,7 +48,6 @@ def create_app():
     from routes.auth import auth_bp
     from routes.billing import billing_bp
     from routes.dashboard import dashboard_bp
-    from routes.expenses import expenses_bp
     from routes.inventory import inventory_bp
     from routes.marketing import marketing_bp
     from routes.notifications import notifications_bp
@@ -67,7 +66,6 @@ def create_app():
     app.register_blueprint(suppliers_bp, url_prefix="/api/suppliers")
     app.register_blueprint(staff_bp, url_prefix="/api/staff")
     app.register_blueprint(billing_bp, url_prefix="/api/billing")
-    app.register_blueprint(expenses_bp, url_prefix="/api/expenses")
     app.register_blueprint(payroll_bp, url_prefix="/api/payroll")
     app.register_blueprint(production_bp, url_prefix="/api/production")
     app.register_blueprint(orders_bp, url_prefix="/api/orders")
