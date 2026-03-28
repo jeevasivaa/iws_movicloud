@@ -1,10 +1,10 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import Blueprint, jsonify, request
 
 from utils.db import get_db
-from utils.decorators import admin_required
-from utils.helpers import parse_object_id, to_float, to_int
+from utils.decorators import role_required
+from utils.helpers import normalize_choice, parse_float_value, parse_int_value, parse_object_id
 
 suppliers_bp = Blueprint("suppliers", __name__)
 db = get_db()
@@ -16,40 +16,66 @@ def _serialize_supplier(supplier):
     return supplier
 
 
-def _validate_status(status):
-    allowed_statuses = {"Active", "Inactive", "Under Review"}
-    return status in allowed_statuses
+def _normalize_status(value):
+    return normalize_choice(value, ("Active", "Inactive", "Under Review"))
 
 
 @suppliers_bp.route("", methods=["GET"])
-@admin_required
+@role_required("admin", "manager")
 def get_suppliers():
     suppliers = [_serialize_supplier(supplier) for supplier in suppliers_collection.find().sort("name", 1)]
     return jsonify(suppliers), 200
 
 
 @suppliers_bp.route("", methods=["POST"])
-@admin_required
+@role_required("admin", "manager")
 def create_supplier():
-    data = request.get_json() or {}
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"msg": "Invalid JSON payload"}), 400
     required_fields = ["name", "location", "category_supplied", "rating", "total_orders", "status"]
     missing_fields = [field for field in required_fields if data.get(field) in [None, ""]]
     if missing_fields:
         return jsonify({"msg": f"Missing required fields: {', '.join(missing_fields)}"}), 400
 
     status = data.get("status")
-    if not _validate_status(status):
+    normalized_status = _normalize_status(status)
+    if not normalized_status:
         return jsonify({"msg": "Invalid status. Use Active, Inactive, or Under Review"}), 400
 
+    rating = parse_float_value(data.get("rating"))
+    if rating is None:
+        return jsonify({"msg": "rating must be a valid number"}), 400
+    if rating < 0 or rating > 5:
+        return jsonify({"msg": "rating must be between 0 and 5"}), 400
+
+    total_orders = parse_int_value(data.get("total_orders"))
+    if total_orders is None:
+        return jsonify({"msg": "total_orders must be a valid number"}), 400
+    if total_orders < 0:
+        return jsonify({"msg": "total_orders must be greater than or equal to 0"}), 400
+
+    name = str(data.get("name") or "").strip()
+    if len(name) > 120:
+        return jsonify({"msg": "name must be at most 120 characters"}), 400
+
+    location = str(data.get("location") or "").strip()
+    if len(location) > 120:
+        return jsonify({"msg": "location must be at most 120 characters"}), 400
+
+    category_supplied = str(data.get("category_supplied") or "").strip()
+    if len(category_supplied) > 120:
+        return jsonify({"msg": "category_supplied must be at most 120 characters"}), 400
+
     payload = {
-        "name": str(data.get("name")).strip(),
-        "location": str(data.get("location")).strip(),
-        "category_supplied": str(data.get("category_supplied")).strip(),
-        "rating": round(to_float(data.get("rating")), 1),
-        "total_orders": to_int(data.get("total_orders")),
-        "status": status,
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow(),
+        "name": name,
+        "location": location,
+        "category_supplied": category_supplied,
+        "rating": round(rating, 1),
+        "total_orders": total_orders,
+        "status": normalized_status,
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc),
     }
 
     result = suppliers_collection.insert_one(payload)
@@ -58,35 +84,62 @@ def create_supplier():
 
 
 @suppliers_bp.route("/<id>", methods=["PUT"])
-@admin_required
+@role_required("admin", "manager")
 def update_supplier(id):
     object_id = parse_object_id(id)
     if not object_id:
         return jsonify({"msg": "Invalid supplier id"}), 400
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"msg": "Invalid JSON payload"}), 400
     update_fields = {}
 
     if "name" in data:
-        update_fields["name"] = str(data.get("name")).strip()
+        name = str(data.get("name") or "").strip()
+        if not name:
+            return jsonify({"msg": "name cannot be empty"}), 400
+        if len(name) > 120:
+            return jsonify({"msg": "name must be at most 120 characters"}), 400
+        update_fields["name"] = name
     if "location" in data:
-        update_fields["location"] = str(data.get("location")).strip()
+        location = str(data.get("location") or "").strip()
+        if not location:
+            return jsonify({"msg": "location cannot be empty"}), 400
+        if len(location) > 120:
+            return jsonify({"msg": "location must be at most 120 characters"}), 400
+        update_fields["location"] = location
     if "category_supplied" in data:
-        update_fields["category_supplied"] = str(data.get("category_supplied")).strip()
+        category_supplied = str(data.get("category_supplied") or "").strip()
+        if not category_supplied:
+            return jsonify({"msg": "category_supplied cannot be empty"}), 400
+        if len(category_supplied) > 120:
+            return jsonify({"msg": "category_supplied must be at most 120 characters"}), 400
+        update_fields["category_supplied"] = category_supplied
     if "rating" in data:
-        update_fields["rating"] = round(to_float(data.get("rating")), 1)
+        rating = parse_float_value(data.get("rating"))
+        if rating is None:
+            return jsonify({"msg": "rating must be a valid number"}), 400
+        if rating < 0 or rating > 5:
+            return jsonify({"msg": "rating must be between 0 and 5"}), 400
+        update_fields["rating"] = round(rating, 1)
     if "total_orders" in data:
-        update_fields["total_orders"] = to_int(data.get("total_orders"))
+        total_orders = parse_int_value(data.get("total_orders"))
+        if total_orders is None:
+            return jsonify({"msg": "total_orders must be a valid number"}), 400
+        if total_orders < 0:
+            return jsonify({"msg": "total_orders must be greater than or equal to 0"}), 400
+        update_fields["total_orders"] = total_orders
     if "status" in data:
-        status = data.get("status")
-        if not _validate_status(status):
+        normalized_status = _normalize_status(data.get("status"))
+        if not normalized_status:
             return jsonify({"msg": "Invalid status. Use Active, Inactive, or Under Review"}), 400
-        update_fields["status"] = status
+        update_fields["status"] = normalized_status
 
     if not update_fields:
         return jsonify({"msg": "No updatable fields provided"}), 400
 
-    update_fields["updated_at"] = datetime.utcnow()
+    update_fields["updated_at"] = datetime.now(timezone.utc)
 
     result = suppliers_collection.update_one({"_id": object_id}, {"$set": update_fields})
     if result.matched_count == 0:
@@ -97,7 +150,7 @@ def update_supplier(id):
 
 
 @suppliers_bp.route("/<id>", methods=["DELETE"])
-@admin_required
+@role_required("admin", "manager")
 def delete_supplier(id):
     object_id = parse_object_id(id)
     if not object_id:

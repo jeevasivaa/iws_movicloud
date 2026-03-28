@@ -97,11 +97,11 @@ export function AuthProvider({ children }) {
 
   const loginAsMockUser = useCallback((role) => {
     const mockUsers = {
-      [ROLES.ADMIN]: { name: 'Admin User', email: 'admin@vsa.com', role: ROLES.ADMIN },
-      [ROLES.MANAGER]: { name: 'James Wilson', email: 'james@vsa.com', role: ROLES.MANAGER },
-      [ROLES.STAFF]: { name: 'Zane Roy', email: 'zane@vsa.com', role: ROLES.STAFF },
-      [ROLES.FINANCE]: { name: 'Sarah Chen', email: 'sarah@vsa.com', role: ROLES.FINANCE },
-      [ROLES.CLIENT]: { name: 'Bistro Group', email: 'contact@bistro.com', role: ROLES.CLIENT },
+      [ROLES.ADMIN]: { name: 'Raj Kumar', email: 'admin@vsafoods.com', role: ROLES.ADMIN },
+      [ROLES.MANAGER]: { name: 'Vikram Singh', email: 'vikram@vsafoods.com', role: ROLES.MANAGER },
+      [ROLES.STAFF]: { name: 'Anita Desai', email: 'anita@vsafoods.com', role: ROLES.STAFF },
+      [ROLES.FINANCE]: { name: 'Ravi Menon', email: 'ravi.finance@vsafoods.com', role: ROLES.FINANCE },
+      [ROLES.CLIENT]: { name: 'Nita Shah', email: 'nita@organichub.in', role: ROLES.CLIENT },
     }
 
     const userData = mockUsers[role] || mockUsers[ROLES.CLIENT]

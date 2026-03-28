@@ -10,7 +10,19 @@ production_collection = db["production_batches"]
 expenses_collection = db["expenses"]
 
 
-def _format_month_label(year_month: str) -> str:
+@reports_bp.route("/sales", methods=["GET"])
+@role_required("admin", "manager", "finance")
+def get_sales_report():
+    pipeline = [
+        {
+            "$group": {
+                "_id": {"$substr": ["$date", 0, 7]},
+                "sales": {"$sum": "$total_amount"},
+            }
+        },
+        {"$sort": {"_id": 1}},
+    ]
+
     month_map = {
         "01": "Jan",
         "02": "Feb",
@@ -67,7 +79,7 @@ def get_sales_report():
 
 
 @reports_bp.route("/production-efficiency", methods=["GET"])
-@role_required("admin", "manager", "staff", "finance")
+@role_required("admin", "manager", "finance")
 def get_production_efficiency():
     pipeline = [
         {

@@ -1,6 +1,6 @@
 import calendar
 import os
-from datetime import date, datetime, timedelta
+from datetime import datetime, timezone, timedelta
 
 from bson import ObjectId  # type: ignore[import-untyped]
 from dotenv import load_dotenv
@@ -75,7 +75,7 @@ def seed_database():
 
     create_indexes()
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     current_month = now.strftime("%Y-%m")
     year_token = now.strftime("%Y")
 

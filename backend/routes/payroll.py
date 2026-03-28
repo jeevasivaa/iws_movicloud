@@ -1,10 +1,10 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import Blueprint, jsonify, request
 
 from utils.db import get_db
 from utils.decorators import role_required
-from utils.helpers import maybe_object_id, normalize_month, parse_object_id, to_float
+from utils.helpers import maybe_object_id, normalize_choice, normalize_month, parse_float_value, parse_object_id
 
 payroll_bp = Blueprint("payroll", __name__)
 db = get_db()
@@ -18,21 +18,21 @@ def _serialize_payroll(row):
     return row
 
 
-def _validate_status(status):
-    return status in {"Paid", "Pending"}
+def _normalize_status(value):
+    return normalize_choice(value, ("Paid", "Pending"))
 
 
 @payroll_bp.route("", methods=["GET"])
-@role_required("admin", "manager", "finance")
+@role_required("admin", "finance")
 def get_payroll_rows():
     rows = [_serialize_payroll(row) for row in payroll_collection.find().sort("month", -1)]
     return jsonify(rows), 200
 
 
 @payroll_bp.route("/summary", methods=["GET"])
-@role_required("admin", "manager", "finance")
+@role_required("admin", "finance")
 def get_payroll_summary():
-    current_month = datetime.utcnow().strftime("%Y-%m")
+    current_month = datetime.now(timezone.utc).strftime("%Y-%m")
 
     pipeline = [
         {"$match": {"month": current_month}},
@@ -57,27 +57,52 @@ def get_payroll_summary():
 
 
 @payroll_bp.route("", methods=["POST"])
-@role_required("admin", "manager", "finance")
+@role_required("admin", "finance")
 def create_payroll_row():
-    data = request.get_json() or {}
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"msg": "Invalid JSON payload"}), 400
     required_fields = ["staff_id", "base_salary", "deductions", "net_pay", "month", "status"]
     missing_fields = [field for field in required_fields if data.get(field) in [None, ""]]
     if missing_fields:
         return jsonify({"msg": f"Missing required fields: {', '.join(missing_fields)}"}), 400
 
     status = data.get("status")
-    if not _validate_status(status):
+    normalized_status = _normalize_status(status)
+    if not normalized_status:
         return jsonify({"msg": "Invalid status. Use Paid or Pending"}), 400
+
+    month_value = normalize_month(data.get("month"))
+    if not month_value:
+        return jsonify({"msg": "Invalid month. Use YYYY-MM"}), 400
+
+    base_salary = parse_float_value(data.get("base_salary"))
+    if base_salary is None:
+        return jsonify({"msg": "base_salary must be a valid number"}), 400
+    if base_salary < 0:
+        return jsonify({"msg": "base_salary must be greater than or equal to 0"}), 400
+
+    deductions = parse_float_value(data.get("deductions"))
+    if deductions is None:
+        return jsonify({"msg": "deductions must be a valid number"}), 400
+    if deductions < 0:
+        return jsonify({"msg": "deductions must be greater than or equal to 0"}), 400
+
+    net_pay = parse_float_value(data.get("net_pay"))
+    if net_pay is None:
+        return jsonify({"msg": "net_pay must be a valid number"}), 400
+    if net_pay < 0:
+        return jsonify({"msg": "net_pay must be greater than or equal to 0"}), 400
 
     payload = {
         "staff_id": maybe_object_id(data.get("staff_id")),
-        "base_salary": to_float(data.get("base_salary")),
-        "deductions": to_float(data.get("deductions")),
-        "net_pay": to_float(data.get("net_pay")),
-        "month": normalize_month(data.get("month")),
-        "status": status,
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow(),
+        "base_salary": base_salary,
+        "deductions": deductions,
+        "net_pay": net_pay,
+        "month": month_value,
+        "status": normalized_status,
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc),
     }
 
     result = payroll_collection.insert_one(payload)
@@ -86,35 +111,55 @@ def create_payroll_row():
 
 
 @payroll_bp.route("/<id>", methods=["PUT"])
-@role_required("admin", "manager", "finance")
+@role_required("admin", "finance")
 def update_payroll_row(id):
     object_id = parse_object_id(id)
     if not object_id:
         return jsonify({"msg": "Invalid payroll id"}), 400
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"msg": "Invalid JSON payload"}), 400
     update_fields = {}
 
     if "staff_id" in data:
         update_fields["staff_id"] = maybe_object_id(data.get("staff_id"))
     if "base_salary" in data:
-        update_fields["base_salary"] = to_float(data.get("base_salary"))
+        base_salary = parse_float_value(data.get("base_salary"))
+        if base_salary is None:
+            return jsonify({"msg": "base_salary must be a valid number"}), 400
+        if base_salary < 0:
+            return jsonify({"msg": "base_salary must be greater than or equal to 0"}), 400
+        update_fields["base_salary"] = base_salary
     if "deductions" in data:
-        update_fields["deductions"] = to_float(data.get("deductions"))
+        deductions = parse_float_value(data.get("deductions"))
+        if deductions is None:
+            return jsonify({"msg": "deductions must be a valid number"}), 400
+        if deductions < 0:
+            return jsonify({"msg": "deductions must be greater than or equal to 0"}), 400
+        update_fields["deductions"] = deductions
     if "net_pay" in data:
-        update_fields["net_pay"] = to_float(data.get("net_pay"))
+        net_pay = parse_float_value(data.get("net_pay"))
+        if net_pay is None:
+            return jsonify({"msg": "net_pay must be a valid number"}), 400
+        if net_pay < 0:
+            return jsonify({"msg": "net_pay must be greater than or equal to 0"}), 400
+        update_fields["net_pay"] = net_pay
     if "month" in data:
-        update_fields["month"] = normalize_month(data.get("month"))
+        month_value = normalize_month(data.get("month"))
+        if not month_value:
+            return jsonify({"msg": "Invalid month. Use YYYY-MM"}), 400
+        update_fields["month"] = month_value
     if "status" in data:
-        status = data.get("status")
-        if not _validate_status(status):
+        normalized_status = _normalize_status(data.get("status"))
+        if not normalized_status:
             return jsonify({"msg": "Invalid status. Use Paid or Pending"}), 400
-        update_fields["status"] = status
+        update_fields["status"] = normalized_status
 
     if not update_fields:
         return jsonify({"msg": "No updatable fields provided"}), 400
 
-    update_fields["updated_at"] = datetime.utcnow()
+    update_fields["updated_at"] = datetime.now(timezone.utc)
 
     result = payroll_collection.update_one({"_id": object_id}, {"$set": update_fields})
     if result.matched_count == 0:
@@ -125,7 +170,7 @@ def update_payroll_row(id):
 
 
 @payroll_bp.route("/<id>", methods=["DELETE"])
-@role_required("admin", "manager", "finance")
+@role_required("admin", "finance")
 def delete_payroll_row(id):
     object_id = parse_object_id(id)
     if not object_id:

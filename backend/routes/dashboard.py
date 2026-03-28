@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify
 
 from utils.db import get_db
-from utils.decorators import admin_required
+from utils.decorators import role_required
 
 dashboard_bp = Blueprint("dashboard", __name__)
 db = get_db()
@@ -23,7 +23,7 @@ def _read_low_stock_threshold(default: int = 100) -> int:
 
 
 @dashboard_bp.route("/summary", methods=["GET"])
-@admin_required
+@role_required("admin", "manager", "staff", "finance")
 def get_dashboard_summary():
     orders_collection = db["orders"]
     users_collection = db["users"]

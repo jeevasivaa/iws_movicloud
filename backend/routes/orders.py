@@ -1,11 +1,20 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import Blueprint, jsonify, request
 from pymongo.errors import DuplicateKeyError  # type: ignore[import-untyped]
 
 from utils.db import get_db
-from utils.decorators import admin_required, role_required
-from utils.helpers import maybe_object_id, normalize_iso_date, parse_object_id, to_float, to_int
+from utils.decorators import role_required
+from utils.helpers import (
+    maybe_object_id,
+    normalize_choice,
+    normalize_iso_date,
+    parse_float_value,
+    parse_int_value,
+    parse_object_id,
+)
+
+MAX_ORDER_ID_LENGTH = 40
 
 orders_bp = Blueprint("orders", __name__)
 db = get_db()
@@ -19,8 +28,8 @@ def _serialize_order(order):
     return order
 
 
-def _validate_status(status):
-    return status in {"Pending", "Processing", "Shipped", "Delivered"}
+def _normalize_status(value):
+    return normalize_choice(value, ("Pending", "Processing", "Shipped", "Delivered"))
 
 
 def _normalize_packing_items(items):
@@ -51,7 +60,7 @@ def _normalize_packing_items(items):
 
 
 @orders_bp.route("", methods=["GET"])
-@role_required("admin", "manager", "staff", "finance", "client")
+@role_required("admin", "manager", "client")
 def get_orders():
     query = {}
     status = request.args.get("status")
@@ -63,28 +72,50 @@ def get_orders():
 
 
 @orders_bp.route("", methods=["POST"])
-@role_required("admin", "manager")
+@role_required("admin", "manager", "client")
 def create_order():
-    data = request.get_json() or {}
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"msg": "Invalid JSON payload"}), 400
     required_fields = ["order_id", "client_id", "date", "total_items", "total_amount", "status"]
     missing_fields = [field for field in required_fields if data.get(field) in [None, ""]]
     if missing_fields:
         return jsonify({"msg": f"Missing required fields: {', '.join(missing_fields)}"}), 400
 
     status = data.get("status")
-    if not _validate_status(status):
+    normalized_status = _normalize_status(status)
+    if not normalized_status:
         return jsonify({"msg": "Invalid status. Use Pending, Processing, Shipped, or Delivered"}), 400
 
+    order_date = normalize_iso_date(data.get("date"))
+    if not order_date:
+        return jsonify({"msg": "Invalid date. Use YYYY-MM-DD"}), 400
+
+    total_items = parse_int_value(data.get("total_items"))
+    if total_items is None:
+        return jsonify({"msg": "total_items must be a valid number"}), 400
+    if total_items < 0:
+        return jsonify({"msg": "total_items must be greater than or equal to 0"}), 400
+
+    total_amount = parse_float_value(data.get("total_amount"))
+    if total_amount is None:
+        return jsonify({"msg": "total_amount must be a valid number"}), 400
+    if total_amount < 0:
+        return jsonify({"msg": "total_amount must be greater than or equal to 0"}), 400
+
+    order_identifier = str(data.get("order_id") or "").strip().upper()
+    if len(order_identifier) > MAX_ORDER_ID_LENGTH:
+        return jsonify({"msg": "order_id must be at most 40 characters"}), 400
+
     payload = {
-        "order_id": str(data.get("order_id")).strip().upper(),
+        "order_id": order_identifier,
         "client_id": maybe_object_id(data.get("client_id")),
-        "date": normalize_iso_date(data.get("date")),
-        "total_items": to_int(data.get("total_items")),
-        "total_amount": to_float(data.get("total_amount")),
-        "status": status,
-        "tracking_details": str(data.get("tracking_details")).strip() if data.get("tracking_details") else "",
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow(),
+        "date": order_date,
+        "total_items": total_items,
+        "total_amount": total_amount,
+        "status": normalized_status,
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc),
     }
 
     if "packing_items" in data:
@@ -100,39 +131,55 @@ def create_order():
 
 
 @orders_bp.route("/<id>", methods=["PUT"])
-@role_required("admin", "manager", "staff")
+@role_required("admin", "manager")
 def update_order(id):
     object_id = parse_object_id(id)
     if not object_id:
         return jsonify({"msg": "Invalid order id"}), 400
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"msg": "Invalid JSON payload"}), 400
     update_fields = {}
 
     if "order_id" in data:
-        update_fields["order_id"] = str(data.get("order_id")).strip().upper()
+        order_identifier = str(data.get("order_id") or "").strip().upper()
+        if not order_identifier:
+            return jsonify({"msg": "order_id cannot be empty"}), 400
+        if len(order_identifier) > MAX_ORDER_ID_LENGTH:
+            return jsonify({"msg": "order_id must be at most 40 characters"}), 400
+        update_fields["order_id"] = order_identifier
     if "client_id" in data:
         update_fields["client_id"] = maybe_object_id(data.get("client_id"))
     if "date" in data:
-        update_fields["date"] = normalize_iso_date(data.get("date"))
+        order_date = normalize_iso_date(data.get("date"))
+        if not order_date:
+            return jsonify({"msg": "Invalid date. Use YYYY-MM-DD"}), 400
+        update_fields["date"] = order_date
     if "total_items" in data:
-        update_fields["total_items"] = to_int(data.get("total_items"))
+        total_items = parse_int_value(data.get("total_items"))
+        if total_items is None:
+            return jsonify({"msg": "total_items must be a valid number"}), 400
+        if total_items < 0:
+            return jsonify({"msg": "total_items must be greater than or equal to 0"}), 400
+        update_fields["total_items"] = total_items
     if "total_amount" in data:
-        update_fields["total_amount"] = to_float(data.get("total_amount"))
+        total_amount = parse_float_value(data.get("total_amount"))
+        if total_amount is None:
+            return jsonify({"msg": "total_amount must be a valid number"}), 400
+        if total_amount < 0:
+            return jsonify({"msg": "total_amount must be greater than or equal to 0"}), 400
+        update_fields["total_amount"] = total_amount
     if "status" in data:
-        status = data.get("status")
-        if not _validate_status(status):
+        normalized_status = _normalize_status(data.get("status"))
+        if not normalized_status:
             return jsonify({"msg": "Invalid status. Use Pending, Processing, Shipped, or Delivered"}), 400
-        update_fields["status"] = status
-    if "tracking_details" in data:
-        update_fields["tracking_details"] = str(data.get("tracking_details")).strip()
-    if "packing_items" in data:
-        update_fields["packing_items"] = _normalize_packing_items(data.get("packing_items"))
+        update_fields["status"] = normalized_status
 
     if not update_fields:
         return jsonify({"msg": "No updatable fields provided"}), 400
 
-    update_fields["updated_at"] = datetime.utcnow()
+    update_fields["updated_at"] = datetime.now(timezone.utc)
 
     try:
         result = orders_collection.update_one({"_id": object_id}, {"$set": update_fields})
@@ -176,7 +223,7 @@ def mark_order_shipped(id):
 
 
 @orders_bp.route("/<id>", methods=["DELETE"])
-@admin_required
+@role_required("admin", "manager")
 def delete_order(id):
     object_id = parse_object_id(id)
     if not object_id:

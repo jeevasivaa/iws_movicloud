@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt  # type: ignore[import-untyped]
@@ -6,7 +6,9 @@ from pymongo.errors import DuplicateKeyError  # type: ignore[import-untyped]
 
 from utils.db import get_db
 from utils.decorators import role_required
-from utils.helpers import maybe_object_id, normalize_iso_date, parse_object_id, to_float
+from utils.helpers import maybe_object_id, normalize_choice, normalize_iso_date, parse_float_value, parse_object_id
+
+MAX_INVOICE_NUMBER_LENGTH = 40
 
 billing_bp = Blueprint("billing", __name__)
 db = get_db()
@@ -20,9 +22,8 @@ def _serialize_invoice(invoice):
     return invoice
 
 
-def _validate_status(status):
-    allowed_statuses = {"Paid", "Pending", "Overdue"}
-    return status in allowed_statuses
+def _normalize_status(value):
+    return normalize_choice(value, ("Paid", "Pending", "Overdue"))
 
 
 def _build_invoice_query_for_role() -> dict:
@@ -34,7 +35,7 @@ def _build_invoice_query_for_role() -> dict:
 
 
 @billing_bp.route("", methods=["GET"])
-@role_required("admin", "manager", "finance")
+@role_required("admin", "finance")
 def get_invoices():
     query = _build_invoice_query_for_role()
     invoices = [
@@ -45,7 +46,7 @@ def get_invoices():
 
 
 @billing_bp.route("/summary", methods=["GET"])
-@role_required("admin", "manager", "finance")
+@role_required("admin", "finance")
 def get_billing_summary():
     query = _build_invoice_query_for_role()
     pipeline = [
@@ -77,38 +78,50 @@ def get_billing_summary():
 
 
 @billing_bp.route("", methods=["POST"])
-@role_required("admin", "manager", "finance")
+@role_required("admin", "finance")
 def create_invoice():
-    data = request.get_json() or {}
-    required_fields = [
-        "invoice_number",
-        "client_id",
-        "date",
-        "amount",
-        "status",
-        "items",
-    ]
-    missing_fields = [
-        field for field in required_fields if data.get(field) in [None, ""]
-    ]
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"msg": "Invalid JSON payload"}), 400
+    required_fields = ["invoice_number", "client_id", "date", "amount", "status", "items"]
+    missing_fields = [field for field in required_fields if data.get(field) in [None, ""]]
     if missing_fields:
         return jsonify(
             {"msg": f"Missing required fields: {', '.join(missing_fields)}"}
         ), 400
 
     status = data.get("status")
-    if not _validate_status(status):
+    normalized_status = _normalize_status(status)
+    if not normalized_status:
         return jsonify({"msg": "Invalid status. Use Paid, Pending, or Overdue"}), 400
 
+    invoice_date = normalize_iso_date(data.get("date"))
+    if not invoice_date:
+        return jsonify({"msg": "Invalid date. Use YYYY-MM-DD"}), 400
+
+    amount = parse_float_value(data.get("amount"))
+    if amount is None:
+        return jsonify({"msg": "amount must be a valid number"}), 400
+    if amount < 0:
+        return jsonify({"msg": "amount must be greater than or equal to 0"}), 400
+
+    invoice_number = str(data.get("invoice_number") or "").strip().upper()
+    if len(invoice_number) > MAX_INVOICE_NUMBER_LENGTH:
+        return jsonify({"msg": "invoice_number must be at most 40 characters"}), 400
+
+    items = data.get("items", [])
+    if not isinstance(items, list):
+        return jsonify({"msg": "items must be an array"}), 400
+
     payload = {
-        "invoice_number": str(data.get("invoice_number")).strip().upper(),
+        "invoice_number": invoice_number,
         "client_id": maybe_object_id(data.get("client_id")),
-        "date": normalize_iso_date(data.get("date")),
-        "amount": to_float(data.get("amount")),
-        "status": status,
-        "items": data.get("items", []),
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow(),
+        "date": invoice_date,
+        "amount": amount,
+        "status": normalized_status,
+        "items": items,
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc),
     }
 
     try:
@@ -121,39 +134,52 @@ def create_invoice():
 
 
 @billing_bp.route("/<id>", methods=["PUT"])
-@role_required("admin", "manager", "finance")
+@role_required("admin", "finance")
 def update_invoice(id):
     object_id = parse_object_id(id)
     if not object_id:
         return jsonify({"msg": "Invalid invoice id"}), 400
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"msg": "Invalid JSON payload"}), 400
     update_fields = {}
 
     if "invoice_number" in data:
-        update_fields["invoice_number"] = (
-            str(data.get("invoice_number")).strip().upper()
-        )
+        invoice_number = str(data.get("invoice_number") or "").strip().upper()
+        if not invoice_number:
+            return jsonify({"msg": "invoice_number cannot be empty"}), 400
+        if len(invoice_number) > MAX_INVOICE_NUMBER_LENGTH:
+            return jsonify({"msg": "invoice_number must be at most 40 characters"}), 400
+        update_fields["invoice_number"] = invoice_number
     if "client_id" in data:
         update_fields["client_id"] = maybe_object_id(data.get("client_id"))
     if "date" in data:
-        update_fields["date"] = normalize_iso_date(data.get("date"))
+        invoice_date = normalize_iso_date(data.get("date"))
+        if not invoice_date:
+            return jsonify({"msg": "Invalid date. Use YYYY-MM-DD"}), 400
+        update_fields["date"] = invoice_date
     if "amount" in data:
-        update_fields["amount"] = to_float(data.get("amount"))
+        amount = parse_float_value(data.get("amount"))
+        if amount is None:
+            return jsonify({"msg": "amount must be a valid number"}), 400
+        if amount < 0:
+            return jsonify({"msg": "amount must be greater than or equal to 0"}), 400
+        update_fields["amount"] = amount
     if "status" in data:
-        status = data.get("status")
-        if not _validate_status(status):
-            return jsonify(
-                {"msg": "Invalid status. Use Paid, Pending, or Overdue"}
-            ), 400
-        update_fields["status"] = status
+        normalized_status = _normalize_status(data.get("status"))
+        if not normalized_status:
+            return jsonify({"msg": "Invalid status. Use Paid, Pending, or Overdue"}), 400
+        update_fields["status"] = normalized_status
     if "items" in data:
+        if not isinstance(data.get("items"), list):
+            return jsonify({"msg": "items must be an array"}), 400
         update_fields["items"] = data.get("items")
 
     if not update_fields:
         return jsonify({"msg": "No updatable fields provided"}), 400
 
-    update_fields["updated_at"] = datetime.utcnow()
+    update_fields["updated_at"] = datetime.now(timezone.utc)
 
     try:
         result = invoices_collection.update_one(
@@ -170,7 +196,7 @@ def update_invoice(id):
 
 
 @billing_bp.route("/<id>", methods=["DELETE"])
-@role_required("admin", "manager", "finance")
+@role_required("admin", "finance")
 def delete_invoice(id):
     object_id = parse_object_id(id)
     if not object_id:

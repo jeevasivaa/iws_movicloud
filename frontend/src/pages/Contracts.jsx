@@ -15,7 +15,7 @@ function Contracts() {
 
   const visibleRows = useMemo(() => {
     if (user?.role === ROLES.ADMIN) return CONTRACTS
-    if (user?.role === ROLES.OPERATIONS) return CONTRACTS.filter((row) => row.owner === 'Operations' || row.status === 'Renewal Soon')
+    if (user?.role === ROLES.MANAGER) return CONTRACTS.filter((row) => row.owner === 'Operations' || row.status === 'Renewal Soon')
     if (user?.role === ROLES.FINANCE) return CONTRACTS.filter((row) => row.owner === 'Finance' || row.type === 'Sales Agreement')
     return []
   }, [user?.role])

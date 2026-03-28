@@ -1,5 +1,37 @@
 import { ROLE_LABELS, ROLES } from '../constants/roles'
-import { apiPost } from './apiClient'
+
+const MOCK_USERS = {
+  [ROLES.ADMIN]: {
+    id: 1,
+    name: 'Priya Nair',
+    email: 'admin@vsafoods.com',
+    role: ROLES.ADMIN,
+  },
+  [ROLES.MANAGER]: {
+    id: 2,
+    name: 'James Wilson',
+    email: 'vikram@vsafoods.com',
+    role: ROLES.MANAGER,
+  },
+  [ROLES.STAFF]: {
+    id: 5,
+    name: 'Zane Roy',
+    email: 'anita@vsafoods.com',
+    role: ROLES.STAFF,
+  },
+  [ROLES.FINANCE]: {
+    id: 3,
+    name: 'Sarah Chen',
+    email: 'ravi.finance@vsafoods.com',
+    role: ROLES.FINANCE,
+  },
+  [ROLES.CLIENT]: {
+    id: 4,
+    name: 'Bistro Group',
+    email: 'nita@organichub.in',
+    role: ROLES.CLIENT,
+  },
+}
 
 export const ROLE_LOGIN_OPTIONS = [
   {

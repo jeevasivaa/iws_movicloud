@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Bell, Shield } from 'lucide-react'
 import { useAuth } from '../context/useAuth'
-import { apiGet, apiPut } from '../services/apiClient'
+import { ROLE_LABELS } from '../constants/roles'
 
 const NOTIFICATION_KEYS = [
   { key: 'low_stock_alerts', label: 'Low stock alerts' },
@@ -11,112 +11,7 @@ const NOTIFICATION_KEYS = [
 ]
 
 function Settings() {
-  const { token, user } = useAuth()
-  const [settingsRows, setSettingsRows] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-  const [refreshIndex, setRefreshIndex] = useState(0)
-  const [lowStockThresholdInput, setLowStockThresholdInput] = useState('100')
-
-  useEffect(() => {
-    let isActive = true
-    const controller = new AbortController()
-
-    const loadSettings = async () => {
-      if (!token) {
-        if (isActive) {
-          setSettingsRows([])
-          setError('Authentication token missing. Please sign in again.')
-          setLoading(false)
-        }
-        return
-      }
-
-      try {
-        if (isActive) {
-          setLoading(true)
-          setError('')
-        }
-
-        const response = await apiGet('/api/settings', token, { signal: controller.signal })
-        if (isActive) {
-          const nextRows = Array.isArray(response) ? response : []
-          setSettingsRows(nextRows)
-
-          const lowStockThresholdRow = nextRows.find((row) => row?.key === 'low_stock_threshold')
-          const lowStockThresholdValue = Number(lowStockThresholdRow?.value)
-          setLowStockThresholdInput(
-            Number.isFinite(lowStockThresholdValue) && lowStockThresholdValue >= 0
-              ? String(Math.round(lowStockThresholdValue))
-              : '100',
-          )
-        }
-      } catch (err) {
-        if (controller.signal.aborted || !isActive) return
-        setSettingsRows([])
-        setError(err.message || 'Failed to load settings')
-      } finally {
-        if (isActive) {
-          setLoading(false)
-        }
-      }
-    }
-
-    loadSettings()
-
-    return () => {
-      isActive = false
-      controller.abort()
-    }
-  }, [token, refreshIndex])
-
-  const settingsMap = useMemo(
-    () => new Map(settingsRows.map((settingRow) => [settingRow.key, settingRow.value])),
-    [settingsRows],
-  )
-
-  const handleLowStockThresholdSave = async () => {
-    if (!token) {
-      setError('Authentication token missing. Please sign in again.')
-      return
-    }
-
-    const parsed = Number(lowStockThresholdInput)
-    if (!Number.isFinite(parsed) || parsed < 0) {
-      setError('Low stock threshold must be a valid non-negative number')
-      return
-    }
-
-    try {
-      setSaving(true)
-      setError('')
-      await apiPut('/api/settings', { key: 'low_stock_threshold', value: Math.round(parsed) }, token)
-      setRefreshIndex((value) => value + 1)
-    } catch (err) {
-      setError(err.message || 'Failed to update low stock threshold')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleToggle = async (settingKey, currentValue) => {
-    if (!token) {
-      setError('Authentication token missing. Please sign in again.')
-      return
-    }
-
-    try {
-      setSaving(true)
-      setError('')
-      await apiPut('/api/settings', { key: settingKey, value: !currentValue }, token)
-      setRefreshIndex((value) => value + 1)
-    } catch (err) {
-      setError(err.message || 'Failed to update setting')
-    } finally {
-      setSaving(false)
-    }
-  }
+  const { user } = useAuth()
 
   return (
     <section className="space-y-6">
@@ -149,7 +44,7 @@ function Settings() {
             Full Name
             <input
               type="text"
-              value={user?.name || 'Admin'}
+              value={user?.name || 'Not available'}
               readOnly
               className="mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-gray-900"
             />
@@ -159,7 +54,7 @@ function Settings() {
             Email
             <input
               type="text"
-              value={user?.email || 'admin@vsafoods.com'}
+              value={user?.email || 'Not available'}
               readOnly
               className="mt-2 h-12 w-full rounded-xl border border-gray-200 bg-white px-4 text-gray-900"
             />
@@ -169,7 +64,7 @@ function Settings() {
             Role
             <input
               type="text"
-              value={user?.role || 'admin'}
+              value={ROLE_LABELS[user?.role] || user?.role || 'Not available'}
               readOnly
               className="mt-2 h-12 w-full rounded-xl border border-gray-200 bg-gray-50 px-4 text-gray-500"
             />

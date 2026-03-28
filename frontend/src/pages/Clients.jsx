@@ -17,7 +17,7 @@ function Clients() {
   const scopedRows = useMemo(() => {
     const byRole = CLIENTS.filter((row) => {
       if (user?.role === ROLES.ADMIN) return true
-      if (user?.role === ROLES.OPERATIONS) return row.openOrders > 0
+      if (user?.role === ROLES.MANAGER) return row.openOrders > 0
       if (user?.role === ROLES.FINANCE) return row.creditStatus !== 'Hold'
       return false
     })

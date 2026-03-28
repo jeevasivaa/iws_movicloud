@@ -71,6 +71,11 @@ function AppRouter() {
             <Route path="/clients" element={<Clients />} />
           </Route>
 
+          {/* Analytics Routes (Admin, Manager, Finance) */}
+          <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.MANAGER, ROLES.FINANCE]} />}>
+            <Route path="/executive-analytics" element={<ExecutiveAnalyticsDashboard />} />
+          </Route>
+
           {/* General Dashboard + Alerts Routes */}
           <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.MANAGER, ROLES.STAFF, ROLES.FINANCE]} />}>
             <Route

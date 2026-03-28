@@ -1,9 +1,9 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import Blueprint, jsonify, request
 
 from utils.db import get_db
-from utils.decorators import admin_required
+from utils.decorators import role_required
 
 settings_bp = Blueprint("settings", __name__)
 db = get_db()
@@ -16,21 +16,27 @@ def _serialize_setting(setting):
 
 
 @settings_bp.route("", methods=["GET"])
-@admin_required
+@role_required("admin", "manager")
 def get_settings():
     rows = [_serialize_setting(row) for row in settings_collection.find().sort("key", 1)]
     return jsonify(rows), 200
 
 
 @settings_bp.route("", methods=["PUT"])
-@admin_required
+@role_required("admin", "manager")
 def upsert_settings():
-    payload = request.get_json() or {}
-    now = datetime.utcnow()
+    payload = request.get_json(silent=True)
+    if payload is None:
+        return jsonify({"msg": "Invalid JSON payload"}), 400
+    if not isinstance(payload, (dict, list)):
+        return jsonify({"msg": "Invalid JSON payload"}), 400
+    now = datetime.now(timezone.utc)
 
     if isinstance(payload, list):
         updated = []
         for item in payload:
+            if not isinstance(item, dict):
+                continue
             key = item.get("key")
             if not key:
                 continue

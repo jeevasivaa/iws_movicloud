@@ -22,6 +22,14 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../../context/useAuth'
 
+function getInitials(name) {
+  if (!name) return 'NA'
+  const parts = String(name).trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return 'NA'
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+}
+
 const sidebarItems = [
   { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
   { label: 'Products', path: '/products', icon: Package2 },
@@ -41,7 +49,7 @@ const sidebarItems = [
 function AdminLayout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const navigate = useNavigate()
-  const { logout } = useAuth()
+  const { user, logout } = useAuth()
 
   useEffect(() => {
     const mainContent = document.getElementById('main-content')
@@ -125,12 +133,12 @@ function AdminLayout({ children }) {
             <div className="flex items-center justify-between rounded-lg">
               <div className="flex min-w-0 items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 text-sm font-medium text-white">
-                  RK
+                  {getInitials(user?.name)}
                 </div>
 
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-gray-900">Raj Kumar</p>
-                  <p className="truncate text-xs text-gray-500">admin@vsafoods.com</p>
+                  <p className="truncate text-sm font-semibold text-gray-900">{user?.name || 'User'}</p>
+                  <p className="truncate text-xs text-gray-500">{user?.email || 'No email'}</p>
                 </div>
               </div>
 
@@ -180,8 +188,8 @@ function AdminLayout({ children }) {
               </button>
 
               <div className="text-right">
-                <p className="text-sm font-semibold text-gray-900">Raj Kumar</p>
-                <p className="text-xs text-gray-500">Admin</p>
+                <p className="text-sm font-semibold text-gray-900">{user?.name || 'User'}</p>
+                <p className="text-xs text-gray-500">{user?.role || 'Role'}</p>
               </div>
             </div>
           </header>

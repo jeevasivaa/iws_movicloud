@@ -95,12 +95,12 @@ function Expenses() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
 
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-  const [selectedExpense, setSelectedExpense] = useState(null)
-  const [expenseForm, setExpenseForm] = useState(EMPTY_EXPENSE_FORM)
-  const [isSaving, setIsSaving] = useState(false)
-  const [isDeletingId, setIsDeletingId] = useState('')
+  const visibleRows = useMemo(() => {
+    if (user?.role === ROLES.ADMIN) return EXPENSE_ROWS
+    if (user?.role === ROLES.MANAGER) return EXPENSE_ROWS.filter((row) => row.owner === 'Operations')
+    if (user?.role === ROLES.FINANCE) return EXPENSE_ROWS
+    return []
+  }, [user?.role])
 
   const authConfig = useMemo(() => (token ? { headers: { Authorization: `Bearer ${token}` } } : {}), [token])
 

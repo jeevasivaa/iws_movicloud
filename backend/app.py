@@ -1,7 +1,7 @@
 import os
 
 from dotenv import load_dotenv
-from flask import Flask, jsonify, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager  # type: ignore[import-untyped]
 
@@ -103,11 +103,20 @@ def create_app():
     def health_check():
         return jsonify({"status": "healthy", "service": "vsa-foods-admin-backend"}), 200
 
+    @app.errorhandler(404)
+    def api_not_found(error):
+        if request.path == "/api" or request.path.startswith("/api/"):
+            return jsonify({"msg": "API endpoint not found"}), 404
+        return error
+
     # -------- SERVE FRONTEND -------- #
     @app.route("/", defaults={"path": ""})
     @app.route("/<path:path>")
     def serve_frontend(path):
         static_folder = app.static_folder
+
+        if not static_folder:
+            return jsonify({"msg": "Frontend build not available"}), 503
 
         if path != "" and os.path.exists(os.path.join(static_folder, path)):
             return send_from_directory(static_folder, path)

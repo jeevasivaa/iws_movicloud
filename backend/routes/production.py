@@ -1,12 +1,14 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt  # type: ignore[import-untyped]
 from pymongo.errors import DuplicateKeyError  # type: ignore[import-untyped]
 
 from utils.db import get_db
-from utils.decorators import admin_required, role_required
-from utils.helpers import maybe_object_id, normalize_iso_date, parse_object_id, to_int
+from utils.decorators import role_required
+from utils.helpers import maybe_object_id, normalize_choice, normalize_iso_date, parse_int_value, parse_object_id
+
+MAX_BATCH_ID_LENGTH = 40
 
 production_bp = Blueprint("production", __name__)
 db = get_db()
@@ -29,39 +31,12 @@ def _serialize_batch(batch):
     return batch
 
 
-def _serialize_batch_with_product(batch):
-    payload = _serialize_batch(batch)
-    product_name = "Tender Coconut Water"
-    product_id = batch.get("product_id")
-    if product_id is not None:
-        product = products_collection.find_one({"_id": maybe_object_id(product_id)})
-        if product and product.get("name"):
-            product_name = str(product.get("name"))
-    payload["product_name"] = product_name
-    return payload
-
-
-def _identity_variants(value):
-    if value in [None, ""]:
-        return []
-
-    string_value = str(value).strip()
-    if not string_value:
-        return []
-
-    variants: list[object] = [string_value]
-    object_id = parse_object_id(string_value)
-    if object_id:
-        variants.append(object_id)
-    return variants
-
-
-def _validate_stage(stage):
-    return stage in {"Planned", "In Progress", "Completed"}
+def _normalize_stage(value):
+    return normalize_choice(value, ("Planned", "In Progress", "Completed"))
 
 
 @production_bp.route("", methods=["GET"])
-@role_required("admin", "manager")
+@role_required("admin", "manager", "staff")
 def get_batches():
     rows = [_serialize_batch_with_product(row) for row in production_collection.find().sort("start_date", -1)]
     return jsonify(rows), 200
@@ -85,27 +60,47 @@ def get_assigned_batches():
 
 
 @production_bp.route("", methods=["POST"])
-@role_required("admin", "manager")
+@role_required("admin", "manager", "staff")
 def create_batch():
-    data = request.get_json() or {}
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"msg": "Invalid JSON payload"}), 400
     required_fields = ["batch_id", "product_id", "quantity", "stage", "start_date", "end_date"]
     missing_fields = [field for field in required_fields if data.get(field) in [None, ""]]
     if missing_fields:
         return jsonify({"msg": f"Missing required fields: {', '.join(missing_fields)}"}), 400
 
     stage = data.get("stage")
-    if not _validate_stage(stage):
+    normalized_stage = _normalize_stage(stage)
+    if not normalized_stage:
         return jsonify({"msg": "Invalid stage. Use Planned, In Progress, or Completed"}), 400
 
+    start_date = normalize_iso_date(data.get("start_date"))
+    end_date = normalize_iso_date(data.get("end_date"))
+    if not start_date:
+        return jsonify({"msg": "Invalid start_date. Use YYYY-MM-DD"}), 400
+    if not end_date:
+        return jsonify({"msg": "Invalid end_date. Use YYYY-MM-DD"}), 400
+
+    quantity = parse_int_value(data.get("quantity"))
+    if quantity is None:
+        return jsonify({"msg": "quantity must be a valid number"}), 400
+    if quantity < 0:
+        return jsonify({"msg": "quantity must be greater than or equal to 0"}), 400
+
+    batch_id = str(data.get("batch_id") or "").strip().upper()
+    if len(batch_id) > MAX_BATCH_ID_LENGTH:
+        return jsonify({"msg": "batch_id must be at most 40 characters"}), 400
+
     payload = {
-        "batch_id": str(data.get("batch_id")).strip().upper(),
+        "batch_id": batch_id,
         "product_id": maybe_object_id(data.get("product_id")),
-        "quantity": to_int(data.get("quantity")),
-        "stage": stage,
-        "start_date": normalize_iso_date(data.get("start_date")),
-        "end_date": normalize_iso_date(data.get("end_date")),
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow(),
+        "quantity": quantity,
+        "stage": normalized_stage,
+        "start_date": start_date,
+        "end_date": end_date,
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc),
     }
 
     if data.get("staff_id") not in [None, ""]:
@@ -121,38 +116,53 @@ def create_batch():
 
 
 @production_bp.route("/<id>", methods=["PUT"])
-@role_required("admin", "manager")
+@role_required("admin", "manager", "staff")
 def update_batch(id):
     object_id = parse_object_id(id)
     if not object_id:
         return jsonify({"msg": "Invalid production id"}), 400
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"msg": "Invalid JSON payload"}), 400
     update_fields = {}
 
     if "batch_id" in data:
-        update_fields["batch_id"] = str(data.get("batch_id")).strip().upper()
+        batch_id = str(data.get("batch_id") or "").strip().upper()
+        if not batch_id:
+            return jsonify({"msg": "batch_id cannot be empty"}), 400
+        if len(batch_id) > MAX_BATCH_ID_LENGTH:
+            return jsonify({"msg": "batch_id must be at most 40 characters"}), 400
+        update_fields["batch_id"] = batch_id
     if "product_id" in data:
         update_fields["product_id"] = maybe_object_id(data.get("product_id"))
     if "quantity" in data:
-        update_fields["quantity"] = to_int(data.get("quantity"))
+        quantity = parse_int_value(data.get("quantity"))
+        if quantity is None:
+            return jsonify({"msg": "quantity must be a valid number"}), 400
+        if quantity < 0:
+            return jsonify({"msg": "quantity must be greater than or equal to 0"}), 400
+        update_fields["quantity"] = quantity
     if "stage" in data:
-        stage = data.get("stage")
-        if not _validate_stage(stage):
+        normalized_stage = _normalize_stage(data.get("stage"))
+        if not normalized_stage:
             return jsonify({"msg": "Invalid stage. Use Planned, In Progress, or Completed"}), 400
-        update_fields["stage"] = stage
+        update_fields["stage"] = normalized_stage
     if "start_date" in data:
-        update_fields["start_date"] = normalize_iso_date(data.get("start_date"))
+        start_date = normalize_iso_date(data.get("start_date"))
+        if not start_date:
+            return jsonify({"msg": "Invalid start_date. Use YYYY-MM-DD"}), 400
+        update_fields["start_date"] = start_date
     if "end_date" in data:
-        update_fields["end_date"] = normalize_iso_date(data.get("end_date"))
-    if "staff_id" in data:
-        staff_id = data.get("staff_id")
-        update_fields["staff_id"] = maybe_object_id(staff_id) if staff_id not in [None, ""] else None
+        end_date = normalize_iso_date(data.get("end_date"))
+        if not end_date:
+            return jsonify({"msg": "Invalid end_date. Use YYYY-MM-DD"}), 400
+        update_fields["end_date"] = end_date
 
     if not update_fields:
         return jsonify({"msg": "No updatable fields provided"}), 400
 
-    update_fields["updated_at"] = datetime.utcnow()
+    update_fields["updated_at"] = datetime.now(timezone.utc)
 
     try:
         result = production_collection.update_one({"_id": object_id}, {"$set": update_fields})
@@ -270,7 +280,7 @@ def report_batch_issue(id):
 
 
 @production_bp.route("/<id>", methods=["DELETE"])
-@admin_required
+@role_required("admin", "manager", "staff")
 def delete_batch(id):
     object_id = parse_object_id(id)
     if not object_id:

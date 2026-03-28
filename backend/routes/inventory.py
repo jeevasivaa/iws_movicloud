@@ -1,10 +1,14 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import Blueprint, jsonify, request
 
 from utils.db import get_db
-from utils.decorators import admin_required, role_required
-from utils.helpers import normalize_iso_date, parse_object_id, to_int
+from utils.decorators import role_required
+from utils.helpers import normalize_choice, normalize_iso_date, parse_int_value, parse_object_id
+
+MAX_ITEM_NAME_LENGTH = 120
+MAX_TYPE_LENGTH = 60
+MAX_WAREHOUSE_LOCATION_LENGTH = 60
 
 inventory_bp = Blueprint("inventory", __name__)
 db = get_db()
@@ -18,15 +22,8 @@ def _serialize_item(item):
     return item
 
 
-def _serialize_movement(movement):
-    movement["_id"] = str(movement["_id"])
-    if movement.get("inventory_id") is not None:
-        movement["inventory_id"] = str(movement["inventory_id"])
-    return movement
-
-
-def _validate_status(status):
-    return status in {"Adequate", "Low", "Critical"}
+def _normalize_status(value):
+    return normalize_choice(value, ("Adequate", "Low", "Critical"))
 
 
 def _read_low_stock_threshold(default: int = 100) -> int:
@@ -117,9 +114,11 @@ def get_inventory_movements():
 
 
 @inventory_bp.route("", methods=["POST"])
-@role_required("admin", "manager")
+@role_required("admin", "manager", "staff")
 def create_inventory_item():
-    data = request.get_json() or {}
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"msg": "Invalid JSON payload"}), 400
     required_fields = [
         "item_name",
         "type",
@@ -133,19 +132,48 @@ def create_inventory_item():
         return jsonify({"msg": f"Missing required fields: {', '.join(missing_fields)}"}), 400
 
     status = data.get("status")
-    if not _validate_status(status):
+    normalized_status = _normalize_status(status)
+    if not normalized_status:
         return jsonify({"msg": "Invalid status. Use Adequate, Low, or Critical"}), 400
 
+    expiry_date = normalize_iso_date(data.get("expiry_date"))
+    if not expiry_date:
+        return jsonify({"msg": "Invalid expiry_date. Use YYYY-MM-DD"}), 400
+
+    current_stock = parse_int_value(data.get("current_stock"))
+    if current_stock is None:
+        return jsonify({"msg": "current_stock must be a valid number"}), 400
+    if current_stock < 0:
+        return jsonify({"msg": "current_stock must be greater than or equal to 0"}), 400
+
+    max_capacity = parse_int_value(data.get("max_capacity"))
+    if max_capacity is None:
+        return jsonify({"msg": "max_capacity must be a valid number"}), 400
+    if max_capacity < 0:
+        return jsonify({"msg": "max_capacity must be greater than or equal to 0"}), 400
+
+    item_name = str(data.get("item_name") or "").strip()
+    if len(item_name) > MAX_ITEM_NAME_LENGTH:
+        return jsonify({"msg": "item_name must be at most 120 characters"}), 400
+
+    item_type = str(data.get("type") or "").strip()
+    if len(item_type) > MAX_TYPE_LENGTH:
+        return jsonify({"msg": "type must be at most 60 characters"}), 400
+
+    warehouse_location = str(data.get("warehouse_location") or "").strip()
+    if len(warehouse_location) > MAX_WAREHOUSE_LOCATION_LENGTH:
+        return jsonify({"msg": "warehouse_location must be at most 60 characters"}), 400
+
     payload = {
-        "item_name": str(data.get("item_name")).strip(),
-        "type": str(data.get("type")).strip(),
-        "warehouse_location": str(data.get("warehouse_location")).strip(),
-        "current_stock": to_int(data.get("current_stock")),
-        "max_capacity": to_int(data.get("max_capacity")),
-        "expiry_date": normalize_iso_date(data.get("expiry_date")) if data.get("expiry_date") else None,
-        "status": status,
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow(),
+        "item_name": item_name,
+        "type": item_type,
+        "warehouse_location": warehouse_location,
+        "current_stock": current_stock,
+        "max_capacity": max_capacity,
+        "expiry_date": expiry_date,
+        "status": normalized_status,
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc),
     }
 
     result = inventory_collection.insert_one(payload)
@@ -156,41 +184,67 @@ def create_inventory_item():
 
 
 @inventory_bp.route("/<id>", methods=["PUT"])
-@role_required("admin", "manager")
+@role_required("admin", "manager", "staff")
 def update_inventory_item(id):
     object_id = parse_object_id(id)
     if not object_id:
         return jsonify({"msg": "Invalid inventory id"}), 400
 
-    existing = inventory_collection.find_one({"_id": object_id})
-    if not existing:
-        return jsonify({"msg": "Inventory item not found"}), 404
-
-    data = request.get_json() or {}
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"msg": "Invalid JSON payload"}), 400
     update_fields = {}
 
     if "item_name" in data:
-        update_fields["item_name"] = str(data.get("item_name")).strip()
+        item_name = str(data.get("item_name") or "").strip()
+        if not item_name:
+            return jsonify({"msg": "item_name cannot be empty"}), 400
+        if len(item_name) > MAX_ITEM_NAME_LENGTH:
+            return jsonify({"msg": "item_name must be at most 120 characters"}), 400
+        update_fields["item_name"] = item_name
     if "type" in data:
-        update_fields["type"] = str(data.get("type")).strip()
+        item_type = str(data.get("type") or "").strip()
+        if not item_type:
+            return jsonify({"msg": "type cannot be empty"}), 400
+        if len(item_type) > MAX_TYPE_LENGTH:
+            return jsonify({"msg": "type must be at most 60 characters"}), 400
+        update_fields["type"] = item_type
     if "warehouse_location" in data:
-        update_fields["warehouse_location"] = str(data.get("warehouse_location")).strip()
+        warehouse_location = str(data.get("warehouse_location") or "").strip()
+        if not warehouse_location:
+            return jsonify({"msg": "warehouse_location cannot be empty"}), 400
+        if len(warehouse_location) > MAX_WAREHOUSE_LOCATION_LENGTH:
+            return jsonify({"msg": "warehouse_location must be at most 60 characters"}), 400
+        update_fields["warehouse_location"] = warehouse_location
     if "current_stock" in data:
-        update_fields["current_stock"] = to_int(data.get("current_stock"))
+        current_stock = parse_int_value(data.get("current_stock"))
+        if current_stock is None:
+            return jsonify({"msg": "current_stock must be a valid number"}), 400
+        if current_stock < 0:
+            return jsonify({"msg": "current_stock must be greater than or equal to 0"}), 400
+        update_fields["current_stock"] = current_stock
     if "max_capacity" in data:
-        update_fields["max_capacity"] = to_int(data.get("max_capacity"))
+        max_capacity = parse_int_value(data.get("max_capacity"))
+        if max_capacity is None:
+            return jsonify({"msg": "max_capacity must be a valid number"}), 400
+        if max_capacity < 0:
+            return jsonify({"msg": "max_capacity must be greater than or equal to 0"}), 400
+        update_fields["max_capacity"] = max_capacity
     if "expiry_date" in data:
-        update_fields["expiry_date"] = normalize_iso_date(data.get("expiry_date"))
+        expiry_date = normalize_iso_date(data.get("expiry_date"))
+        if not expiry_date:
+            return jsonify({"msg": "Invalid expiry_date. Use YYYY-MM-DD"}), 400
+        update_fields["expiry_date"] = expiry_date
     if "status" in data:
-        status = data.get("status")
-        if not _validate_status(status):
+        normalized_status = _normalize_status(data.get("status"))
+        if not normalized_status:
             return jsonify({"msg": "Invalid status. Use Adequate, Low, or Critical"}), 400
-        update_fields["status"] = status
+        update_fields["status"] = normalized_status
 
     if not update_fields:
         return jsonify({"msg": "No updatable fields provided"}), 400
 
-    update_fields["updated_at"] = datetime.utcnow()
+    update_fields["updated_at"] = datetime.now(timezone.utc)
 
     result = inventory_collection.update_one({"_id": object_id}, {"$set": update_fields})
     if result.matched_count == 0:
@@ -293,7 +347,7 @@ def deduct_inventory_item():
 
 
 @inventory_bp.route("/<id>", methods=["DELETE"])
-@admin_required
+@role_required("admin", "manager", "staff")
 def delete_inventory_item(id):
     object_id = parse_object_id(id)
     if not object_id:
