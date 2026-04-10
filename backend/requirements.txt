@@ -6,3 +6,10 @@ python-dotenv
 pymongo[srv]
 flask-bcrypt
 marshmallow
+fastapi
+uvicorn[standard]
+motor
+python-jose[cryptography]
+passlib[bcrypt]
+pydantic-settings
+email-validator
