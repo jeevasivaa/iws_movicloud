@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Edit, Eye, Plus } from 'lucide-react'
 import toast from 'react-hot-toast'
+import Badge from '../components/shared/Badge'
 import Modal from '../components/shared/Modal'
 import { useAuth } from '../context/useAuth'
 import apiClient, { getErrorMessage } from '../services/apiClient'
@@ -17,10 +18,10 @@ const EMPTY_SUPPLIER_FORM = {
   status: 'Active',
 }
 
-function getStatusClasses(status) {
-  if (status === 'Active') return 'bg-green-100 text-green-700'
-  if (status === 'Under Review') return 'bg-amber-100 text-amber-700'
-  return 'bg-slate-100 text-slate-600'
+function getStatusTone(status) {
+  if (status === 'Active') return 'success'
+  if (status === 'Under Review') return 'warning'
+  return 'neutral'
 }
 
 function formatCurrency(value) {
@@ -296,9 +297,7 @@ function Suppliers() {
                     {row.updated_at ? String(row.updated_at).slice(0, 10) : 'N/A'}
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${getStatusClasses(row.status)}`}>
-                      {row.status}
-                    </span>
+                    <Badge tone={getStatusTone(row.status)}>{row.status}</Badge>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-1">

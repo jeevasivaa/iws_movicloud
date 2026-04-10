@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, Boxes, PackageCheck, PackageX, Pencil, Plus } from 'lucide-react'
 import toast from 'react-hot-toast'
+import Badge from '../components/shared/Badge'
 import Modal from '../components/shared/Modal'
 import { useAuth } from '../context/useAuth'
 import apiClient, { getErrorMessage } from '../services/apiClient'
@@ -46,11 +47,11 @@ function deriveUiStatus(row) {
   return 'In Stock'
 }
 
-function getStatusClasses(status) {
-  if (status === 'In Stock') return 'bg-emerald-100 text-emerald-700'
-  if (status === 'Low Stock') return 'bg-amber-100 text-amber-700'
-  if (status === 'Expiring Soon') return 'bg-yellow-100 text-yellow-700'
-  return 'bg-red-100 text-red-700'
+function getStatusTone(status) {
+  if (status === 'In Stock') return 'success'
+  if (status === 'Low Stock') return 'warning'
+  if (status === 'Expiring Soon') return 'warning'
+  return 'danger'
 }
 
 function buildSku(itemName) {
@@ -357,9 +358,7 @@ function Inventory() {
                     <td className="px-6 py-4 text-sm font-medium text-slate-900">{Number(row.current_stock || 0)} units</td>
                     <td className="px-6 py-4 text-sm text-slate-700">{minRequired} units</td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${getStatusClasses(uiStatus)}`}>
-                        {uiStatus}
-                      </span>
+                      <Badge tone={getStatusTone(uiStatus)}>{uiStatus}</Badge>
                     </td>
                     <td className="px-6 py-4">
                       <button

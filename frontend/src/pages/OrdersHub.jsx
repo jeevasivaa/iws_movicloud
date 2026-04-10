@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Edit, Eye, Plus } from 'lucide-react'
 import toast from 'react-hot-toast'
+import Badge from '../components/shared/Badge'
 import Modal from '../components/shared/Modal'
 import { useAuth } from '../context/useAuth'
 import apiClient, { getErrorMessage } from '../services/apiClient'
@@ -14,11 +15,11 @@ function generateOrderId() {
   return `ORD-${year}-${randomToken}`
 }
 
-function getStatusClasses(status) {
-  if (status === 'Processing') return 'bg-amber-100 text-amber-700'
-  if (status === 'Shipped') return 'bg-blue-100 text-blue-700'
-  if (status === 'Pending') return 'bg-red-100 text-red-700'
-  return 'bg-green-100 text-green-700'
+function getStatusTone(status) {
+  if (status === 'Processing') return 'warning'
+  if (status === 'Shipped') return 'info'
+  if (status === 'Pending') return 'danger'
+  return 'success'
 }
 
 function getModalStatusClasses(status) {
@@ -371,21 +372,15 @@ function OrdersHub() {
                   <td className="px-6 py-5 text-sm font-medium text-gray-900">{formatCurrency(row.total_amount)}</td>
 
                   <td className="px-6 py-5">
-                    <span className={`inline-flex rounded-full px-3 py-1 text-sm font-medium ${getStatusClasses(row.status)}`}>
+                    <Badge tone={getStatusTone(row.status)} className="text-sm">
                       {row.status}
-                    </span>
+                    </Badge>
                   </td>
 
                   <td className="px-6 py-5">
-                    <span
-                      className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${
-                        row.status === 'Delivered' || row.status === 'Shipped'
-                          ? 'bg-emerald-100 text-emerald-700'
-                          : 'bg-amber-100 text-amber-700'
-                      }`}
-                    >
+                    <Badge tone={row.status === 'Delivered' || row.status === 'Shipped' ? 'success' : 'warning'}>
                       {row.status === 'Delivered' || row.status === 'Shipped' ? 'Paid' : 'Pending'}
-                    </span>
+                    </Badge>
                   </td>
 
                   <td className="px-6 py-5">

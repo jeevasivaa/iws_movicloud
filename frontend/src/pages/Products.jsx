@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Edit, Plus, Search, Trash2, Upload } from 'lucide-react'
 import toast from 'react-hot-toast'
+import Badge from '../components/shared/Badge'
 import Modal from '../components/shared/Modal'
 import { useAuth } from '../context/useAuth'
 import apiClient, { getErrorMessage } from '../services/apiClient'
@@ -24,10 +25,10 @@ const IMAGE_POOL = [
   'https://images.unsplash.com/photo-1495195134817-aeb325a55b65?auto=format&fit=crop&w=80&q=80',
 ]
 
-function getStatusClasses(status) {
-  if (status === 'Active') return 'bg-emerald-100 text-emerald-700'
-  if (status === 'Low Stock') return 'bg-amber-100 text-amber-700'
-  return 'bg-red-100 text-red-700'
+function getStatusTone(status) {
+  if (status === 'Active') return 'success'
+  if (status === 'Low Stock') return 'warning'
+  return 'danger'
 }
 
 function formatCurrency(value) {
@@ -332,9 +333,7 @@ function Products() {
                   <td className="px-6 py-4 text-sm font-medium text-slate-900">{formatCurrency(row.price)}</td>
                   <td className="px-6 py-4 text-sm text-slate-700">{Number(row.stock || 0)} portions</td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${getStatusClasses(row.status)}`}>
-                      {row.status}
-                    </span>
+                    <Badge tone={getStatusTone(row.status)}>{row.status}</Badge>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
