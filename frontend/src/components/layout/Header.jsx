@@ -29,7 +29,7 @@ function Header({ onToggleSidebar }) {
               <Search className="h-4 w-4 text-slate-400" strokeWidth={2.5} />
             </div>
             <input
-              className="w-72 rounded-xl border border-slate-200 bg-slate-50 py-2 pl-10 pr-4 text-sm font-semibold text-slate-900 placeholder-slate-400 transition-all focus:bg-white focus:ring-4 focus:ring-blue-500/5 focus:border-[#1e3a8a] focus:outline-none"
+              className="w-72 rounded-xl border border-slate-200 bg-slate-50 py-2 pl-10 pr-4 text-sm font-semibold text-slate-900 placeholder-slate-400 transition-all focus:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:outline-none"
               placeholder="Search dashboard..."
               type="search"
             />
@@ -37,9 +37,9 @@ function Header({ onToggleSidebar }) {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4">
-          <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-50 border border-teal-100 mr-2">
-            <Zap size={14} className="text-teal-600 fill-teal-600" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-teal-700">System Active</span>
+          <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-100 mr-2">
+            <Zap size={14} className="text-emerald-600 fill-emerald-600" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">System Active</span>
           </div>
 
           <button
@@ -59,7 +59,7 @@ function Header({ onToggleSidebar }) {
               <p className="text-xs font-black text-slate-900 tracking-tight leading-none mb-1">{user?.name}</p>
               <p className="text-[9px] font-black uppercase tracking-[0.1em] text-slate-400">{ROLE_LABELS[user?.role]}</p>
             </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-[#1e3a8a] border border-slate-200 transition-all duration-300 group-hover:bg-[#1e3a8a] group-hover:text-white group-hover:border-[#1e3a8a] shadow-sm overflow-hidden relative">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-emerald-700 border border-slate-200 transition-all duration-300 group-hover:bg-emerald-600 group-hover:text-white group-hover:border-emerald-600 shadow-sm overflow-hidden relative">
               <User size={20} strokeWidth={2} />
             </div>
           </div>

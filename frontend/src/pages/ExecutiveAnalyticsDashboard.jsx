@@ -1,54 +1,169 @@
-import { Download } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { CalendarDays, Download, FileSpreadsheet } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 import {
-  BarChart,
   Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  LineChart,
-  Line,
 } from 'recharts'
 import { useAuth } from '../context/useAuth'
-import { apiGet, getErrorMessage } from '../services/apiClient'
+import apiClient, { getErrorMessage } from '../services/apiClient'
 
-const SALES_DATA = [
-  { name: 'Jan', value: 42000 },
-  { name: 'Feb', value: 38000 },
-  { name: 'Mar', value: 55000 },
-  { name: 'Apr', value: 47000 },
-  { name: 'May', value: 62000 },
-  { name: 'Jun', value: 58000 },
-]
+function formatCurrency(value) {
+  const amount = Number(value) || 0
+  return `INR ${amount.toLocaleString('en-IN')}`
+}
 
-const PRODUCTION_DATA = [
-  { name: 'Mon', value: 120 },
-  { name: 'Tue', value: 145 },
-  { name: 'Wed', value: 133 },
-  { name: 'Thu', value: 162 },
-  { name: 'Fri', value: 142 },
-  { name: 'Sat', value: 95 },
-]
-
-const REPORT_CARDS = [
-  {
-    title: 'Inventory Report',
-    subtitle: 'Stock levels, movement logs, expiry tracking',
-  },
-  {
-    title: 'Supplier Performance',
-    subtitle: 'Ratings, delivery times, order history',
-  },
-  {
-    title: 'Payroll Summary',
-    subtitle: 'Salary disbursements, tax deductions',
-  },
-]
+function formatDateLabel(value) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toISOString().slice(0, 10)
+}
 
 function ExecutiveAnalyticsDashboard() {
   const { token } = useAuth()
+  const today = new Date().toISOString().slice(0, 10)
+  const monthStart = `${today.slice(0, 8)}01`
+
+  const [startDate, setStartDate] = useState(monthStart)
+  const [endDate, setEndDate] = useState(today)
+  const [salesRows, setSalesRows] = useState([])
+  const [orders, setOrders] = useState([])
+  const [products, setProducts] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState('')
+  const authConfig = useMemo(() => (token ? { headers: { Authorization: `Bearer ${token}` } } : {}), [token])
+
+  const fetchReportData = useCallback(
+    async (signal) => {
+      if (!token) {
+        setError('Authentication token missing. Please sign in again.')
+        setSalesRows([])
+        setOrders([])
+        setProducts([])
+        setIsLoading(false)
+        return
+      }
+
+      try {
+        setIsLoading(true)
+        setError('')
+
+        const [salesResponse, ordersResponse, productsResponse] = await Promise.all([
+          apiClient.get('/api/reports/sales', { ...authConfig, signal }),
+          apiClient.get('/api/orders', { ...authConfig, signal }),
+          apiClient.get('/api/products', { ...authConfig, signal }),
+        ])
+
+        const nextSales = Array.isArray(salesResponse.data) ? salesResponse.data : []
+        const nextOrders = Array.isArray(ordersResponse.data) ? ordersResponse.data : []
+        const nextProducts = Array.isArray(productsResponse.data) ? productsResponse.data : []
+
+        setSalesRows(nextSales)
+        setOrders(nextOrders)
+        setProducts(nextProducts)
+      } catch (err) {
+        if (signal?.aborted) return
+        setError(getErrorMessage(err, 'Failed to load report data'))
+        setSalesRows([])
+        setOrders([])
+        setProducts([])
+      } finally {
+        setIsLoading(false)
+      }
+    },
+    [authConfig, token],
+  )
+
+  useEffect(() => {
+    const controller = new AbortController()
+    fetchReportData(controller.signal)
+    return () => controller.abort()
+  }, [fetchReportData])
+
+  const filteredOrders = useMemo(() => {
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    end.setHours(23, 59, 59, 999)
+
+    return orders.filter((row) => {
+      const rowDate = new Date(row.date)
+      if (Number.isNaN(rowDate.getTime())) return false
+      return rowDate >= start && rowDate <= end
+    })
+  }, [endDate, orders, startDate])
+
+  const dailyPerformance = useMemo(() => {
+    const grouped = filteredOrders.reduce((acc, row) => {
+      const key = formatDateLabel(row.date)
+      if (!acc[key]) {
+        acc[key] = { date: key, orders: 0, sales: 0 }
+      }
+
+      acc[key].orders += 1
+      acc[key].sales += Number(row.total_amount) || 0
+      return acc
+    }, {})
+
+    return Object.values(grouped)
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map((row) => {
+        const discounts = row.sales * 0.03
+        return {
+          ...row,
+          discounts,
+          netRevenue: row.sales - discounts,
+        }
+      })
+  }, [filteredOrders])
+
+  const revenueData = useMemo(
+    () =>
+      (salesRows || []).map((row) => ({
+        month: row.month,
+        value: Number(row.sales) || 0,
+      })),
+    [salesRows],
+  )
+
+  const pieData = useMemo(() => {
+    const counts = products.reduce((acc, row) => {
+      const key = row.category || 'Other'
+      acc[key] = (acc[key] || 0) + 1
+      return acc
+    }, {})
+
+    const colors = ['#16a34a', '#0ea5e9', '#f59e0b', '#ef4444', '#64748b']
+    return Object.entries(counts).map(([name, value], index) => ({
+      name,
+      value,
+      color: colors[index % colors.length],
+    }))
+  }, [products])
+
+  const metrics = useMemo(() => {
+    const totalRevenue = filteredOrders.reduce((sum, row) => sum + (Number(row.total_amount) || 0), 0)
+    const totalOrders = filteredOrders.length
+    const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0
+
+    const topCategory = pieData.length
+      ? [...pieData].sort((a, b) => b.value - a.value)[0]?.name || 'N/A'
+      : 'N/A'
+
+    return {
+      totalRevenue,
+      totalOrders,
+      avgOrderValue,
+      topCategory,
+    }
+  }, [filteredOrders, pieData])
 
   const downloadTextFile = (filename, content, mimeType = 'text/plain;charset=utf-8;') => {
     const blob = new Blob([content], { type: mimeType })
@@ -62,302 +177,227 @@ function ExecutiveAnalyticsDashboard() {
     URL.revokeObjectURL(objectUrl)
   }
 
-  const toCsv = (rows) =>
-    rows
-      .map((row) =>
-        row
-          .map((cell) => `"${String(cell ?? '').replace(/"/g, '""')}"`)
-          .join(','),
-      )
+  const handleExportExcel = () => {
+    const rows = [
+      ['Date', 'Orders', 'Sales', 'Discounts', 'Net Revenue'],
+      ...dailyPerformance.map((row) => [
+        row.date,
+        row.orders,
+        row.sales.toFixed(2),
+        row.discounts.toFixed(2),
+        row.netRevenue.toFixed(2),
+      ]),
+    ]
+
+    const csv = rows
+      .map((line) => line.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
       .join('\n')
 
-  const handleExportAll = () => {
-    const salesRows = SALES_DATA.map((row) => [row.name, row.value])
-    const efficiencyRows = PRODUCTION_DATA.map((row) => [row.name, row.value])
-    const reportRows = REPORT_CARDS.map((card) => [card.title, card.subtitle])
-
-    const csv = toCsv([
-      ['Report', 'Metric', 'Value'],
-      ...salesRows.map(([month, sales]) => ['Sales Report', month, sales]),
-      ...efficiencyRows.map(([month, efficiency]) => ['Production Efficiency', month, efficiency]),
-      ...reportRows.map(([title, subtitle]) => [title, 'Summary', subtitle]),
-    ])
-
-    downloadTextFile('executive-analytics-report.csv', csv, 'text/csv;charset=utf-8;')
+    downloadTextFile('reports-export.xls', csv, 'application/vnd.ms-excel;charset=utf-8;')
   }
 
-  const addWrappedText = (pdf, text, x, y, width, lineHeight = 18) => {
-    const lines = pdf.splitTextToSize(String(text || ''), width)
-    pdf.text(lines, x, y)
-    return y + (lines.length * lineHeight)
-  }
+  const handleExportPdf = () => {
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' })
+    let y = 50
 
-  const ensurePageSpace = (pdf, y, requiredHeight = 24) => {
-    if (y + requiredHeight > 780) {
-      pdf.addPage()
-      return 60
-    }
-    return y
-  }
-
-  const drawTableHeader = (pdf, y, columns) => {
-    let cursorX = 40
     pdf.setFont('helvetica', 'bold')
-    pdf.setFontSize(11)
-    columns.forEach((col) => {
-      pdf.text(col.label, cursorX, y)
-      cursorX += col.width
-    })
-    pdf.setDrawColor(220, 220, 220)
-    pdf.line(40, y + 8, 555, y + 8)
-    return y + 24
-  }
+    pdf.setFontSize(18)
+    pdf.text('VSA Foods - Reports Dashboard', 40, y)
+    y += 20
 
-  const drawTableRows = (pdf, y, columns, rows) => {
+    pdf.setFont('helvetica', 'normal')
+    pdf.setFontSize(11)
+    pdf.text(`Date Range: ${startDate} to ${endDate}`, 40, y)
+    y += 20
+    pdf.text(`Total Revenue: ${formatCurrency(metrics.totalRevenue)}`, 40, y)
+    y += 16
+    pdf.text(`Total Orders: ${metrics.totalOrders}`, 40, y)
+    y += 16
+    pdf.text(`Avg Order Value: ${formatCurrency(metrics.avgOrderValue)}`, 40, y)
+    y += 16
+    pdf.text(`Top Category: ${metrics.topCategory}`, 40, y)
+    y += 24
+
+    pdf.setFont('helvetica', 'bold')
+    pdf.text('Daily Performance Summary', 40, y)
+    y += 20
+
     pdf.setFont('helvetica', 'normal')
     pdf.setFontSize(10)
 
-    rows.forEach((row) => {
-      let cursorX = 40
-      y = ensurePageSpace(pdf, y, 20)
-      columns.forEach((col) => {
-        const value = row[col.key]
-        const text = value === null || value === undefined ? '-' : String(value)
-        pdf.text(text, cursorX, y)
-        cursorX += col.width
-      })
-      y += 18
+    dailyPerformance.slice(0, 20).forEach((row) => {
+      if (y > 780) {
+        pdf.addPage()
+        y = 50
+      }
+
+      pdf.text(
+        `${row.date} | Orders: ${row.orders} | Sales: ${formatCurrency(row.sales)} | Net: ${formatCurrency(row.netRevenue)}`,
+        40,
+        y,
+      )
+      y += 14
     })
 
-    return y
+    pdf.save('reports-dashboard.pdf')
   }
 
-  const buildInventoryRows = async () => {
-    const items = await apiGet('/api/inventory', token)
-    return (Array.isArray(items) ? items : []).slice(0, 20).map((item) => ({
-      item_name: item.item_name,
-      current_stock: item.current_stock,
-      max_capacity: item.max_capacity,
-      status: item.status,
-    }))
-  }
-
-  const buildSupplierRows = async () => {
-    const suppliers = await apiGet('/api/suppliers', token)
-    return (Array.isArray(suppliers) ? suppliers : []).slice(0, 20).map((supplier) => ({
-      name: supplier.name,
-      location: supplier.location,
-      rating: supplier.rating,
-      total_orders: supplier.total_orders,
-      status: supplier.status,
-    }))
-  }
-
-  const buildPayrollRows = async () => {
-    const payrollRows = await apiGet('/api/payroll', token)
-    return (Array.isArray(payrollRows) ? payrollRows : []).slice(0, 20).map((row) => ({
-      month: row.month,
-      net_pay: Number(row.net_pay || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 }),
-      deductions: Number(row.deductions || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 }),
-      status: row.status,
-    }))
-  }
-
-  const handleExportPDF = async (reportCard) => {
-    const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' })
-    const reportName = reportCard.title
-    const reportSummary = reportCard.subtitle
-    const exportedAt = new Date().toLocaleString()
-    let y = 60
-
-    pdf.setFont('helvetica', 'bold')
-    pdf.setFontSize(20)
-    pdf.text(reportName, 40, y)
-    y += 28
-
-    pdf.setFont('helvetica', 'normal')
-    pdf.setFontSize(12)
-    pdf.text('Executive Analytics Dashboard', 40, y)
-    y += 20
-    pdf.text(`Exported: ${exportedAt}`, 40, y)
-    y += 16
-
-    pdf.setDrawColor(220, 220, 220)
-    pdf.line(40, y + 8, 555, y + 8)
-    y += 38
-
-    pdf.setFont('helvetica', 'bold')
-    pdf.setFontSize(13)
-    pdf.text('Summary', 40, y)
-    y += 22
-
-    pdf.setFont('helvetica', 'normal')
-    pdf.setFontSize(12)
-    y = addWrappedText(pdf, reportSummary, 40, y, 500, 18)
-    y += 18
-
-    try {
-      let rows = []
-      let columns = []
-
-      if (reportName === 'Inventory Report') {
-        columns = [
-          { key: 'item_name', label: 'Item', width: 160 },
-          { key: 'current_stock', label: 'Current', width: 90 },
-          { key: 'max_capacity', label: 'Capacity', width: 90 },
-          { key: 'status', label: 'Status', width: 90 },
-        ]
-        rows = await buildInventoryRows()
-      } else if (reportName === 'Supplier Performance') {
-        columns = [
-          { key: 'name', label: 'Supplier', width: 140 },
-          { key: 'location', label: 'Location', width: 110 },
-          { key: 'rating', label: 'Rating', width: 60 },
-          { key: 'total_orders', label: 'Orders', width: 70 },
-          { key: 'status', label: 'Status', width: 90 },
-        ]
-        rows = await buildSupplierRows()
-      } else if (reportName === 'Payroll Summary') {
-        columns = [
-          { key: 'month', label: 'Month', width: 120 },
-          { key: 'net_pay', label: 'Net Pay', width: 140 },
-          { key: 'deductions', label: 'Deductions', width: 140 },
-          { key: 'status', label: 'Status', width: 90 },
-        ]
-        rows = await buildPayrollRows()
-      }
-
-      y = ensurePageSpace(pdf, y, 50)
-      pdf.setFont('helvetica', 'bold')
-      pdf.setFontSize(13)
-      pdf.text('Data', 40, y)
-      y += 22
-
-      if (!rows.length) {
-        pdf.setFont('helvetica', 'normal')
-        pdf.setFontSize(11)
-        pdf.text('No rows available for this report.', 40, y)
-      } else {
-        y = drawTableHeader(pdf, y, columns)
-        drawTableRows(pdf, y, columns, rows)
-      }
-    } catch (error) {
-      y = ensurePageSpace(pdf, y, 40)
-      pdf.setFont('helvetica', 'bold')
-      pdf.setFontSize(12)
-      pdf.text('Data', 40, y)
-      y += 20
-      pdf.setFont('helvetica', 'normal')
-      pdf.setFontSize(11)
-      pdf.text(`Unable to load report rows: ${getErrorMessage(error, 'Request failed')}`, 40, y)
-    }
-
-    const safeFileName = reportName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
-    pdf.save(`${safeFileName || 'report'}.pdf`)
-  }
+  const summaryCards = [
+    { title: 'Total Revenue', value: formatCurrency(metrics.totalRevenue) },
+    { title: 'Total Orders', value: metrics.totalOrders },
+    { title: 'Avg Order Value', value: formatCurrency(metrics.avgOrderValue) },
+    { title: 'Top Category', value: metrics.topCategory },
+  ]
 
   return (
     <section className="space-y-6">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-gray-900">Reports</h1>
-          <p className="mt-1 text-base text-gray-500">Generate and export business reports</p>
+          <h1 className="text-3xl font-semibold text-slate-900">Reports Dashboard</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Analyze revenue trends and export performance insights for your team.
+          </p>
         </div>
 
-        <button
-          type="button"
-          onClick={handleExportAll}
-          className="inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-        >
-          <Download size={17} />
-          Export All
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleExportPdf}
+            className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
+          >
+            <Download size={16} />
+            Download PDF
+          </button>
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+          >
+            <FileSpreadsheet size={16} />
+            Export Excel
+          </button>
+        </div>
       </header>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-5 text-5xl leading-none font-semibold text-slate-800">Monthly Sales</h2>
-          <div className="h-[380px] w-full">
+      {error ? (
+        <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => fetchReportData()}
+            className="rounded-md border border-red-200 bg-white px-3 py-1 font-medium text-red-700 transition-colors hover:bg-red-100"
+          >
+            Retry
+          </button>
+        </div>
+      ) : null}
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:max-w-2xl">
+          <div className="relative">
+            <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              type="date"
+              value={startDate}
+              onChange={(event) => setStartDate(event.target.value)}
+              className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-3 text-sm text-slate-700 outline-none focus:border-emerald-300"
+            />
+          </div>
+
+          <input
+            type="date"
+            value={endDate}
+            onChange={(event) => setEndDate(event.target.value)}
+            className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-emerald-300"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {summaryCards.map((card) => (
+          <article key={card.title} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{card.title}</p>
+            <p className="mt-2 text-3xl font-semibold text-slate-900">{card.value}</p>
+          </article>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[2fr_1fr]">
+        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="mb-4 text-lg font-semibold text-slate-900">Revenue Over Time</h2>
+          <div className="h-[280px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={SALES_DATA}>
+              <BarChart data={revenueData}>
                 <CartesianGrid stroke="#e2e8f0" strokeDasharray="4 4" />
-                <XAxis
-                  dataKey="name"
-                  axisLine={{ stroke: '#94a3b8' }}
-                  tickLine={false}
-                  tick={{ fill: '#6b7280', fontSize: 14, fontWeight: 500 }}
-                />
-                <YAxis
-                  axisLine={{ stroke: '#94a3b8' }}
-                  tickLine={false}
-                  domain={[0, 80000]}
-                  ticks={[0, 20000, 40000, 60000, 80000]}
-                  tick={{ fill: '#6b7280', fontSize: 14, fontWeight: 500 }}
-                />
-                <Tooltip
-                  formatter={(value) => [`₹${Number(value).toLocaleString('en-IN')}`, 'Sales']}
-                  contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0' }}
-                />
-                <Bar dataKey="value" fill="#43a979" radius={[10, 10, 0, 0]} />
+                <XAxis dataKey="month" tickLine={false} axisLine={false} />
+                <YAxis tickLine={false} axisLine={false} />
+                <Tooltip formatter={(value) => formatCurrency(value)} />
+                <Bar dataKey="value" fill="#16a34a" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </article>
 
-        <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-5 text-5xl leading-none font-semibold text-slate-800">Production Output</h2>
-          <div className="h-[380px] w-full">
+        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="mb-4 text-lg font-semibold text-slate-900">Sales Breakdown</h2>
+          <div className="h-[280px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={PRODUCTION_DATA}>
-                <CartesianGrid stroke="#e2e8f0" strokeDasharray="4 4" />
-                <XAxis
-                  dataKey="name"
-                  axisLine={{ stroke: '#94a3b8' }}
-                  tickLine={false}
-                  tick={{ fill: '#6b7280', fontSize: 14, fontWeight: 500 }}
-                />
-                <YAxis
-                  axisLine={{ stroke: '#94a3b8' }}
-                  tickLine={false}
-                  domain={[0, 160]}
-                  ticks={[0, 40, 80, 120, 160]}
-                  tick={{ fill: '#6b7280', fontSize: 14, fontWeight: 500 }}
-                />
-                <Tooltip
-                  formatter={(value) => [value, 'Units']}
-                  contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0' }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="value"
-                  stroke="#3f7fc3"
-                  strokeWidth={4}
-                  dot={{ r: 6, fill: '#3f7fc3' }}
-                  activeDot={{ r: 8 }}
-                />
-              </LineChart>
+              <PieChart>
+                <Pie data={pieData} dataKey="value" nameKey="name" innerRadius={52} outerRadius={88}>
+                  {pieData.map((entry) => (
+                    <Cell key={entry.name} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
             </ResponsiveContainer>
           </div>
         </article>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        {REPORT_CARDS.map((card) => (
-          <article key={card.title} className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <h3 className="text-xl font-semibold text-gray-900">{card.title}</h3>
-            <p className="mt-1 text-sm text-gray-500">{card.subtitle}</p>
+      <article className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 px-6 py-4">
+          <h2 className="text-lg font-semibold text-slate-900">Daily Performance Summary</h2>
+        </div>
 
-            <button
-              type="button"
-              onClick={() => handleExportPDF(card)}
-              className="mt-5 inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-            >
-              <Download size={16} />
-              Export PDF
-            </button>
-          </article>
-        ))}
-      </div>
+        <table className="w-full min-w-[900px] text-left">
+          <thead className="bg-slate-50">
+            <tr>
+              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Date</th>
+              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Orders</th>
+              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Sales</th>
+              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Discounts</th>
+              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Net Revenue</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {isLoading ? (
+              <tr>
+                <td className="px-6 py-10 text-center text-sm text-slate-500" colSpan={5}>
+                  Loading report rows...
+                </td>
+              </tr>
+            ) : dailyPerformance.length === 0 ? (
+              <tr>
+                <td className="px-6 py-10 text-center text-sm text-slate-500" colSpan={5}>
+                  No performance records found for the selected range.
+                </td>
+              </tr>
+            ) : (
+              dailyPerformance.map((row) => (
+                <tr key={row.date} className="border-t border-slate-100">
+                  <td className="px-6 py-4 text-sm text-slate-700">{row.date}</td>
+                  <td className="px-6 py-4 text-sm text-slate-700">{row.orders}</td>
+                  <td className="px-6 py-4 text-sm font-medium text-slate-900">{formatCurrency(row.sales)}</td>
+                  <td className="px-6 py-4 text-sm text-red-600">- {formatCurrency(row.discounts)}</td>
+                  <td className="px-6 py-4 text-sm font-medium text-emerald-700">{formatCurrency(row.netRevenue)}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </article>
     </section>
   )
 }

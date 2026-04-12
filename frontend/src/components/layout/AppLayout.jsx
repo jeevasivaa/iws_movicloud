@@ -28,7 +28,7 @@ function AppLayout() {
         
         <main 
           id="main-content"
-          className="h-screen overflow-y-auto pb-16 pt-20 custom-scrollbar lg:pb-0"
+          className="h-screen overflow-y-auto pt-20 custom-scrollbar"
         >
           <div className="mx-auto max-w-[1600px] px-6 py-10 md:px-10 lg:py-12">
             <div className="page-enter">
