@@ -1,44 +1,57 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import {
   BarChart3,
   Bell,
   ClipboardList,
   CreditCard,
+  DollarSign,
   Factory,
   LayoutDashboard,
   Package2,
   Settings,
   Sparkles,
   Truck,
+  TrendingUp,
   Users,
   Wallet,
   Warehouse,
   X,
   ShieldCheck,
+  LogOut,
+  User,
 } from 'lucide-react'
 import { getNavigationForRole } from '../../constants/navigation'
 import { useAuth } from '../../context/useAuth'
+import { ROLE_LABELS } from '../../constants/roles'
 
 const iconMap = {
   BarChart3,
   Bell,
   ClipboardList,
   CreditCard,
+  DollarSign,
   Factory,
   LayoutDashboard,
   Package2,
   Settings,
   Sparkles,
   Truck,
+  TrendingUp,
   Users,
   Wallet,
   Warehouse,
 }
 
 function Sidebar({ mobileOpen, onClose, userRole }) {
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
   const effectiveRole = userRole || user?.role
   const visibleNavigationGroups = getNavigationForRole(effectiveRole)
+
+  const handleLogout = async () => {
+    await logout()
+    navigate('/auth', { replace: true })
+  }
 
   return (
     <>
@@ -75,7 +88,7 @@ function Sidebar({ mobileOpen, onClose, userRole }) {
         </div>
 
         {/* Navigation */}
-        <nav className="h-[calc(100vh-5rem)] overflow-y-auto px-0 py-8 custom-scrollbar">
+        <nav className="h-[calc(100vh-12rem)] overflow-y-auto px-0 py-8 custom-scrollbar">
           {visibleNavigationGroups.map((group) => (
             <div key={group.group} className="mb-8">
               <p className="px-6 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-4">
@@ -112,6 +125,27 @@ function Sidebar({ mobileOpen, onClose, userRole }) {
             </div>
           ))}
         </nav>
+
+        {/* User Profile Section at Bottom */}
+        <div className="absolute bottom-0 left-0 right-0 border-t border-slate-200 bg-white p-4">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-[#1e3a8a] border border-slate-200 shadow-sm">
+              <User size={18} strokeWidth={2} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-black text-slate-900 truncate">{user?.name}</p>
+              <p className="text-[9px] font-black uppercase tracking-[0.05em] text-slate-400 truncate">{ROLE_LABELS[user?.role]}</p>
+            </div>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-2 rounded-lg py-2 px-3 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 transition-all hover:border-red-200"
+            type="button"
+          >
+            <LogOut size={14} strokeWidth={2} />
+            Logout
+          </button>
+        </div>
       </aside>
     </>
   )

@@ -29,6 +29,8 @@ const StaffDashboard = lazy(() => import('../pages/StaffDashboard'))
 const StaffProduction = lazy(() => import('../pages/StaffProduction'))
 const StaffInventory = lazy(() => import('../pages/StaffInventory'))
 const StaffOrders = lazy(() => import('../pages/StaffOrders'))
+const CashFlowForecasting = lazy(() => import('../pages/CashFlowForecasting'))
+const TaxPlanning = lazy(() => import('../pages/TaxPlanning'))
 
 function RouteLoadingFallback() {
   return (
@@ -89,6 +91,8 @@ function AppRouter() {
             <Route path="/invoices" element={<Invoices />} />
             <Route path="/expenses" element={<Expenses />} />
             <Route path="/payroll" element={<Payroll />} />
+            <Route path="/cash-flow-forecasting" element={<CashFlowForecasting />} />
+            <Route path="/tax-planning" element={<TaxPlanning />} />
             <Route path="/executive-analytics" element={<ExecutiveAnalyticsDashboard />} />
           </Route>
 

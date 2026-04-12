@@ -21,6 +21,8 @@ export const navigationGroups = [
     items: [
       { label: 'Billing', path: '/billing', icon: 'CreditCard', allowedRoles: ['admin', 'finance'] },
       { label: 'Payroll', path: '/payroll', icon: 'Wallet', allowedRoles: ['admin', 'finance'] },
+      { label: 'Cash Flow Forecast', path: '/cash-flow-forecasting', icon: 'TrendingUp', allowedRoles: ['admin', 'finance'] },
+      { label: 'Tax Planning', path: '/tax-planning', icon: 'DollarSign', allowedRoles: ['admin', 'finance'] },
       { label: 'Reports', path: '/executive-analytics', icon: 'BarChart3', allowedRoles: ['admin', 'manager', 'finance'] },
     ],
   },

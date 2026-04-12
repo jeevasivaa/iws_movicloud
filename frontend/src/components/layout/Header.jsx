@@ -1,7 +1,6 @@
-import { Bell, LogOut, Menu, Search, User, Zap } from 'lucide-react'
+import { Bell, LogOut, Menu, Search, Zap } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/useAuth'
-import { ROLE_LABELS } from '../../constants/roles'
 
 function Header({ onToggleSidebar }) {
   const navigate = useNavigate()
@@ -37,11 +36,6 @@ function Header({ onToggleSidebar }) {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4">
-          <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-50 border border-teal-100 mr-2">
-            <Zap size={14} className="text-teal-600 fill-teal-600" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-teal-700">System Active</span>
-          </div>
-
           <button
             className="group relative rounded-xl p-2.5 text-slate-400 hover:bg-slate-50 hover:text-teal-600 transition-all duration-300 active:scale-95 border border-transparent hover:border-slate-200"
             type="button"
@@ -54,18 +48,8 @@ function Header({ onToggleSidebar }) {
 
           <div className="h-6 w-px bg-slate-200 mx-1 hidden sm:block" />
 
-          <div className="flex items-center gap-3 pl-2 group cursor-pointer">
-            <div className="hidden text-right sm:block">
-              <p className="text-xs font-black text-slate-900 tracking-tight leading-none mb-1">{user?.name}</p>
-              <p className="text-[9px] font-black uppercase tracking-[0.1em] text-slate-400">{ROLE_LABELS[user?.role]}</p>
-            </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-[#1e3a8a] border border-slate-200 transition-all duration-300 group-hover:bg-[#1e3a8a] group-hover:text-white group-hover:border-[#1e3a8a] shadow-sm overflow-hidden relative">
-              <User size={20} strokeWidth={2} />
-            </div>
-          </div>
-
           <button
-            className="ml-2 hidden rounded-xl p-2.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition-all duration-300 active:scale-95 border border-transparent hover:border-red-100 lg:inline-flex"
+            className="hidden rounded-xl p-2.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition-all duration-300 active:scale-95 border border-transparent hover:border-red-100 lg:inline-flex"
             type="button"
             onClick={handleLogout}
             title="Logout"
