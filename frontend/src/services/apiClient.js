@@ -7,28 +7,33 @@ const apiClient = axios.create({
   timeout: 30000,
 })
 
+// Attach token automatically
 apiClient.interceptors.request.use((config) => {
   const nextConfig = { ...config }
+
   if (!nextConfig.headers) {
     nextConfig.headers = {}
   }
 
   const storage = window.localStorage.getItem('iws_auth_session')
+
   if (storage) {
     try {
       const parsed = JSON.parse(storage)
       const token = parsed?.token
+
       if (typeof token === 'string' && token.trim()) {
         nextConfig.headers.Authorization = `Bearer ${token.trim()}`
       }
     } catch {
-      // Ignore malformed local storage value.
+      // ignore invalid JSON
     }
   }
 
   return nextConfig
 })
 
+// Handle response errors
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -36,11 +41,14 @@ apiClient.interceptors.response.use(
       window.localStorage.removeItem('iws_auth_session')
     }
     return Promise.reject(error)
-  },
+  }
 )
 
+// Error helper
 export function getErrorMessage(error, fallback = 'Something went wrong') {
-  const serverMsg = error?.response?.data?.msg || error?.response?.data?.message
+  const serverMsg =
+    error?.response?.data?.msg || error?.response?.data?.message
+
   if (typeof serverMsg === 'string' && serverMsg.trim()) {
     return serverMsg
   }
@@ -52,6 +60,7 @@ export function getErrorMessage(error, fallback = 'Something went wrong') {
   return fallback
 }
 
+// Generic request
 export async function apiRequest(path, options = {}) {
   const {
     method = 'GET',
@@ -62,6 +71,7 @@ export async function apiRequest(path, options = {}) {
   } = options
 
   const requestHeaders = { ...headers }
+
   if (token) {
     requestHeaders.Authorization = `Bearer ${token}`
   }
@@ -77,6 +87,7 @@ export async function apiRequest(path, options = {}) {
   return response.data
 }
 
+// Helper methods
 export function apiGet(path, token, options = {}) {
   return apiRequest(path, { ...options, method: 'GET', token })
 }
