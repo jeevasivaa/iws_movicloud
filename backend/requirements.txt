@@ -6,3 +6,4 @@ python-dotenv
 pymongo[srv]
 flask-bcrypt
 marshmallow
+gunicorn
