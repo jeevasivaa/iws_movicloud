@@ -1,8 +1,6 @@
-import React, { useMemo, useState } from 'react'
+import React, { useState } from 'react'
 import {
-  CheckCircle2,
   Clock3,
-  Circle,
   Plus,
   IndianRupee,
   ShoppingCart,
@@ -10,7 +8,6 @@ import {
   TriangleAlert,
   X,
 } from 'lucide-react'
-import toast from 'react-hot-toast'
 import {
   BarChart,
   Bar,
@@ -25,7 +22,7 @@ import {
   Pie,
   Cell,
 } from 'recharts'
-import Modal from '../components/shared/Modal'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/useAuth'
 
 const SALES_DATA = [
@@ -119,45 +116,11 @@ const KPI_ITEMS = [
   },
 ]
 
-const QUICK_ACTIONS = [
-  {
-    id: 'create-order',
-    icon: '📦',
-    label: 'Create New Order',
-    checklist: ['Choose client account', 'Add line items and quantities', 'Review totals and taxes'],
-  },
-  {
-    id: 'start-production',
-    icon: '🏭',
-    label: 'Start Production Batch',
-    checklist: ['Assign batch and line', 'Confirm raw material readiness', 'Capture planned completion date'],
-  },
-  {
-    id: 'generate-invoice',
-    icon: '💰',
-    label: 'Generate Invoice',
-    checklist: ['Select client and order reference', 'Validate billing amount', 'Set payment status and due date'],
-  },
-  {
-    id: 'create-purchase-order',
-    icon: '🛒',
-    label: 'Create Purchase Order',
-    checklist: ['Select supplier', 'Add requested materials', 'Confirm expected delivery window'],
-  },
-  {
-    id: 'add-staff-member',
-    icon: '👤',
-    label: 'Add Staff Member',
-    checklist: ['Enter profile information', 'Set role and department', 'Confirm active status'],
-  },
-]
-
 const Dashboard = () => {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [showScheduleModal, setShowScheduleModal] = useState(false)
   const [showQuickActionMenu, setShowQuickActionMenu] = useState(false)
-  const [activeChecklist, setActiveChecklist] = useState(null)
-  const [checklistItems, setChecklistItems] = useState([])
 
   const handleViewSchedule = () => {
     setShowScheduleModal(true)
@@ -167,49 +130,21 @@ const Dashboard = () => {
     setShowQuickActionMenu(!showQuickActionMenu)
   }
 
-  const closeChecklistModal = () => {
-    setActiveChecklist(null)
-    setChecklistItems([])
-  }
-
-  const handleQuickActionClick = (actionId) => {
-    const action = QUICK_ACTIONS.find((entry) => entry.id === actionId)
-    if (!action) {
-      return
+  const handleQuickActionClick = (action) => {
+    const routeByAction = {
+      'Create New Order': '/orders',
+      'Start Production Batch': '/production-control',
+      'Generate Invoice': '/invoices',
+      'Create Purchase Order': '/orders',
+      'Add Staff Member': '/employees',
     }
 
-    setActiveChecklist(action)
-    setChecklistItems(
-      action.checklist.map((label, index) => ({
-        id: `${action.id}-${index}`,
-        label,
-        completed: false,
-      })),
-    )
+    const targetRoute = routeByAction[action]
+    if (targetRoute) {
+      navigate(targetRoute)
+    }
+
     setShowQuickActionMenu(false)
-  }
-
-  const toggleChecklistItem = (itemId) => {
-    setChecklistItems((current) =>
-      current.map((item) => (item.id === itemId ? { ...item, completed: !item.completed } : item)),
-    )
-  }
-
-  const completedChecklistItems = useMemo(
-    () => checklistItems.filter((item) => item.completed).length,
-    [checklistItems],
-  )
-
-  const allChecklistItemsDone = checklistItems.length > 0 && completedChecklistItems === checklistItems.length
-
-  const handleCompleteChecklist = () => {
-    if (!allChecklistItemsDone) {
-      toast.error('Please complete every checklist item before finishing.')
-      return
-    }
-
-    toast.success(`${activeChecklist?.label || 'Quick action'} is ready to proceed.`)
-    closeChecklistModal()
   }
 
   return (
@@ -241,16 +176,41 @@ const Dashboard = () => {
             {showQuickActionMenu && (
               <div className="absolute right-0 mt-2 w-56 rounded-lg border border-slate-200 bg-white shadow-lg z-10">
                 <div className="p-2">
-                  {QUICK_ACTIONS.map((action) => (
-                    <button
-                      key={action.id}
-                      type="button"
-                      onClick={() => handleQuickActionClick(action.id)}
-                      className="w-full px-4 py-3 text-left text-sm font-medium text-slate-700 rounded-md hover:bg-slate-100 transition-colors"
-                    >
-                      {action.icon} {action.label}
-                    </button>
-                  ))}
+                  <button
+                    type="button"
+                    onClick={() => handleQuickActionClick('Create New Order')}
+                    className="w-full px-4 py-3 text-left text-sm font-medium text-slate-700 rounded-md hover:bg-slate-100 transition-colors"
+                  >
+                    📦 Create New Order
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickActionClick('Start Production Batch')}
+                    className="w-full px-4 py-3 text-left text-sm font-medium text-slate-700 rounded-md hover:bg-slate-100 transition-colors"
+                  >
+                    🏭 Start Production Batch
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickActionClick('Generate Invoice')}
+                    className="w-full px-4 py-3 text-left text-sm font-medium text-slate-700 rounded-md hover:bg-slate-100 transition-colors"
+                  >
+                    💰 Generate Invoice
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickActionClick('Create Purchase Order')}
+                    className="w-full px-4 py-3 text-left text-sm font-medium text-slate-700 rounded-md hover:bg-slate-100 transition-colors"
+                  >
+                    🛒 Create Purchase Order
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickActionClick('Add Staff Member')}
+                    className="w-full px-4 py-3 text-left text-sm font-medium text-slate-700 rounded-md hover:bg-slate-100 transition-colors"
+                  >
+                    👤 Add Staff Member
+                  </button>
                 </div>
               </div>
             )}
@@ -426,54 +386,10 @@ const Dashboard = () => {
       {/* Close menu when clicking outside */}
       {showQuickActionMenu && (
         <div
-          className="fixed inset-0 z-[5]"
+          className="fixed inset-0 z-5"
           onClick={() => setShowQuickActionMenu(false)}
         />
       )}
-
-      <Modal
-        isOpen={Boolean(activeChecklist)}
-        onClose={closeChecklistModal}
-        title={`${activeChecklist?.label || 'Quick Action'} Checklist`}
-        description="Complete each step to unlock this action."
-      >
-        <div className="space-y-5">
-          <div className="modal-shell space-y-2">
-            {checklistItems.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => toggleChecklistItem(item.id)}
-                className={`flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${item.completed
-                  ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                  : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                  }`}
-              >
-                {item.completed ? <CheckCircle2 size={18} /> : <Circle size={18} />}
-                <span>{item.label}</span>
-              </button>
-            ))}
-          </div>
-
-          <div className="modal-panel bg-gradient-to-r from-slate-50 to-white text-sm text-slate-600">
-            {completedChecklistItems}/{checklistItems.length} checklist items completed.
-          </div>
-
-          <div className="modal-actions">
-            <button type="button" onClick={closeChecklistModal} className="modal-btn-secondary">
-              Close
-            </button>
-            <button
-              type="button"
-              onClick={handleCompleteChecklist}
-              disabled={!allChecklistItemsDone}
-              className="modal-btn-primary"
-            >
-              Mark as Ready
-            </button>
-          </div>
-        </div>
-      </Modal>
 
       {/* Schedule Modal */}
       {showScheduleModal && (

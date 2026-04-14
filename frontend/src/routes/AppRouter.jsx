@@ -2,13 +2,11 @@ import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import AppLayout from '../components/layout/AppLayout'
 import AdminLayout from '../components/layout/AdminLayout'
-import StaffLayout from '../components/layout/StaffLayout'
 import ProtectedRoute from '../components/auth/ProtectedRoute'
 import { useAuth } from '../context/useAuth'
 import { HOME_BY_ROLE, ROLES } from '../constants/roles'
 
 const AuthFlow = lazy(() => import('../pages/AuthFlow'))
-const Dashboard = lazy(() => import('../pages/Dashboard'))
 const FinanceDashboard = lazy(() => import('../pages/FinanceDashboard'))
 const Employees = lazy(() => import('../pages/Employees'))
 const Products = lazy(() => import('../pages/Products'))
@@ -29,9 +27,6 @@ const Marketing = lazy(() => import('../pages/Marketing'))
 const Notifications = lazy(() => import('../pages/Notifications'))
 const Unauthorized = lazy(() => import('../pages/Unauthorized'))
 const StaffDashboard = lazy(() => import('../pages/StaffDashboard'))
-const StaffProduction = lazy(() => import('../pages/StaffProduction'))
-const StaffInventory = lazy(() => import('../pages/StaffInventory'))
-const StaffOrders = lazy(() => import('../pages/StaffOrders'))
 
 function RouteLoadingFallback() {
   return (
@@ -44,7 +39,7 @@ function RouteLoadingFallback() {
 function AppRouter() {
   const { isAuthenticated, user } = useAuth()
   const homeRoute = user ? HOME_BY_ROLE[user.role] || '/dashboard' : '/auth'
-  const ActiveLayout = user?.role === ROLES.ADMIN ? AdminLayout : user?.role === ROLES.STAFF ? StaffLayout : AppLayout
+  const ActiveLayout = user?.role === ROLES.ADMIN ? AdminLayout : AppLayout
 
   return (
     <Suspense fallback={<RouteLoadingFallback />}>
@@ -66,9 +61,13 @@ function AppRouter() {
             <Route path="/employees" element={<Employees />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/marketing" element={<Marketing />} />
+            <Route path="/clients" element={<Clients />} />
+          </Route>
+
+          {/* Product & Supplier Routes */}
+          <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.MANAGER, ROLES.STAFF]} />}>
             <Route path="/products" element={<Products />} />
             <Route path="/suppliers" element={<Suppliers />} />
-            <Route path="/clients" element={<Clients />} />
           </Route>
 
           {/* Analytics Routes (Admin, Manager, Finance) */}
@@ -81,11 +80,9 @@ function AppRouter() {
             <Route
               path="/dashboard"
               element={
-                user?.role === ROLES.STAFF
-                  ? <StaffDashboard />
-                  : user?.role === ROLES.FINANCE
-                    ? <FinanceDashboard />
-                    : <Dashboard />
+                user?.role === ROLES.FINANCE
+                  ? <FinanceDashboard />
+                  : <StaffDashboard />
               }
             />
             <Route path="/notifications" element={<Notifications />} />
@@ -93,11 +90,8 @@ function AppRouter() {
 
           {/* Operations Routes (Admin, Manager, Staff) */}
           <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.MANAGER, ROLES.STAFF]} />}>
-            <Route
-              path="/production-control"
-              element={user?.role === ROLES.STAFF ? <StaffProduction /> : <ProductionControlTower />}
-            />
-            <Route path="/inventory" element={user?.role === ROLES.STAFF ? <StaffInventory /> : <Inventory />} />
+            <Route path="/production-control" element={<ProductionControlTower />} />
+            <Route path="/inventory" element={<Inventory />} />
           </Route>
 
           {/* Finance Routes (Admin, Manager, Finance) */}
@@ -105,6 +99,10 @@ function AppRouter() {
             <Route path="/billing" element={<Billing />} />
             <Route path="/invoices" element={<Invoices />} />
             <Route path="/payroll" element={<Payroll />} />
+          </Route>
+
+          {/* Reports Route */}
+          <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.MANAGER, ROLES.FINANCE, ROLES.STAFF]} />}>
             <Route path="/executive-analytics" element={<ExecutiveAnalyticsDashboard />} />
           </Route>
 
@@ -116,7 +114,7 @@ function AppRouter() {
 
           {/* Orders Routes */}
           <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.MANAGER, ROLES.STAFF, ROLES.CLIENT]} />}>
-            <Route path="/orders" element={user?.role === ROLES.STAFF ? <StaffOrders /> : <OrdersHub />} />
+            <Route path="/orders" element={<OrdersHub />} />
           </Route>
         </Route>
 

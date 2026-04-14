@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Edit, Eye, Package2, Plus, Search, Trash2 } from 'lucide-react'
+import { Edit, Plus, Search, Trash2, Upload } from 'lucide-react'
 import toast from 'react-hot-toast'
+import Badge from '../components/shared/Badge'
 import Modal from '../components/shared/Modal'
 import { useAuth } from '../context/useAuth'
 import apiClient, { getErrorMessage } from '../services/apiClient'
@@ -17,34 +18,30 @@ const EMPTY_FORM = {
   status: STATUS_OPTIONS[0],
 }
 
-function getStatusClasses(status) {
-  if (status === 'Active') return 'bg-green-100 text-green-700'
-  if (status === 'Low Stock') return 'bg-amber-100 text-amber-700'
-  return 'bg-red-100 text-red-700'
+const IMAGE_POOL = [
+  'https://images.unsplash.com/photo-1473093295043-cdd812d0e601?auto=format&fit=crop&w=80&q=80',
+  'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=80&q=80',
+  'https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&w=80&q=80',
+  'https://images.unsplash.com/photo-1495195134817-aeb325a55b65?auto=format&fit=crop&w=80&q=80',
+]
+
+function getStatusTone(status) {
+  if (status === 'Active') return 'success'
+  if (status === 'Low Stock') return 'warning'
+  return 'danger'
 }
 
 function formatCurrency(value) {
   const amount = Number(value) || 0
-  return `₹${amount.toLocaleString('en-IN')}`
+  return `INR ${amount.toLocaleString('en-IN')}`
 }
 
-function formatDate(value) {
-  if (!value) {
-    return 'N/A'
-  }
-
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) {
-    return String(value)
-  }
-
-  return date.toLocaleString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+function buildCsv(rows) {
+  const header = ['Name', 'SKU', 'Category', 'Price', 'Stock', 'Status']
+  const body = rows.map((row) => [row.name, row.sku, row.category, row.price, row.stock, row.status])
+  return [header, ...body]
+    .map((line) => line.map((cell) => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(','))
+    .join('\n')
 }
 
 function Products() {
@@ -52,15 +49,13 @@ function Products() {
   const [query, setQuery] = useState('')
   const [products, setProducts] = useState([])
   const [isLoading, setIsLoading] = useState(true)
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState(null)
-  const [viewingProduct, setViewingProduct] = useState(null)
   const [deletingProduct, setDeletingProduct] = useState(null)
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [formData, setFormData] = useState(EMPTY_FORM)
   const [error, setError] = useState('')
-  const isModalOpen = isAddModalOpen || Boolean(editingProduct)
   const authConfig = useMemo(() => (token ? { headers: { Authorization: `Bearer ${token}` } } : {}), [token])
 
   const fetchProducts = useCallback(
@@ -75,13 +70,10 @@ function Products() {
       try {
         setIsLoading(true)
         setError('')
-
         const response = await apiClient.get('/api/products', { ...authConfig, signal })
         setProducts(Array.isArray(response.data) ? response.data : [])
       } catch (err) {
-        if (signal?.aborted) {
-          return
-        }
+        if (signal?.aborted) return
         setProducts([])
         setError(getErrorMessage(err, 'Failed to load products'))
       } finally {
@@ -94,48 +86,51 @@ function Products() {
   useEffect(() => {
     const controller = new AbortController()
     fetchProducts(controller.signal)
-
-    return () => {
-      controller.abort()
-    }
+    return () => controller.abort()
   }, [fetchProducts])
 
   const filteredRows = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
+    if (!normalizedQuery) return products
 
-    if (!normalizedQuery) {
-      return products
-    }
-
-    return products.filter((product) =>
-      [product.name, product.sku, product.category, product.status].join(' ').toLowerCase().includes(normalizedQuery),
+    return products.filter((row) =>
+      [row.name, row.sku, row.category, row.status].join(' ').toLowerCase().includes(normalizedQuery),
     )
-  }, [query, products])
+  }, [products, query])
 
-  const closeModal = () => {
-    setIsAddModalOpen(false)
-    setEditingProduct(null)
-    setFormData(EMPTY_FORM)
-  }
-
-  const openDeleteWarning = (product) => {
-    setDeletingProduct(product)
-  }
-
-  const closeDeleteWarning = () => {
-    setDeletingProduct(null)
-  }
+  const stats = useMemo(
+    () => [
+      {
+        title: 'Total Menu Items',
+        value: products.length,
+        iconWrap: 'bg-emerald-100 text-emerald-700',
+      },
+      {
+        title: 'Active Products',
+        value: products.filter((row) => row.status === 'Active').length,
+        iconWrap: 'bg-blue-100 text-blue-700',
+      },
+      {
+        title: 'Low Stock Alerts',
+        value: products.filter((row) => row.status === 'Low Stock').length,
+        iconWrap: 'bg-amber-100 text-amber-700',
+      },
+      {
+        title: 'Out of Stock',
+        value: products.filter((row) => row.status === 'Out of Stock').length,
+        iconWrap: 'bg-red-100 text-red-700',
+      },
+    ],
+    [products],
+  )
 
   const openAddModal = () => {
-    setViewingProduct(null)
     setEditingProduct(null)
     setFormData(EMPTY_FORM)
-    setIsAddModalOpen(true)
+    setIsModalOpen(true)
   }
 
   const openEditModal = (product) => {
-    setViewingProduct(null)
-    setIsAddModalOpen(false)
     setEditingProduct(product)
     setFormData({
       name: product.name || '',
@@ -145,16 +140,26 @@ function Products() {
       stock: product.stock ?? '',
       status: product.status || STATUS_OPTIONS[0],
     })
+    setIsModalOpen(true)
   }
 
-  const openViewModal = (product) => {
-    setIsAddModalOpen(false)
+  const closeModal = () => {
     setEditingProduct(null)
-    setViewingProduct(product)
+    setFormData(EMPTY_FORM)
+    setIsModalOpen(false)
   }
 
-  const closeViewModal = () => {
-    setViewingProduct(null)
+  const exportCsv = () => {
+    const csv = buildCsv(filteredRows)
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'products-export.csv'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
   }
 
   const handleChange = (field, value) => {
@@ -164,17 +169,17 @@ function Products() {
     }))
   }
 
-  const handleDeleteProduct = async (product) => {
-    if (!product?._id) {
+  const handleDeleteProduct = async () => {
+    if (!deletingProduct?._id) {
       toast.error('Unable to delete product')
       return
     }
 
     try {
       setIsDeleting(true)
-      await apiClient.delete(`/api/products/${product._id}`, authConfig)
+      await apiClient.delete(`/api/products/${deletingProduct._id}`, authConfig)
       toast.success('Product deleted successfully')
-      closeDeleteWarning()
+      setDeletingProduct(null)
       fetchProducts()
     } catch (err) {
       toast.error(getErrorMessage(err, 'Failed to delete product'))
@@ -195,7 +200,7 @@ function Products() {
       status: formData.status,
     }
 
-    if (!payload.name || !payload.sku || !payload.category || Number.isNaN(payload.price) || Number.isNaN(payload.stock)) {
+    if (!payload.name || !payload.sku || Number.isNaN(payload.price) || Number.isNaN(payload.stock)) {
       toast.error('Please fill all required product fields')
       return
     }
@@ -221,20 +226,33 @@ function Products() {
 
   return (
     <section className="space-y-6">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-gray-900">Products</h1>
-          <p className="mt-1 text-base text-gray-500">Manage your product catalogue and inventory</p>
+          <h1 className="text-3xl font-semibold text-slate-900">Products Management</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Manage menu catalog, pricing, and stock posture from one workspace.
+          </p>
         </div>
 
-        <button
-          type="button"
-          onClick={openAddModal}
-          className="inline-flex items-center justify-center gap-2 rounded-md bg-emerald-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-600"
-        >
-          <Plus size={16} />
-          Add Product
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={exportCsv}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+          >
+            <Upload size={16} />
+            Export CSV
+          </button>
+
+          <button
+            type="button"
+            onClick={openAddModal}
+            className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
+          >
+            <Plus size={16} />
+            Add New Product
+          </button>
+        </div>
       </header>
 
       {error ? (
@@ -250,189 +268,117 @@ function Products() {
         </div>
       ) : null}
 
-      <div className="relative w-full">
-        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {stats.map((card) => (
+          <article key={card.title} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{card.title}</p>
+              <p className="mt-2 text-3xl font-semibold text-slate-900">{card.value}</p>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <div className="relative w-full max-w-xl">
+        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         <input
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search products..."
-          className="h-11 w-full rounded-lg border border-gray-200 bg-white pl-11 pr-4 text-sm text-gray-900 placeholder:text-gray-500 outline-none transition-colors focus:border-emerald-300"
+          placeholder="Search menu items, SKUs..."
+          className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-11 pr-4 text-sm text-slate-900 placeholder:text-slate-500 outline-none focus:border-emerald-300"
         />
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
-        <table className="w-full min-w-[900px] text-left">
-          <thead className="bg-gray-50">
+      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <table className="w-full min-w-[980px] text-left">
+          <thead className="bg-slate-50">
             <tr>
-              <th className="px-6 py-4 text-sm font-medium text-gray-500">Product</th>
-              <th className="px-6 py-4 text-sm font-medium text-gray-500">SKU</th>
-              <th className="px-6 py-4 text-sm font-medium text-gray-500">Category</th>
-              <th className="px-6 py-4 text-sm font-medium text-gray-500">Price (₹)</th>
-              <th className="px-6 py-4 text-sm font-medium text-gray-500">Stock</th>
-              <th className="px-6 py-4 text-sm font-medium text-gray-500">Status</th>
-              <th className="px-6 py-4 text-sm font-medium text-gray-500">Actions</th>
+              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Item Image</th>
+              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Item Name</th>
+              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Category</th>
+              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Selling Price</th>
+              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Stock Level</th>
+              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Status</th>
+              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Actions</th>
             </tr>
           </thead>
 
           <tbody>
             {isLoading ? (
               <tr>
-                <td className="px-6 py-10 text-center text-sm text-gray-500" colSpan={7}>
+                <td className="px-6 py-10 text-center text-sm text-slate-500" colSpan={7}>
                   Loading products...
                 </td>
               </tr>
-            ) : (
-              filteredRows.map((row) => (
-              <tr key={row._id || row.sku} className="border-b border-gray-100 last:border-b-0">
-                <td className="px-6 py-5">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-md bg-emerald-100">
-                      <Package2 size={15} className="text-emerald-700" />
-                    </div>
-                    <span className="text-sm font-medium text-gray-900">{row.name}</span>
-                  </div>
-                </td>
-
-                <td className="px-6 py-5 text-sm text-gray-500">{row.sku}</td>
-                <td className="px-6 py-5 text-sm text-gray-900">{row.category}</td>
-                <td className="px-6 py-5 text-sm font-medium text-gray-900">{formatCurrency(row.price)}</td>
-                <td className="px-6 py-5 text-sm text-gray-900">{(Number(row.stock) || 0).toLocaleString('en-IN')}</td>
-
-                <td className="px-6 py-5">
-                  <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${getStatusClasses(row.status)}`}>
-                    {row.status}
-                  </span>
-                </td>
-
-                <td className="px-6 py-5">
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => openViewModal(row)}
-                      className="rounded-md p-1.5 text-blue-600 transition-colors hover:bg-blue-50 hover:text-blue-700"
-                      aria-label={`View ${row.name}`}
-                    >
-                      <Eye size={16} />
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => openEditModal(row)}
-                      className="rounded-md p-1.5 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
-                      aria-label={`Edit ${row.name}`}
-                    >
-                      <Edit size={16} />
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => openDeleteWarning(row)}
-                      className="rounded-md p-1.5 text-red-600 transition-colors hover:bg-red-50 hover:text-red-700"
-                      aria-label={`Delete ${row.name}`}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
+            ) : filteredRows.length === 0 ? (
+              <tr>
+                <td className="px-6 py-10 text-center text-sm text-slate-500" colSpan={7}>
+                  No products found.
                 </td>
               </tr>
-            ))
+            ) : (
+              filteredRows.map((row, index) => (
+                <tr key={row._id || row.sku} className="border-t border-slate-100">
+                  <td className="px-6 py-4">
+                    <img
+                      src={IMAGE_POOL[index % IMAGE_POOL.length]}
+                      alt={row.name || 'Food item'}
+                      className="h-11 w-11 rounded-lg object-cover"
+                      loading="lazy"
+                    />
+                  </td>
+                  <td className="px-6 py-4 text-sm font-semibold text-slate-900">{row.name}</td>
+                  <td className="px-6 py-4 text-sm text-slate-700">{row.category}</td>
+                  <td className="px-6 py-4 text-sm font-medium text-slate-900">{formatCurrency(row.price)}</td>
+                  <td className="px-6 py-4 text-sm text-slate-700">{Number(row.stock || 0)} portions</td>
+                  <td className="px-6 py-4">
+                    <Badge tone={getStatusTone(row.status)}>{row.status}</Badge>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => openEditModal(row)}
+                        className="rounded-md p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800"
+                        aria-label={`Edit ${row.name}`}
+                      >
+                        <Edit size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeletingProduct(row)}
+                        className="rounded-md p-1.5 text-red-600 transition-colors hover:bg-red-50"
+                        aria-label={`Delete ${row.name}`}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
             )}
           </tbody>
         </table>
-
-        {!isLoading && filteredRows.length === 0 ? (
-          <div className="px-6 py-10 text-center text-sm text-gray-500">No products found for this search.</div>
-        ) : null}
       </div>
 
       <Modal
         isOpen={Boolean(deletingProduct)}
-        title="Warning: Delete Product"
-        description="This permanently removes the product from your catalog."
-        onClose={closeDeleteWarning}
+        title="Delete Product"
+        description="This permanently removes the selected item."
+        onClose={() => setDeletingProduct(null)}
       >
         <div className="space-y-4">
           <div className="modal-panel border-red-200 bg-red-50 text-sm text-red-700">
-            You are about to delete{' '}
-            <span className="font-semibold">{deletingProduct?.name || 'this product'}</span>.
-            {' '}This action cannot be undone.
+            You are about to delete <span className="font-semibold">{deletingProduct?.name || 'this product'}</span>.
           </div>
 
           <div className="modal-actions">
-            <button
-              type="button"
-              onClick={closeDeleteWarning}
-              className="modal-btn-secondary"
-            >
+            <button type="button" onClick={() => setDeletingProduct(null)} className="modal-btn-secondary">
               Cancel
             </button>
-            <button
-              type="button"
-              onClick={() => handleDeleteProduct(deletingProduct)}
-              disabled={isDeleting}
-              className="modal-btn-danger"
-            >
-              {isDeleting ? 'Deleting...' : 'Delete Product'}
-            </button>
-          </div>
-        </div>
-      </Modal>
-
-      <Modal
-        isOpen={Boolean(viewingProduct)}
-        title="Product Properties"
-        description="Read-only product profile and audit timestamps."
-        onClose={closeViewModal}
-      >
-        <div className="space-y-5">
-          <div className="modal-panel border-emerald-100 bg-emerald-50/70">
-            <p className="text-sm text-emerald-800">{viewingProduct?.name || 'Product'}</p>
-            <p className="mt-1 text-lg font-semibold text-emerald-900">{viewingProduct?.sku || 'N/A'}</p>
-          </div>
-
-          <dl className="modal-data-grid text-sm">
-            <div className="modal-data-item">
-              <dt className="modal-data-label">Category</dt>
-              <dd className="modal-data-value">{viewingProduct?.category || 'N/A'}</dd>
-            </div>
-            <div className="modal-data-item">
-              <dt className="modal-data-label">Price</dt>
-              <dd className="modal-data-value">{formatCurrency(viewingProduct?.price)}</dd>
-            </div>
-            <div className="modal-data-item">
-              <dt className="modal-data-label">Current Stock</dt>
-              <dd className="modal-data-value">{(Number(viewingProduct?.stock) || 0).toLocaleString('en-IN')}</dd>
-            </div>
-            <div className="modal-data-item">
-              <dt className="modal-data-label">Status</dt>
-              <dd className="mt-1">
-                <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getStatusClasses(viewingProduct?.status)}`}>
-                  {viewingProduct?.status || 'N/A'}
-                </span>
-              </dd>
-            </div>
-            <div className="modal-data-item sm:col-span-2">
-              <dt className="modal-data-label">Product ID</dt>
-              <dd className="modal-data-value break-all">{viewingProduct?._id || 'N/A'}</dd>
-            </div>
-            <div className="modal-data-item">
-              <dt className="modal-data-label">Created</dt>
-              <dd className="modal-data-value">{formatDate(viewingProduct?.created_at)}</dd>
-            </div>
-            <div className="modal-data-item">
-              <dt className="modal-data-label">Last Updated</dt>
-              <dd className="modal-data-value">{formatDate(viewingProduct?.updated_at)}</dd>
-            </div>
-          </dl>
-
-          <div className="modal-actions">
-            <button
-              type="button"
-              onClick={closeViewModal}
-              className="modal-btn-secondary"
-            >
-              Close
+            <button type="button" onClick={handleDeleteProduct} disabled={isDeleting} className="modal-btn-danger">
+              {isDeleting ? 'Deleting...' : 'Delete'}
             </button>
           </div>
         </div>
@@ -441,14 +387,14 @@ function Products() {
       <Modal
         isOpen={isModalOpen}
         title={editingProduct ? 'Edit Product' : 'Add Product'}
-        description="Capture product profile, pricing, and stock posture."
+        description="Manage menu item details and stock status."
         onClose={closeModal}
       >
         <form onSubmit={handleSaveProduct} className="space-y-5">
           <div className="modal-shell space-y-4">
             <div className="space-y-2">
               <label htmlFor="product-name" className="modal-label">
-                Product Name
+                Item Name
               </label>
               <input
                 id="product-name"
@@ -495,7 +441,7 @@ function Products() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <label htmlFor="product-price" className="modal-label">
-                  Price (₹)
+                  Selling Price
                 </label>
                 <input
                   id="product-price"
@@ -511,7 +457,7 @@ function Products() {
 
               <div className="space-y-2">
                 <label htmlFor="product-stock" className="modal-label">
-                  Current Stock
+                  Stock Level
                 </label>
                 <input
                   id="product-stock"
@@ -546,18 +492,10 @@ function Products() {
           </div>
 
           <div className="modal-actions">
-            <button
-              type="button"
-              onClick={closeModal}
-              className="modal-btn-secondary"
-            >
+            <button type="button" onClick={closeModal} className="modal-btn-secondary">
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="modal-btn-primary"
-            >
+            <button type="submit" disabled={isSaving} className="modal-btn-primary">
               {isSaving ? 'Saving...' : 'Save Product'}
             </button>
           </div>

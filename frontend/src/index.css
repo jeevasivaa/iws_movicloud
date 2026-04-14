@@ -1,17 +1,20 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --brand-primary: 30 58 138; /* Deep Trust Blue */
-    --brand-secondary: 13 148 136; /* Natural Teal/Green */
+    --brand-primary: 22 163 74; /* Primary Green */
+    --brand-secondary: 21 128 61; /* Deep Green */
     --bg-main: 249 250 251; /* bg-gray-50 */
     --radius-xl: 0.75rem;
   }
 
   body {
     @apply bg-gray-50 text-slate-900 antialiased font-sans;
+    font-family: 'Inter', 'Poppins', ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
@@ -31,10 +34,10 @@
     @apply bg-white/70 backdrop-blur-md border border-white/40 shadow-sm;
   }
 
-  /* Primary Button - Deep Trust Blue */
+  /* Primary Button - Green */
   .btn-primary {
-    @apply bg-[#1e3a8a] text-white font-bold py-2.5 px-6 rounded-xl transition-all duration-300 
-           hover:bg-[#172554] active:scale-[0.98] shadow-sm flex items-center justify-center gap-2;
+    @apply bg-emerald-600 text-white font-bold py-2.5 px-6 rounded-xl transition-all duration-300 
+           hover:bg-emerald-700 active:scale-[0.98] shadow-sm flex items-center justify-center gap-2;
   }
 
   /* Secondary Button - Light Gray/White */
@@ -66,7 +69,7 @@
 
   .input-field {
     @apply w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all 
-           focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none placeholder:text-slate-400;
+           focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none placeholder:text-slate-400;
   }
 
   .custom-scrollbar::-webkit-scrollbar {

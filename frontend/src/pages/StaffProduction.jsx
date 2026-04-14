@@ -166,7 +166,7 @@ function StaffProduction() {
   return (
     <section className="space-y-5">
       <header>
-        <h1 className="text-3xl font-black text-slate-900 sm:text-4xl">Production Execution</h1>
+        <h1 className="text-3xl font-semibold text-slate-900 sm:text-4xl">Production Execution</h1>
         <p className="mt-1 text-lg font-semibold text-slate-600">Assigned batches and floor actions for this shift.</p>
       </header>
 
@@ -176,7 +176,7 @@ function StaffProduction() {
           <button
             type="button"
             onClick={loadBatches}
-            className="rounded-xl border border-red-200 bg-white px-4 py-2 font-black text-red-700 hover:bg-red-100"
+            className="rounded-xl border border-red-200 bg-white px-4 py-2 font-semibold text-red-700 hover:bg-red-100"
           >
             Retry
           </button>
@@ -200,14 +200,14 @@ function StaffProduction() {
         <article className="space-y-5 rounded-2xl border border-emerald-200 bg-white p-5 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="space-y-1">
-              <p className="text-sm font-black uppercase tracking-[0.2em] text-emerald-600">Active Batch</p>
-              <h2 className="text-2xl font-black text-slate-900 sm:text-3xl">
+              <p className="text-sm font-semibold uppercase tracking-[0.16em] text-emerald-600">Active Batch</p>
+              <h2 className="text-2xl font-semibold text-slate-900 sm:text-3xl">
                 Batch #{activeBatch.batch_id || 'TCW-882'}: {activeBatch.product_name || 'Tender Coconut Water'}
               </h2>
-              <p className="text-base font-bold text-slate-600">Stage: {activeBatch.stage || 'In Progress'}</p>
+              <p className="text-base font-semibold text-slate-600">Stage: {activeBatch.stage || 'In Progress'}</p>
             </div>
 
-            <span className="rounded-full bg-emerald-100 px-4 py-2 text-sm font-black text-emerald-800">
+            <span className="rounded-full bg-emerald-100 px-4 py-2 text-sm font-semibold text-emerald-700">
               {activeProgress}% Complete
             </span>
           </div>
@@ -229,7 +229,7 @@ function StaffProduction() {
             <button
               type="button"
               onClick={openIssueModal}
-              className="inline-flex items-center justify-center gap-3 rounded-2xl bg-red-600 px-6 py-4 text-xl font-black text-white transition-colors hover:bg-red-700"
+              className="inline-flex items-center justify-center gap-3 rounded-2xl bg-red-600 px-6 py-4 text-base font-semibold text-white transition-colors hover:bg-red-700"
             >
               <AlertTriangle size={22} />
               Report Issue / Halt
@@ -239,7 +239,7 @@ function StaffProduction() {
               type="button"
               onClick={handleMarkStageComplete}
               disabled={isCompleting}
-              className="inline-flex items-center justify-center gap-3 rounded-2xl bg-emerald-500 px-6 py-4 text-xl font-black text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
+              className="inline-flex items-center justify-center gap-3 rounded-2xl bg-emerald-500 px-6 py-4 text-base font-semibold text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {isCompleting ? <LoaderCircle className="animate-spin" size={22} /> : <CheckCircle2 size={22} />}
               {isCompleting ? 'Updating...' : 'Mark Stage Complete'}
@@ -250,7 +250,7 @@ function StaffProduction() {
 
       {!loading ? (
         <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-5">
-          <h3 className="text-2xl font-black text-slate-900">Next in Line</h3>
+          <h3 className="text-2xl font-semibold text-slate-900">Next in Line</h3>
 
           {queueBatches.length === 0 ? (
             <p className="text-lg font-semibold text-slate-600">No upcoming batches in queue.</p>
@@ -262,13 +262,13 @@ function StaffProduction() {
                   className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-4"
                 >
                   <div>
-                    <p className="text-lg font-black text-slate-900">
+                    <p className="text-lg font-semibold text-slate-900">
                       #{batch.batch_id || 'Batch'} - {batch.product_name || 'Product'}
                     </p>
                     <p className="text-base font-semibold text-slate-600">Stage: {batch.stage || 'Planned'}</p>
                   </div>
 
-                  <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-black text-slate-700">
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-700">
                     {getProgressFromStage(batch.stage)}%
                   </span>
                 </div>
@@ -286,7 +286,7 @@ function StaffProduction() {
       >
         <form onSubmit={handleReportIssue} className="space-y-5">
           <div className="space-y-2">
-            <label htmlFor="staff-issue-severity" className="text-sm font-black uppercase tracking-[0.08em] text-slate-600">
+            <label htmlFor="staff-issue-severity" className="text-sm font-semibold uppercase tracking-[0.08em] text-slate-600">
               Severity
             </label>
             <select
@@ -303,7 +303,7 @@ function StaffProduction() {
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="staff-issue-details" className="text-sm font-black uppercase tracking-[0.08em] text-slate-600">
+            <label htmlFor="staff-issue-details" className="text-sm font-semibold uppercase tracking-[0.08em] text-slate-600">
               What happened?
             </label>
             <textarea
@@ -321,14 +321,14 @@ function StaffProduction() {
             <button
               type="button"
               onClick={closeIssueModal}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-lg font-black text-slate-700 hover:bg-slate-50"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-base font-semibold text-slate-700 hover:bg-slate-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isReporting}
-              className="rounded-xl bg-red-600 px-4 py-3 text-lg font-black text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-70"
+              className="rounded-xl bg-red-600 px-4 py-3 text-base font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {isReporting ? 'Reporting...' : 'Report & Halt'}
             </button>

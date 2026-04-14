@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Edit, Eye, Plus, Search } from 'lucide-react'
+import { Edit, Eye, Plus } from 'lucide-react'
 import toast from 'react-hot-toast'
+import Badge from '../components/shared/Badge'
 import Modal from '../components/shared/Modal'
 import { useAuth } from '../context/useAuth'
 import apiClient, { getErrorMessage } from '../services/apiClient'
 
 const ORDER_STATUS_OPTIONS = ['Pending', 'Processing', 'Shipped', 'Delivered']
+const ORDER_FILTER_OPTIONS = ['all', 'Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled']
 
 function generateOrderId() {
   const year = new Date().getFullYear()
@@ -13,11 +15,11 @@ function generateOrderId() {
   return `ORD-${year}-${randomToken}`
 }
 
-function getStatusClasses(status) {
-  if (status === 'Processing') return 'bg-amber-100 text-amber-700'
-  if (status === 'Shipped') return 'bg-blue-100 text-blue-700'
-  if (status === 'Pending') return 'bg-red-100 text-red-700'
-  return 'bg-green-100 text-green-700'
+function getStatusTone(status) {
+  if (status === 'Processing') return 'warning'
+  if (status === 'Shipped') return 'info'
+  if (status === 'Pending') return 'danger'
+  return 'success'
 }
 
 function getModalStatusClasses(status) {
@@ -29,12 +31,13 @@ function getModalStatusClasses(status) {
 
 function formatCurrency(value) {
   const amount = Number(value) || 0
-  return `₹${amount.toLocaleString('en-IN')}`
+  return `INR ${amount.toLocaleString('en-IN')}`
 }
 
 function OrdersHub() {
   const { token } = useAuth()
-  const [query, setQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [dateFilter, setDateFilter] = useState('')
   const [orders, setOrders] = useState([])
   const [clients, setClients] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -118,16 +121,26 @@ function OrdersHub() {
   )
 
   const filteredRows = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase()
+    return mappedRows.filter((row) => {
+      const matchesStatus = statusFilter === 'all' || row.status === statusFilter
+      const matchesDate = !dateFilter || String(row.date || '').slice(0, 10) === dateFilter
+      return matchesStatus && matchesDate
+    })
+  }, [dateFilter, mappedRows, statusFilter])
 
-    if (!normalizedQuery) {
-      return mappedRows
-    }
+  const summary = useMemo(() => {
+    const totalOrders = mappedRows.length
+    const pendingOrders = mappedRows.filter((row) => row.status === 'Pending').length
+    const completedOrders = mappedRows.filter((row) => row.status === 'Delivered').length
+    const cancelledOrders = mappedRows.filter((row) => row.status === 'Cancelled').length
 
-    return mappedRows.filter((row) =>
-      [row.order_id, row.clientName, row.status, row.date].join(' ').toLowerCase().includes(normalizedQuery),
-    )
-  }, [mappedRows, query])
+    return [
+      { title: 'Total Orders', value: totalOrders },
+      { title: 'Pending Orders', value: pendingOrders },
+      { title: 'Completed Orders', value: completedOrders },
+      { title: 'Cancelled Orders', value: cancelledOrders },
+    ]
+  }, [mappedRows])
 
   const openCreateOrderModal = () => {
     setOrderForm({
@@ -268,14 +281,16 @@ function OrdersHub() {
     <section className="space-y-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-gray-900">Orders</h1>
-          <p className="mt-1 text-base text-gray-500">Manage client orders, shipments, and delivery tracking</p>
+          <h1 className="text-3xl font-semibold text-slate-900">Orders Management</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Track incoming orders, fulfillment progress, and payment readiness.
+          </p>
         </div>
 
         <button
           type="button"
           onClick={openCreateOrderModal}
-          className="inline-flex items-center justify-center gap-2 rounded-md bg-emerald-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-600"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
         >
           <Plus size={16} />
           New Order
@@ -295,28 +310,49 @@ function OrdersHub() {
         </div>
       ) : null}
 
-      <div className="relative w-full max-w-xl">
-        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
-        <input
-          type="search"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search orders..."
-          className="h-11 w-full rounded-lg border border-gray-200 bg-white pl-11 pr-4 text-sm text-gray-900 placeholder:text-gray-500 outline-none transition-colors focus:border-emerald-300"
-        />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {summary.map((card) => (
+          <article key={card.title} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{card.title}</p>
+            <p className="mt-2 text-3xl font-semibold text-slate-900">{card.value}</p>
+          </article>
+        ))}
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <select
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value)}
+            className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-emerald-300"
+          >
+            {ORDER_FILTER_OPTIONS.map((status) => (
+              <option key={status} value={status}>
+                {status === 'all' ? 'Status' : status}
+              </option>
+            ))}
+          </select>
+
+          <input
+            type="date"
+            value={dateFilter}
+            onChange={(event) => setDateFilter(event.target.value)}
+            className="h-11 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-emerald-300"
+          />
+        </div>
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
-        <table className="w-full min-w-[980px] text-left">
+        <table className="w-full min-w-[1080px] text-left">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-4 text-sm font-medium text-gray-500">Order ID</th>
-              <th className="px-6 py-4 text-sm font-medium text-gray-500">Client</th>
-              <th className="px-6 py-4 text-sm font-medium text-gray-500">Date</th>
-              <th className="px-6 py-4 text-sm font-medium text-gray-500">Items</th>
-              <th className="px-6 py-4 text-sm font-medium text-gray-500">Total</th>
-              <th className="px-6 py-4 text-sm font-medium text-gray-500">Status</th>
-              <th className="px-6 py-4 text-sm font-medium text-gray-500">Actions</th>
+              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Order ID</th>
+              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Customer Name</th>
+              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Items</th>
+              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Total Amount</th>
+              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Order Status</th>
+              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Payment Status</th>
+              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Actions</th>
             </tr>
           </thead>
 
@@ -332,14 +368,19 @@ function OrdersHub() {
                 <tr key={row._id || row.order_id} className="border-b border-gray-100 last:border-b-0">
                   <td className="px-6 py-5 text-sm text-gray-700">{row.order_id}</td>
                   <td className="px-6 py-5 text-sm font-medium text-gray-900">{row.clientName}</td>
-                  <td className="px-6 py-5 text-sm text-gray-500">{row.date}</td>
                   <td className="px-6 py-5 text-sm text-gray-900">{(Number(row.total_items) || 0).toLocaleString('en-IN')}</td>
                   <td className="px-6 py-5 text-sm font-medium text-gray-900">{formatCurrency(row.total_amount)}</td>
 
                   <td className="px-6 py-5">
-                    <span className={`inline-flex rounded-full px-3 py-1 text-sm font-medium ${getStatusClasses(row.status)}`}>
+                    <Badge tone={getStatusTone(row.status)} className="text-sm">
                       {row.status}
-                    </span>
+                    </Badge>
+                  </td>
+
+                  <td className="px-6 py-5">
+                    <Badge tone={row.status === 'Delivered' || row.status === 'Shipped' ? 'success' : 'warning'}>
+                      {row.status === 'Delivered' || row.status === 'Shipped' ? 'Paid' : 'Pending'}
+                    </Badge>
                   </td>
 
                   <td className="px-6 py-5">
@@ -370,7 +411,7 @@ function OrdersHub() {
         </table>
 
         {!isLoading && filteredRows.length === 0 ? (
-          <div className="px-6 py-10 text-center text-sm text-gray-500">No orders found for this search.</div>
+          <div className="px-6 py-10 text-center text-sm text-gray-500">No orders found for current filters.</div>
         ) : null}
       </div>
 

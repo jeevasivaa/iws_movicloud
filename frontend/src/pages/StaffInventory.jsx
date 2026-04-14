@@ -111,7 +111,7 @@ function StaffInventory() {
   return (
     <section className="space-y-5">
       <header>
-        <h1 className="text-3xl font-black text-slate-900 sm:text-4xl">Floor Inventory</h1>
+        <h1 className="text-3xl font-semibold text-slate-900 sm:text-4xl">Floor Inventory</h1>
         <p className="mt-1 text-lg font-semibold text-slate-600">Find items quickly and adjust stock from the floor.</p>
       </header>
 
@@ -133,7 +133,7 @@ function StaffInventory() {
           <button
             type="button"
             onClick={loadInventory}
-            className="rounded-xl border border-red-200 bg-white px-4 py-2 font-black text-red-700 hover:bg-red-100"
+            className="rounded-xl border border-red-200 bg-white px-4 py-2 font-semibold text-red-700 hover:bg-red-100"
           >
             Retry
           </button>
@@ -156,21 +156,21 @@ function StaffInventory() {
               <article key={item._id || item.item_name} className="rounded-2xl border border-slate-200 bg-white p-4">
                 <div className="space-y-4">
                   <div>
-                    <h2 className="text-xl font-black text-slate-900">{item.item_name || 'Inventory Item'}</h2>
+                    <h2 className="text-xl font-semibold text-slate-900">{item.item_name || 'Inventory Item'}</h2>
                     <p className="text-base font-semibold text-slate-600">
                       Location: {item.warehouse_location || 'Aisle 4, Rack B'}
                     </p>
                   </div>
 
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <p className="text-xl font-black text-slate-900">Current Stock: {stock.toLocaleString('en-IN')}</p>
+                    <p className="text-lg font-semibold text-slate-900">Current Stock: {stock.toLocaleString('en-IN')}</p>
 
                     <div className="grid w-full grid-cols-2 gap-3 sm:w-auto">
                       <button
                         type="button"
                         onClick={() => openDeductModal(item)}
                         disabled={stock <= 0}
-                        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-xl font-black text-red-700 transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-lg font-semibold text-red-700 transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         <Minus size={22} />
                         -
@@ -179,7 +179,7 @@ function StaffInventory() {
                       <button
                         type="button"
                         onClick={() => handleQuickAdd(item)}
-                        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-xl font-black text-emerald-700 transition-colors hover:bg-emerald-100"
+                        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-lg font-semibold text-emerald-700 transition-colors hover:bg-emerald-100"
                       >
                         <Plus size={22} />
                         +
@@ -212,7 +212,7 @@ function StaffInventory() {
             step="1"
             value={deductAmount}
             onChange={(event) => setDeductAmount(event.target.value)}
-            className="w-full rounded-2xl border border-slate-200 px-4 py-4 text-2xl font-black text-slate-900 focus:border-emerald-400 focus:outline-none"
+            className="w-full rounded-2xl border border-slate-200 px-4 py-4 text-xl font-semibold text-slate-900 focus:border-emerald-400 focus:outline-none"
             inputMode="numeric"
             required
           />
@@ -223,7 +223,7 @@ function StaffInventory() {
                 key={digit}
                 type="button"
                 onClick={() => setDeductAmount((current) => `${current === '0' ? '' : current}${digit}`)}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-xl font-black text-slate-800 hover:bg-slate-50"
+                className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-lg font-semibold text-slate-800 hover:bg-slate-50"
               >
                 {digit}
               </button>
@@ -234,14 +234,14 @@ function StaffInventory() {
             <button
               type="button"
               onClick={() => setDeductAmount('1')}
-              className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-3 text-lg font-black text-slate-700 hover:bg-slate-50"
+              className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-3 text-base font-semibold text-slate-700 hover:bg-slate-50"
             >
               Reset
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 rounded-xl bg-emerald-500 px-3 py-3 text-lg font-black text-white hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
+              className="flex-1 rounded-xl bg-emerald-500 px-3 py-3 text-base font-semibold text-white hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {isSubmitting ? 'Submitting...' : 'Submit'}
             </button>
