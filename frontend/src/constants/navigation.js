@@ -1,14 +1,37 @@
 export const navigationGroups = [
   {
-    group: 'Menu',
+    group: 'Overview',
     items: [
       { label: 'Dashboard', path: '/dashboard', icon: 'LayoutDashboard', allowedRoles: ['admin', 'manager', 'staff', 'finance'] },
-      { label: 'Products', path: '/products', icon: 'Package2', allowedRoles: ['admin', 'manager', 'staff'] },
-      { label: 'Suppliers', path: '/suppliers', icon: 'Truck', allowedRoles: ['admin', 'manager', 'staff'] },
+      { label: 'Products', path: '/products', icon: 'Package2', allowedRoles: ['admin', 'manager'] },
+      { label: 'Suppliers', path: '/suppliers', icon: 'Truck', allowedRoles: ['admin', 'manager'] },
+      { label: 'Staff', path: '/employees', icon: 'Users', allowedRoles: ['admin', 'manager'] },
+    ],
+  },
+  {
+    group: 'Operations',
+    items: [
+      { label: 'Production', path: '/production-control', icon: 'Factory', allowedRoles: ['admin', 'manager', 'staff'] },
       { label: 'Orders', path: '/orders', icon: 'ClipboardList', allowedRoles: ['admin', 'manager', 'staff', 'client'] },
-      { label: 'Reports', path: '/executive-analytics', icon: 'BarChart3', allowedRoles: ['admin', 'manager', 'finance', 'staff'] },
-      { label: 'Notifications', path: '/notifications', icon: 'Bell', allowedRoles: ['admin', 'manager', 'staff', 'finance'] },
       { label: 'Inventory', path: '/inventory', icon: 'Warehouse', allowedRoles: ['admin', 'manager', 'staff'] },
+    ],
+  },
+  {
+    group: 'Finance',
+    items: [
+      { label: 'Billing', path: '/billing', icon: 'CreditCard', allowedRoles: ['admin', 'finance'] },
+      { label: 'Payroll', path: '/payroll', icon: 'Wallet', allowedRoles: ['admin', 'finance'] },
+      { label: 'Cash Flow Forecast', path: '/cash-flow-forecasting', icon: 'TrendingUp', allowedRoles: ['admin', 'finance'] },
+      { label: 'Tax Planning', path: '/tax-planning', icon: 'DollarSign', allowedRoles: ['admin', 'finance'] },
+      { label: 'Reports', path: '/executive-analytics', icon: 'BarChart3', allowedRoles: ['admin', 'manager', 'finance'] },
+    ],
+  },
+  {
+    group: 'Intelligence',
+    items: [
+      { label: 'Marketing', path: '/marketing', icon: 'Sparkles', allowedRoles: ['admin', 'manager'] },
+      { label: 'Notifications', path: '/notifications', icon: 'Bell', allowedRoles: ['admin', 'manager', 'staff', 'finance'] },
+      { label: 'Settings', path: '/settings', icon: 'Settings', allowedRoles: ['admin', 'manager'] },
     ],
   },
 ]

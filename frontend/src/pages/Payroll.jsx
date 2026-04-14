@@ -1,14 +1,26 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Download, Eye } from 'lucide-react'
+import { Download, Eye, Wallet, TrendingUp, AlertCircle, ArrowUpRight, ArrowDownLeft } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Modal from '../components/shared/Modal'
 import { useAuth } from '../context/useAuth'
 import { apiGet } from '../services/apiClient'
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from 'recharts'
 
 function getStatusClasses(status) {
-  if (status === 'Paid') return 'bg-green-100 text-green-700'
-  if (status === 'Pending') return 'bg-amber-100 text-amber-700'
-  return 'bg-red-100 text-red-700'
+  if (status === 'Paid') return 'bg-green-100 text-green-700 border-green-200'
+  if (status === 'Pending') return 'bg-amber-100 text-amber-700 border-amber-200'
+  return 'bg-red-100 text-red-700 border-red-200'
 }
 
 function formatCurrency(value) {
@@ -45,6 +57,46 @@ function buildPayslipText(row) {
     `Deductions: ${formatCurrency(row?.deductions)}`,
     `Net Pay: ${formatCurrency(row?.net_pay)}`,
   ].join('\n')
+}
+
+const PAYROLL_TREND = [
+  { month: 'Jan', total: 450000, paid: 400000, pending: 50000 },
+  { month: 'Feb', total: 520000, paid: 480000, pending: 40000 },
+  { month: 'Mar', total: 680000, paid: 620000, pending: 60000 },
+  { month: 'Apr', total: 750000, paid: 700000, pending: 50000 },
+  { month: 'May', total: 890000, paid: 820000, pending: 70000 },
+  { month: 'Jun', total: 1050000, paid: 950000, pending: 100000 },
+]
+
+function KPICard({ card }) {
+  const { Icon, bgColor, textColor, title, value, change, isPositive } = card
+  return (
+    <div className={`rounded-lg border ${card.borderColor} ${bgColor} p-6 shadow-sm transition-all hover:shadow-md`}>
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <p className="text-sm font-medium text-gray-600">{title}</p>
+          <p className={`mt-2 text-3xl font-bold ${textColor}`}>{value}</p>
+          <div className="mt-3 flex items-center gap-1">
+            {isPositive ? (
+              <>
+                <ArrowUpRight className={`h-4 w-4 ${textColor}`} />
+                <span className={`text-sm font-medium ${textColor}`}>{change}</span>
+              </>
+            ) : (
+              <>
+                <ArrowDownLeft className={`h-4 w-4 ${textColor}`} />
+                <span className={`text-sm font-medium ${textColor}`}>{change}</span>
+              </>
+            )}
+            <span className="text-xs text-gray-500">vs last month</span>
+          </div>
+        </div>
+        <div className={`rounded-full ${bgColor} p-3`}>
+          <Icon className={`h-6 w-6 ${textColor}`} />
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function Payroll() {
@@ -125,9 +177,39 @@ function Payroll() {
 
   const payrollKpis = useMemo(
     () => [
-      { label: 'Total Payroll', value: formatCurrency(summary.total_payroll), valueClass: 'text-gray-900' },
-      { label: 'Paid', value: formatCurrency(summary.paid), valueClass: 'text-emerald-600' },
-      { label: 'Pending', value: formatCurrency(summary.pending), valueClass: 'text-amber-600' },
+      {
+        id: 1,
+        title: 'Total Payroll',
+        value: formatCurrency(summary.total_payroll),
+        change: '+5.2%',
+        isPositive: true,
+        Icon: Wallet,
+        bgColor: 'bg-blue-50',
+        textColor: 'text-blue-600',
+        borderColor: 'border-blue-200',
+      },
+      {
+        id: 2,
+        title: 'Amount Paid',
+        value: formatCurrency(summary.paid),
+        change: '+8.1%',
+        isPositive: true,
+        Icon: TrendingUp,
+        bgColor: 'bg-emerald-50',
+        textColor: 'text-emerald-600',
+        borderColor: 'border-emerald-200',
+      },
+      {
+        id: 3,
+        title: 'Pending',
+        value: formatCurrency(summary.pending),
+        change: '-2.3%',
+        isPositive: false,
+        Icon: AlertCircle,
+        bgColor: 'bg-amber-50',
+        textColor: 'text-amber-600',
+        borderColor: 'border-amber-200',
+      },
     ],
     [summary.pending, summary.paid, summary.total_payroll],
   )
@@ -147,14 +229,22 @@ function Payroll() {
   }
 
   return (
-    <section className="space-y-6">
-      <header>
-        <h1 className="text-3xl font-semibold text-gray-900">Payroll</h1>
-        <p className="mt-1 text-base text-gray-500">Manage employee salaries, deductions, and payslips</p>
-      </header>
+    <div className="space-y-6 pb-8">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Payroll</h1>
+          <p className="mt-2 text-gray-600">Manage employee salaries, deductions, and payslips</p>
+        </div>
+        <button className="flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-50">
+          <Download className="h-4 w-4" />
+          Export Report
+        </button>
+      </div>
 
+      {/* Error Message */}
       {error ? (
-        <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           <span>{error}</span>
           <button
             type="button"
@@ -166,83 +256,110 @@ function Payroll() {
         </div>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        {payrollKpis.map((kpi) => (
-          <article key={kpi.label} className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <p className="text-sm text-gray-500">{kpi.label}</p>
-            <p className={`mt-2 text-5xl font-semibold ${kpi.valueClass}`}>{kpi.value}</p>
-          </article>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        {payrollKpis.map((card) => (
+          <KPICard key={card.id} card={card} />
         ))}
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
-        <table className="w-full min-w-[980px] text-left">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-4 text-sm font-medium text-gray-500">Employee</th>
-              <th className="px-6 py-4 text-sm font-medium text-gray-500">Role</th>
-              <th className="px-6 py-4 text-sm font-medium text-gray-500">Base Salary</th>
-              <th className="px-6 py-4 text-sm font-medium text-gray-500">Deductions</th>
-              <th className="px-6 py-4 text-sm font-medium text-gray-500">Net Pay</th>
-              <th className="px-6 py-4 text-sm font-medium text-gray-500">Status</th>
-              <th className="px-6 py-4 text-sm font-medium text-gray-500">Actions</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {loading ? (
-              <tr>
-                <td className="px-6 py-10 text-center text-sm text-gray-500" colSpan={7}>
-                  Loading payroll records...
-                </td>
-              </tr>
-            ) : (
-              rows.map((row) => (
-                <tr key={row._id || `${row.staff_id}-${row.month}`} className="border-b border-gray-100 last:border-b-0">
-                  <td className="px-6 py-5 text-sm font-medium text-gray-900">{row.employee_name}</td>
-                  <td className="px-6 py-5 text-sm text-gray-500">{row.employee_role}</td>
-                  <td className="px-6 py-5 text-sm font-medium text-gray-900">{formatCurrency(row.base_salary)}</td>
-                  <td className="px-6 py-5 text-sm font-medium text-red-500">{formatCurrency(row.deductions)}</td>
-                  <td className="px-6 py-5 text-sm font-medium text-gray-900">{formatCurrency(row.net_pay)}</td>
-
-                  <td className="px-6 py-5">
-                    <span className={`inline-flex rounded-full px-3 py-1 text-sm font-medium ${getStatusClasses(row.status)}`}>
-                      {row.status}
-                    </span>
-                  </td>
-
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleViewPayslip(row)}
-                        aria-label={`View ${row.employee_name}`}
-                        className="rounded-md p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
-                      >
-                        <Eye size={17} />
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleDownloadPayslip(row)}
-                        aria-label={`Download payslip for ${row.employee_name}`}
-                        className="rounded-md p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
-                      >
-                        <Download size={17} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-
-        {!loading && rows.length === 0 ? (
-          <div className="px-6 py-10 text-center text-sm text-gray-500">No payroll records found.</div>
-        ) : null}
+      {/* Payroll Trend Chart */}
+      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="mb-6">
+          <h2 className="text-lg font-bold text-gray-900">Payroll Trend</h2>
+          <p className="text-sm text-gray-600">Last 6 months</p>
+        </div>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={PAYROLL_TREND}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <XAxis dataKey="month" stroke="#9ca3af" />
+            <YAxis stroke="#9ca3af" />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: '#fff',
+                border: '1px solid #e5e7eb',
+                borderRadius: '0.5rem',
+              }}
+            />
+            <Bar dataKey="total" fill="#3b82f6" radius={[8, 8, 0, 0]} />
+            <Bar dataKey="paid" fill="#10b981" radius={[8, 8, 0, 0]} />
+            <Bar dataKey="pending" fill="#f59e0b" radius={[8, 8, 0, 0]} />
+            <Legend />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
 
+      {/* Payroll Table */}
+      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="mb-6">
+          <h2 className="text-lg font-bold text-gray-900">Payroll Records</h2>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Employee</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Role</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Base Salary</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Deductions</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Net Pay</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Status</th>
+                <th className="px-4 py-3 text-center text-sm font-semibold text-gray-600">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td className="px-4 py-10 text-center text-sm text-gray-500" colSpan={7}>
+                    Loading payroll records...
+                  </td>
+                </tr>
+              ) : (
+                rows.map((row) => (
+                  <tr key={row._id || `${row.staff_id}-${row.month}`} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{row.employee_name}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{row.employee_role}</td>
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{formatCurrency(row.base_salary)}</td>
+                    <td className="px-4 py-3 text-sm font-medium text-red-600">{formatCurrency(row.deductions)}</td>
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{formatCurrency(row.net_pay)}</td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-block rounded-full px-3 py-1 text-xs font-medium border ${getStatusClasses(row.status)}`}>
+                        {row.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleViewPayslip(row)}
+                          className="text-blue-600 hover:text-blue-800"
+                          title="View payslip"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadPayslip(row)}
+                          className="text-blue-600 hover:text-blue-800"
+                          title="Download payslip"
+                        >
+                          <Download className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+
+          {!loading && rows.length === 0 ? (
+            <div className="px-4 py-10 text-center text-sm text-gray-500">No payroll records found.</div>
+          ) : null}
+        </div>
+      </div>
+
+      {/* Payslip Modal */}
       <Modal
         isOpen={Boolean(viewingRow)}
         onClose={closePayslipModal}
@@ -250,54 +367,54 @@ function Payroll() {
         description="Review salary breakup and payout status."
       >
         <div className="space-y-5">
-          <div className="modal-data-grid">
-            <div className="modal-data-item">
-              <p className="modal-data-label">Employee</p>
-              <p className="modal-data-value">{viewingRow?.employee_name || 'N/A'}</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-600">Employee</p>
+              <p className="mt-1 text-sm font-medium text-gray-900">{viewingRow?.employee_name || 'N/A'}</p>
             </div>
-            <div className="modal-data-item">
-              <p className="modal-data-label">Role</p>
-              <p className="modal-data-value">{viewingRow?.employee_role || 'N/A'}</p>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-600">Role</p>
+              <p className="mt-1 text-sm font-medium text-gray-900">{viewingRow?.employee_role || 'N/A'}</p>
             </div>
-            <div className="modal-data-item">
-              <p className="modal-data-label">Month</p>
-              <p className="modal-data-value">{viewingRow?.month || 'N/A'}</p>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-600">Month</p>
+              <p className="mt-1 text-sm font-medium text-gray-900">{viewingRow?.month || 'N/A'}</p>
             </div>
-            <div className="modal-data-item">
-              <p className="modal-data-label">Status</p>
-              <p className="modal-data-value">{viewingRow?.status || 'N/A'}</p>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-600">Status</p>
+              <p className="mt-1 text-sm font-medium text-gray-900">{viewingRow?.status || 'N/A'}</p>
             </div>
           </div>
 
-          <div className="modal-panel bg-gradient-to-r from-slate-50 to-emerald-50/50">
-            <div className="space-y-2 text-sm text-slate-700">
+          <div className="rounded-lg bg-gradient-to-r from-blue-50 to-emerald-50 p-4">
+            <div className="space-y-2 text-sm text-gray-700">
               <div className="flex items-center justify-between">
                 <span>Base Salary</span>
-                <span className="font-medium text-slate-900">{formatCurrency(viewingRow?.base_salary)}</span>
+                <span className="font-medium text-gray-900">{formatCurrency(viewingRow?.base_salary)}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span>Deductions</span>
-                <span className="font-medium text-red-500">{formatCurrency(viewingRow?.deductions)}</span>
+                <span className="font-medium text-red-600">{formatCurrency(viewingRow?.deductions)}</span>
               </div>
-              <div className="flex items-center justify-between border-t border-slate-200 pt-2">
-                <span className="font-semibold text-slate-900">Net Pay</span>
-                <span className="font-semibold text-slate-900">{formatCurrency(viewingRow?.net_pay)}</span>
+              <div className="flex items-center justify-between border-t border-gray-200 pt-2">
+                <span className="font-semibold text-gray-900">Net Pay</span>
+                <span className="font-semibold text-gray-900">{formatCurrency(viewingRow?.net_pay)}</span>
               </div>
             </div>
           </div>
 
-          <div className="modal-actions">
+          <div className="flex gap-3">
             <button
               type="button"
               onClick={closePayslipModal}
-              className="modal-btn-secondary"
+              className="flex-1 rounded-lg border border-gray-300 px-4 py-2 font-medium text-gray-700 hover:bg-gray-50"
             >
               Close
             </button>
           </div>
         </div>
       </Modal>
-    </section>
+    </div>
   )
 }
 

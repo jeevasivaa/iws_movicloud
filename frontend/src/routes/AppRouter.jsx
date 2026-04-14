@@ -7,7 +7,7 @@ import { useAuth } from '../context/useAuth'
 import { HOME_BY_ROLE, ROLES } from '../constants/roles'
 
 const AuthFlow = lazy(() => import('../pages/AuthFlow'))
-const FinanceDashboard = lazy(() => import('../pages/FinanceDashboard'))
+const Dashboard = lazy(() => import('../pages/Dashboard'))
 const Employees = lazy(() => import('../pages/Employees'))
 const Products = lazy(() => import('../pages/Products'))
 const Suppliers = lazy(() => import('../pages/Suppliers'))
@@ -21,12 +21,16 @@ const Billing = lazy(() => import('../pages/Billing'))
 const Payroll = lazy(() => import('../pages/Payroll'))
 const Invoices = lazy(() => import('../pages/Invoices'))
 const Expenses = lazy(() => import('../pages/Expenses'))
-const FinanceCustomers = lazy(() => import('../pages/FinanceCustomers'))
 const Settings = lazy(() => import('../pages/Settings'))
 const Marketing = lazy(() => import('../pages/Marketing'))
 const Notifications = lazy(() => import('../pages/Notifications'))
 const Unauthorized = lazy(() => import('../pages/Unauthorized'))
 const StaffDashboard = lazy(() => import('../pages/StaffDashboard'))
+const StaffProduction = lazy(() => import('../pages/StaffProduction'))
+const StaffInventory = lazy(() => import('../pages/StaffInventory'))
+const StaffOrders = lazy(() => import('../pages/StaffOrders'))
+const CashFlowForecasting = lazy(() => import('../pages/CashFlowForecasting'))
+const TaxPlanning = lazy(() => import('../pages/TaxPlanning'))
 
 function RouteLoadingFallback() {
   return (
@@ -61,60 +65,40 @@ function AppRouter() {
             <Route path="/employees" element={<Employees />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/marketing" element={<Marketing />} />
-            <Route path="/clients" element={<Clients />} />
-          </Route>
-
-          {/* Product & Supplier Routes */}
-          <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.MANAGER, ROLES.STAFF]} />}>
             <Route path="/products" element={<Products />} />
             <Route path="/suppliers" element={<Suppliers />} />
-          </Route>
-
-          {/* Analytics Routes (Admin, Manager, Finance) */}
-          <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.MANAGER, ROLES.FINANCE]} />}>
-            <Route path="/executive-analytics" element={<ExecutiveAnalyticsDashboard />} />
+            <Route path="/clients" element={<Clients />} />
           </Route>
 
           {/* General Dashboard + Alerts Routes */}
           <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.MANAGER, ROLES.STAFF, ROLES.FINANCE]} />}>
-            <Route
-              path="/dashboard"
-              element={
-                user?.role === ROLES.FINANCE
-                  ? <FinanceDashboard />
-                  : <StaffDashboard />
-              }
-            />
+            <Route path="/dashboard" element={user?.role === ROLES.STAFF ? <StaffDashboard /> : <Dashboard />} />
             <Route path="/notifications" element={<Notifications />} />
           </Route>
 
           {/* Operations Routes (Admin, Manager, Staff) */}
           <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.MANAGER, ROLES.STAFF]} />}>
-            <Route path="/production-control" element={<ProductionControlTower />} />
-            <Route path="/inventory" element={<Inventory />} />
+            <Route
+              path="/production-control"
+              element={user?.role === ROLES.STAFF ? <StaffProduction /> : <ProductionControlTower />}
+            />
+            <Route path="/inventory" element={user?.role === ROLES.STAFF ? <StaffInventory /> : <Inventory />} />
           </Route>
 
           {/* Finance Routes (Admin, Manager, Finance) */}
           <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.MANAGER, ROLES.FINANCE]} />}>
             <Route path="/billing" element={<Billing />} />
             <Route path="/invoices" element={<Invoices />} />
-            <Route path="/payroll" element={<Payroll />} />
-          </Route>
-
-          {/* Reports Route */}
-          <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.MANAGER, ROLES.FINANCE, ROLES.STAFF]} />}>
-            <Route path="/executive-analytics" element={<ExecutiveAnalyticsDashboard />} />
-          </Route>
-
-          {/* Finance Workspace Routes (Admin, Finance) */}
-          <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.FINANCE]} />}>
             <Route path="/expenses" element={<Expenses />} />
-            <Route path="/customers" element={<FinanceCustomers />} />
+            <Route path="/payroll" element={<Payroll />} />
+            <Route path="/cash-flow-forecasting" element={<CashFlowForecasting />} />
+            <Route path="/tax-planning" element={<TaxPlanning />} />
+            <Route path="/executive-analytics" element={<ExecutiveAnalyticsDashboard />} />
           </Route>
 
           {/* Orders Routes */}
           <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.MANAGER, ROLES.STAFF, ROLES.CLIENT]} />}>
-            <Route path="/orders" element={<OrdersHub />} />
+            <Route path="/orders" element={user?.role === ROLES.STAFF ? <StaffOrders /> : <OrdersHub />} />
           </Route>
         </Route>
 
