@@ -312,14 +312,14 @@ function OrdersHub() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {summary.map((card) => (
-          <article key={card.title} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{card.title}</p>
+          <article key={card.title} className="admin-kpi-card rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="admin-muted-label text-slate-500">{card.title}</p>
             <p className="mt-2 text-3xl font-semibold text-slate-900">{card.value}</p>
           </article>
         ))}
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="admin-filter-shell rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <select
             value={statusFilter}
@@ -342,17 +342,17 @@ function OrdersHub() {
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
-        <table className="w-full min-w-[1080px] text-left">
-          <thead className="bg-gray-50">
+      <div className="admin-widget-card overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+        <table className="admin-data-table min-w-[1080px] text-left">
+          <thead>
             <tr>
-              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Order ID</th>
-              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Customer Name</th>
-              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Items</th>
-              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Total Amount</th>
-              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Order Status</th>
-              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Payment Status</th>
-              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Actions</th>
+              <th>Order ID</th>
+              <th>Customer Name</th>
+              <th>Items</th>
+              <th>Total Amount</th>
+              <th>Order Status</th>
+              <th>Payment Status</th>
+              <th>Actions</th>
             </tr>
           </thead>
 
@@ -365,25 +365,25 @@ function OrdersHub() {
               </tr>
             ) : (
               filteredRows.map((row) => (
-                <tr key={row._id || row.order_id} className="border-b border-gray-100 last:border-b-0">
-                  <td className="px-6 py-5 text-sm text-gray-700">{row.order_id}</td>
-                  <td className="px-6 py-5 text-sm font-medium text-gray-900">{row.clientName}</td>
-                  <td className="px-6 py-5 text-sm text-gray-900">{(Number(row.total_items) || 0).toLocaleString('en-IN')}</td>
-                  <td className="px-6 py-5 text-sm font-medium text-gray-900">{formatCurrency(row.total_amount)}</td>
+                <tr key={row._id || row.order_id}>
+                  <td>{row.order_id}</td>
+                  <td className="font-medium text-gray-900">{row.clientName}</td>
+                  <td>{(Number(row.total_items) || 0).toLocaleString('en-IN')}</td>
+                  <td className="font-medium text-gray-900">{formatCurrency(row.total_amount)}</td>
 
-                  <td className="px-6 py-5">
+                  <td>
                     <Badge tone={getStatusTone(row.status)} className="text-sm">
                       {row.status}
                     </Badge>
                   </td>
 
-                  <td className="px-6 py-5">
+                  <td>
                     <Badge tone={row.status === 'Delivered' || row.status === 'Shipped' ? 'success' : 'warning'}>
                       {row.status === 'Delivered' || row.status === 'Shipped' ? 'Paid' : 'Pending'}
                     </Badge>
                   </td>
 
-                  <td className="px-6 py-5">
+                  <td>
                     <div className="flex items-center gap-2">
                       <button
                         type="button"

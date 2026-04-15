@@ -103,10 +103,10 @@ function getStatusClasses(status) {
 function KPICard({ card }) {
   const { Icon, bgColor, textColor, title, value, change, isPositive } = card
   return (
-    <div className={`rounded-lg border ${card.borderColor} ${bgColor} p-6 shadow-sm transition-all hover:shadow-md`}>
+    <div className={`admin-kpi-card rounded-lg border ${card.borderColor} ${bgColor} p-6 shadow-sm transition-all hover:shadow-md`}>
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-sm font-medium text-gray-600">{title}</p>
+          <p className="admin-muted-label text-gray-600">{title}</p>
           <p className={`mt-2 text-3xl font-bold ${textColor}`}>{value}</p>
           <div className="mt-3 flex items-center gap-1">
             {isPositive ? (
@@ -123,7 +123,7 @@ function KPICard({ card }) {
             <span className="text-xs text-gray-500">vs last month</span>
           </div>
         </div>
-        <div className={`rounded-full ${bgColor} p-3`}>
+        <div className={`admin-icon-chip rounded-full ${bgColor} p-3`}>
           <Icon className={`h-6 w-6 ${textColor}`} />
         </div>
       </div>
@@ -186,9 +186,9 @@ function Billing() {
       {/* Charts Section */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Invoice Trend */}
-        <div className="lg:col-span-2 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="admin-chart-card lg:col-span-2 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
           <div className="mb-6">
-            <h2 className="text-lg font-bold text-gray-900">Invoice Trend</h2>
+            <h2 className="admin-section-title">Invoice Trend</h2>
             <p className="text-sm text-gray-600">Last 6 months</p>
           </div>
           <ResponsiveContainer width="100%" height={300}>
@@ -212,9 +212,9 @@ function Billing() {
         </div>
 
         {/* Payment Status */}
-        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="admin-widget-card rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
           <div className="mb-6">
-            <h2 className="text-lg font-bold text-gray-900">Payment Status</h2>
+            <h2 className="admin-section-title">Payment Status</h2>
           </div>
           <div className="space-y-4">
             {PAYMENT_STATUS.map((item) => (
@@ -237,35 +237,35 @@ function Billing() {
       </div>
 
       {/* Recent Invoices */}
-      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+      <div className="admin-widget-card rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
         <div className="mb-6">
-          <h2 className="text-lg font-bold text-gray-900">Recent Invoices</h2>
+          <h2 className="admin-section-title">Recent Invoices</h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="admin-data-table">
             <thead>
-              <tr className="border-b border-gray-200">
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Invoice</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Client</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Date</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Amount</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Status</th>
-                <th className="px-4 py-3 text-center text-sm font-semibold text-gray-600">Action</th>
+              <tr>
+                <th>Invoice</th>
+                <th>Client</th>
+                <th>Date</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th className="text-center">Action</th>
               </tr>
             </thead>
             <tbody>
               {RECENT_INVOICES.map((invoice) => (
-                <tr key={invoice.invoice} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">{invoice.invoice}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{invoice.client}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{invoice.date}</td>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">₹{invoice.amount.toLocaleString()}</td>
-                  <td className="px-4 py-3">
+                <tr key={invoice.invoice}>
+                  <td className="font-medium text-gray-900">{invoice.invoice}</td>
+                  <td>{invoice.client}</td>
+                  <td>{invoice.date}</td>
+                  <td className="font-semibold text-gray-900">₹{invoice.amount.toLocaleString()}</td>
+                  <td>
                     <span className={`inline-block rounded-full px-3 py-1 text-xs font-medium border ${getStatusClasses(invoice.status)}`}>
                       {invoice.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-center">
+                  <td className="text-center">
                     <button className="text-blue-600 hover:text-blue-800">
                       <Eye className="h-4 w-4" />
                     </button>

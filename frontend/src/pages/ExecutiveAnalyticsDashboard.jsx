@@ -292,7 +292,7 @@ function ExecutiveAnalyticsDashboard() {
         </div>
       ) : null}
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="admin-filter-shell rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:max-w-2xl">
           <div className="relative">
             <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -315,16 +315,16 @@ function ExecutiveAnalyticsDashboard() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {summaryCards.map((card) => (
-          <article key={card.title} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{card.title}</p>
+          <article key={card.title} className="admin-kpi-card rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="admin-muted-label text-slate-500">{card.title}</p>
             <p className="mt-2 text-3xl font-semibold text-slate-900">{card.value}</p>
           </article>
         ))}
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[2fr_1fr]">
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-slate-900">Revenue Over Time</h2>
+        <article className="admin-chart-card rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="admin-section-title mb-4">Revenue Over Time</h2>
           <div className="h-[280px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={revenueData}>
@@ -338,8 +338,8 @@ function ExecutiveAnalyticsDashboard() {
           </div>
         </article>
 
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-slate-900">Sales Breakdown</h2>
+        <article className="admin-chart-card rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="admin-section-title mb-4">Sales Breakdown</h2>
           <div className="h-[280px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -355,19 +355,19 @@ function ExecutiveAnalyticsDashboard() {
         </article>
       </div>
 
-      <article className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <article className="admin-widget-card overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 px-6 py-4">
-          <h2 className="text-lg font-semibold text-slate-900">Daily Performance Summary</h2>
+          <h2 className="admin-section-title">Daily Performance Summary</h2>
         </div>
 
-        <table className="w-full min-w-[900px] text-left">
-          <thead className="bg-slate-50">
+        <table className="admin-data-table min-w-[900px] text-left">
+          <thead>
             <tr>
-              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Date</th>
-              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Orders</th>
-              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Sales</th>
-              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Discounts</th>
-              <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Net Revenue</th>
+              <th>Date</th>
+              <th>Orders</th>
+              <th>Sales</th>
+              <th>Discounts</th>
+              <th>Net Revenue</th>
             </tr>
           </thead>
 
@@ -386,12 +386,12 @@ function ExecutiveAnalyticsDashboard() {
               </tr>
             ) : (
               dailyPerformance.map((row) => (
-                <tr key={row.date} className="border-t border-slate-100">
-                  <td className="px-6 py-4 text-sm text-slate-700">{row.date}</td>
-                  <td className="px-6 py-4 text-sm text-slate-700">{row.orders}</td>
-                  <td className="px-6 py-4 text-sm font-medium text-slate-900">{formatCurrency(row.sales)}</td>
-                  <td className="px-6 py-4 text-sm text-red-600">- {formatCurrency(row.discounts)}</td>
-                  <td className="px-6 py-4 text-sm font-medium text-emerald-700">{formatCurrency(row.netRevenue)}</td>
+                <tr key={row.date}>
+                  <td>{row.date}</td>
+                  <td>{row.orders}</td>
+                  <td className="font-medium text-slate-900">{formatCurrency(row.sales)}</td>
+                  <td className="text-red-600">- {formatCurrency(row.discounts)}</td>
+                  <td className="font-medium text-emerald-700">{formatCurrency(row.netRevenue)}</td>
                 </tr>
               ))
             )}

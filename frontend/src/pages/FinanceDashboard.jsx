@@ -104,10 +104,10 @@ const EXPENSE_CATEGORIES = [
 function KPICard({ card }) {
   const { Icon, bgColor, textColor, title, value, change, isPositive } = card
   return (
-    <div className={`rounded-lg border ${card.borderColor} ${bgColor} p-6 shadow-sm transition-all hover:shadow-md`}>
+    <div className={`admin-kpi-card rounded-lg border ${card.borderColor} ${bgColor} p-6 shadow-sm transition-all hover:shadow-md`}>
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-sm font-medium text-gray-600">{title}</p>
+          <p className="admin-muted-label text-gray-600">{title}</p>
           <p className={`mt-2 text-3xl font-bold ${textColor}`}>{value}</p>
           <div className="mt-3 flex items-center gap-1">
             {isPositive ? (
@@ -124,7 +124,7 @@ function KPICard({ card }) {
             <span className="text-xs text-gray-500">vs last month</span>
           </div>
         </div>
-        <div className={`rounded-full ${bgColor} p-3`}>
+        <div className={`admin-icon-chip rounded-full ${bgColor} p-3`}>
           <Icon className={`h-6 w-6 ${textColor}`} />
         </div>
       </div>
@@ -153,9 +153,9 @@ function FinanceDashboard() {
       {/* Charts Section */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Revenue Trend - Full Width */}
-        <div className="lg:col-span-2 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="admin-chart-card lg:col-span-2 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
           <div className="mb-6">
-            <h2 className="text-lg font-bold text-gray-900">Revenue vs Expenses vs Profit</h2>
+            <h2 className="admin-section-title">Revenue vs Expenses vs Profit</h2>
             <p className="text-sm text-gray-600">Last 6 months trend</p>
           </div>
           <ResponsiveContainer width="100%" height={300}>
@@ -200,9 +200,9 @@ function FinanceDashboard() {
         </div>
 
         {/* Invoice Status */}
-        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="admin-widget-card rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
           <div className="mb-6">
-            <h2 className="text-lg font-bold text-gray-900">Invoice Status</h2>
+            <h2 className="admin-section-title">Invoice Status</h2>
           </div>
           <div className="space-y-4">
             {INVOICE_SUMMARY.map((item) => (
@@ -227,9 +227,9 @@ function FinanceDashboard() {
       {/* Cash Flow & Expenses */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Cash Flow */}
-        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="admin-chart-card rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
           <div className="mb-6">
-            <h2 className="text-lg font-bold text-gray-900">Weekly Cash Flow</h2>
+            <h2 className="admin-section-title">Weekly Cash Flow</h2>
             <p className="text-sm text-gray-600">Inflow vs Outflow</p>
           </div>
           <ResponsiveContainer width="100%" height={250}>
@@ -252,9 +252,9 @@ function FinanceDashboard() {
         </div>
 
         {/* Expense Categories */}
-        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="admin-widget-card rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
           <div className="mb-6">
-            <h2 className="text-lg font-bold text-gray-900">Expense Breakdown</h2>
+            <h2 className="admin-section-title">Expense Breakdown</h2>
             <p className="text-sm text-gray-600">By category</p>
           </div>
           <div className="space-y-4">
@@ -281,8 +281,8 @@ function FinanceDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-6 text-lg font-bold text-gray-900">Quick Actions</h2>
+      <div className="admin-widget-card rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <h2 className="admin-section-title mb-6">Quick Actions</h2>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
           <button className="flex items-center gap-3 rounded-lg border border-gray-200 p-4 transition-all hover:bg-blue-50">
             <CreditCard className="h-5 w-5 text-blue-600" />

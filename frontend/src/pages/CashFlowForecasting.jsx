@@ -83,7 +83,7 @@ function CashFlowForecasting() {
           <button
             key={scenario.name}
             onClick={() => setSelectedScenario(scenario.name)}
-            className={`rounded-lg border-2 p-4 text-left transition-all ${
+            className={`admin-widget-card rounded-lg border-2 p-4 text-left transition-all ${
               selectedScenario === scenario.name
                 ? 'border-blue-500 bg-blue-50'
                 : 'border-gray-200 bg-white hover:border-gray-300'
@@ -99,9 +99,9 @@ function CashFlowForecasting() {
       </div>
 
       {/* Revenue Forecast */}
-      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+      <div className="admin-chart-card rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
         <div className="mb-6">
-          <h2 className="text-lg font-bold text-gray-900">Revenue Forecast</h2>
+          <h2 className="admin-section-title">Revenue Forecast</h2>
           <p className="text-sm text-gray-600">Actual vs Projected vs Best/Worst Case</p>
         </div>
         <ResponsiveContainer width="100%" height={350}>
@@ -164,9 +164,9 @@ function CashFlowForecasting() {
 
       {/* Cash Position Projection */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="admin-chart-card rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
           <div className="mb-6">
-            <h2 className="text-lg font-bold text-gray-900">Cash Position Projection</h2>
+            <h2 className="admin-section-title">Cash Position Projection</h2>
             <p className="text-sm text-gray-600">Opening to Closing Balance</p>
           </div>
           <ResponsiveContainer width="100%" height={300}>
@@ -202,8 +202,8 @@ function CashFlowForecasting() {
         </div>
 
         {/* Detailed Projections Table */}
-        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-6 text-lg font-bold text-gray-900">Monthly Breakdown</h2>
+        <div className="admin-widget-card rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+          <h2 className="admin-section-title mb-6">Monthly Breakdown</h2>
           <div className="space-y-3 max-h-80 overflow-y-auto">
             {CASH_PROJECTIONS.map((item) => (
               <div key={item.month} className="flex items-center justify-between border-b pb-3">
@@ -227,8 +227,8 @@ function CashFlowForecasting() {
       </div>
 
       {/* Risk Indicators */}
-      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-6 text-lg font-bold text-gray-900">Risk Indicators</h2>
+      <div className="admin-widget-card rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <h2 className="admin-section-title mb-6">Risk Indicators</h2>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
             <div className="flex items-center gap-3">

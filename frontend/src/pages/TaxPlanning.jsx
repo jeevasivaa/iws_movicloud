@@ -135,10 +135,10 @@ function TaxPlanning() {
       {/* Tax Summary Cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         {TAX_SUMMARY.map((tax) => (
-          <div key={tax.id} className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+          <div key={tax.id} className="admin-kpi-card rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <p className="text-sm font-medium text-gray-600">{tax.name}</p>
+                <p className="admin-muted-label normal-case tracking-normal text-gray-600">{tax.name}</p>
                 <p className="mt-2 text-2xl font-bold text-gray-900">₹{(tax.amount / 100000).toFixed(2)}L</p>
                 <p className="mt-1 text-xs text-gray-500">Rate: {tax.rate}</p>
               </div>
@@ -152,9 +152,9 @@ function TaxPlanning() {
       </div>
 
       {/* Tax vs Income & Expense */}
-      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+      <div className="admin-chart-card rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
         <div className="mb-6">
-          <h2 className="text-lg font-bold text-gray-900">Income vs Tax vs Expense</h2>
+          <h2 className="admin-section-title">Income vs Tax vs Expense</h2>
           <p className="text-sm text-gray-600">Monthly comparison</p>
         </div>
         <ResponsiveContainer width="100%" height={300}>
@@ -178,8 +178,8 @@ function TaxPlanning() {
       </div>
 
       {/* Tax Optimization Opportunities */}
-      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-6 text-lg font-bold text-gray-900">Tax Optimization Opportunities</h2>
+      <div className="admin-widget-card rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <h2 className="admin-section-title mb-6">Tax Optimization Opportunities</h2>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {TAX_OPTIMIZATIONS.map((opt) => (
             <div
@@ -202,8 +202,8 @@ function TaxPlanning() {
       </div>
 
       {/* Upcoming Deadlines */}
-      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-6 text-lg font-bold text-gray-900">Important Deadlines</h2>
+      <div className="admin-widget-card rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <h2 className="admin-section-title mb-6">Important Deadlines</h2>
         <div className="space-y-3">
           {DEADLINES.map((item, idx) => (
             <div key={idx} className="flex items-center justify-between border-b pb-3">
@@ -226,22 +226,22 @@ function TaxPlanning() {
 
       {/* Tax Efficiency Metrics */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
-        <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+        <div className="admin-kpi-card rounded-lg border border-green-200 bg-green-50 p-4">
           <p className="text-sm font-medium text-gray-600">Total Tax Paid YTD</p>
           <p className="mt-2 text-2xl font-bold text-green-600">₹7,96,300</p>
           <p className="mt-1 text-xs text-gray-600">as of today</p>
         </div>
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+        <div className="admin-kpi-card rounded-lg border border-blue-200 bg-blue-50 p-4">
           <p className="text-sm font-medium text-gray-600">Effective Tax Rate</p>
           <p className="mt-2 text-2xl font-bold text-blue-600">18.0%</p>
           <p className="mt-1 text-xs text-gray-600">optimized</p>
         </div>
-        <div className="rounded-lg border border-purple-200 bg-purple-50 p-4">
+        <div className="admin-kpi-card rounded-lg border border-purple-200 bg-purple-50 p-4">
           <p className="text-sm font-medium text-gray-600">Potential Savings</p>
           <p className="mt-2 text-2xl font-bold text-purple-600">₹2,65,000</p>
           <p className="mt-1 text-xs text-gray-600">with optimization</p>
         </div>
-        <div className="rounded-lg border border-orange-200 bg-orange-50 p-4">
+        <div className="admin-kpi-card rounded-lg border border-orange-200 bg-orange-50 p-4">
           <p className="text-sm font-medium text-gray-600">Compliance Score</p>
           <p className="mt-2 text-2xl font-bold text-orange-600">92%</p>
           <p className="mt-1 text-xs text-gray-600">excellent</p>

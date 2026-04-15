@@ -71,10 +71,10 @@ const PAYROLL_TREND = [
 function KPICard({ card }) {
   const { Icon, bgColor, textColor, title, value, change, isPositive } = card
   return (
-    <div className={`rounded-lg border ${card.borderColor} ${bgColor} p-6 shadow-sm transition-all hover:shadow-md`}>
+    <div className={`admin-kpi-card rounded-lg border ${card.borderColor} ${bgColor} p-6 shadow-sm transition-all hover:shadow-md`}>
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-sm font-medium text-gray-600">{title}</p>
+          <p className="admin-muted-label text-gray-600">{title}</p>
           <p className={`mt-2 text-3xl font-bold ${textColor}`}>{value}</p>
           <div className="mt-3 flex items-center gap-1">
             {isPositive ? (
@@ -91,7 +91,7 @@ function KPICard({ card }) {
             <span className="text-xs text-gray-500">vs last month</span>
           </div>
         </div>
-        <div className={`rounded-full ${bgColor} p-3`}>
+        <div className={`admin-icon-chip rounded-full ${bgColor} p-3`}>
           <Icon className={`h-6 w-6 ${textColor}`} />
         </div>
       </div>
@@ -264,9 +264,9 @@ function Payroll() {
       </div>
 
       {/* Payroll Trend Chart */}
-      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+      <div className="admin-chart-card rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
         <div className="mb-6">
-          <h2 className="text-lg font-bold text-gray-900">Payroll Trend</h2>
+          <h2 className="admin-section-title">Payroll Trend</h2>
           <p className="text-sm text-gray-600">Last 6 months</p>
         </div>
         <ResponsiveContainer width="100%" height={300}>
@@ -290,21 +290,21 @@ function Payroll() {
       </div>
 
       {/* Payroll Table */}
-      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+      <div className="admin-widget-card rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
         <div className="mb-6">
-          <h2 className="text-lg font-bold text-gray-900">Payroll Records</h2>
+          <h2 className="admin-section-title">Payroll Records</h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="admin-data-table">
             <thead>
-              <tr className="border-b border-gray-200">
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Employee</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Role</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Base Salary</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Deductions</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Net Pay</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Status</th>
-                <th className="px-4 py-3 text-center text-sm font-semibold text-gray-600">Actions</th>
+              <tr>
+                <th>Employee</th>
+                <th>Role</th>
+                <th>Base Salary</th>
+                <th>Deductions</th>
+                <th>Net Pay</th>
+                <th>Status</th>
+                <th className="text-center">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -316,18 +316,18 @@ function Payroll() {
                 </tr>
               ) : (
                 rows.map((row) => (
-                  <tr key={row._id || `${row.staff_id}-${row.month}`} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{row.employee_name}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{row.employee_role}</td>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{formatCurrency(row.base_salary)}</td>
-                    <td className="px-4 py-3 text-sm font-medium text-red-600">{formatCurrency(row.deductions)}</td>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{formatCurrency(row.net_pay)}</td>
-                    <td className="px-4 py-3">
+                  <tr key={row._id || `${row.staff_id}-${row.month}`}>
+                    <td className="font-medium text-gray-900">{row.employee_name}</td>
+                    <td>{row.employee_role}</td>
+                    <td className="font-medium text-gray-900">{formatCurrency(row.base_salary)}</td>
+                    <td className="font-medium text-red-600">{formatCurrency(row.deductions)}</td>
+                    <td className="font-medium text-gray-900">{formatCurrency(row.net_pay)}</td>
+                    <td>
                       <span className={`inline-block rounded-full px-3 py-1 text-xs font-medium border ${getStatusClasses(row.status)}`}>
                         {row.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="text-center">
                       <div className="flex items-center justify-center gap-2">
                         <button
                           type="button"

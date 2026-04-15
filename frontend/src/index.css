@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Sora:wght@600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -10,12 +10,30 @@
     --brand-secondary: 21 128 61; /* Deep Green */
     --bg-main: 249 250 251; /* bg-gray-50 */
     --radius-xl: 0.75rem;
+    --admin-bg-1: #f5fffb;
+    --admin-bg-2: #ecf7ff;
+    --admin-bg-3: #fffdf4;
   }
 
   body {
     @apply bg-gray-50 text-slate-900 antialiased font-sans;
     font-family: 'Inter', 'Poppins', ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  .admin-theme {
+    background:
+      radial-gradient(1400px 620px at 100% -12%, rgba(16, 185, 129, 0.2), transparent 55%),
+      radial-gradient(900px 520px at -8% 28%, rgba(14, 165, 233, 0.16), transparent 62%),
+      linear-gradient(165deg, var(--admin-bg-1) 0%, var(--admin-bg-2) 58%, var(--admin-bg-3) 100%);
+    font-family: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+  }
+
+  .admin-theme h1,
+  .admin-theme h2,
+  .admin-theme h3 {
+    font-family: 'Sora', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: -0.01em;
   }
 }
 
@@ -137,9 +155,230 @@
   .modal-data-value {
     @apply mt-1 text-sm font-semibold text-slate-900;
   }
+
+  .admin-kpi-card {
+    @apply rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300;
+  }
+
+  .admin-chart-card,
+  .admin-widget-card,
+  .admin-filter-shell {
+    @apply rounded-2xl border border-slate-200 bg-white shadow-sm;
+  }
+
+  .admin-data-table {
+    @apply w-full border-collapse;
+  }
+
+  .admin-data-table th {
+    @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500;
+  }
+
+  .admin-data-table td {
+    @apply px-4 py-3 text-sm text-slate-700;
+  }
+
+  .admin-data-table tbody tr {
+    @apply border-b border-slate-100;
+  }
+
+  .admin-data-table tbody tr:last-child {
+    @apply border-b-0;
+  }
+
+  .admin-icon-chip {
+    @apply inline-flex h-11 w-11 items-center justify-center rounded-2xl ring-1 ring-inset ring-slate-200;
+  }
+
+  .admin-muted-label {
+    @apply text-xs font-semibold uppercase tracking-wide text-slate-500;
+  }
+
+  .admin-section-title {
+    @apply text-lg font-semibold text-slate-900;
+  }
+
+  .admin-surface {
+    @apply rounded-3xl border border-emerald-100 bg-white/80 p-4 shadow-2xl backdrop-blur-sm sm:p-6 lg:p-8;
+    box-shadow: 0 32px 72px -52px rgba(15, 23, 42, 0.62), 0 20px 38px -28px rgba(15, 23, 42, 0.38);
+  }
+
+  .admin-theme .vsa-card {
+    @apply border border-emerald-100 bg-white/90 shadow-sm transition-all duration-300;
+    box-shadow: 0 20px 35px -28px rgba(15, 23, 42, 0.36);
+  }
+
+  .admin-theme .vsa-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 28px 50px -32px rgba(15, 23, 42, 0.44);
+  }
+
+  .admin-theme .btn-primary {
+    @apply rounded-2xl bg-emerald-600 text-white;
+    box-shadow: 0 20px 35px -24px rgba(5, 150, 105, 0.72);
+  }
+
+  .admin-theme .btn-primary:hover {
+    @apply bg-emerald-700;
+    transform: translateY(-1px);
+  }
+
+  .admin-theme .btn-secondary {
+    @apply rounded-2xl border-emerald-100 bg-white/95 text-slate-700;
+  }
+
+  .admin-theme .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(226, 232, 240, 0.9);
+  }
+
+  .admin-theme .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .admin-theme .admin-kpi-card {
+    position: relative;
+    overflow: hidden;
+    border-color: rgba(167, 243, 208, 0.75);
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.98) 0%, rgba(236, 253, 245, 0.9) 100%);
+    box-shadow: 0 20px 36px -28px rgba(15, 23, 42, 0.48);
+  }
+
+  .admin-theme .admin-kpi-card::after {
+    content: '';
+    position: absolute;
+    top: -36px;
+    right: -42px;
+    height: 120px;
+    width: 120px;
+    border-radius: 999px;
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0) 75%);
+    pointer-events: none;
+  }
+
+  .admin-theme .admin-chart-card,
+  .admin-theme .admin-widget-card,
+  .admin-theme .admin-filter-shell {
+    border-color: rgba(226, 232, 240, 0.95);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.97) 0%, rgba(248, 250, 252, 0.92) 100%);
+    box-shadow: 0 20px 38px -30px rgba(15, 23, 42, 0.42);
+  }
+
+  .admin-theme .admin-chart-card {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .admin-theme .admin-chart-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg, rgba(16, 185, 129, 0.08), rgba(14, 165, 233, 0.05) 52%, rgba(245, 158, 11, 0.04));
+    pointer-events: none;
+  }
+
+  .admin-theme .admin-chart-card > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .admin-theme .admin-data-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .admin-theme .admin-data-table thead tr {
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.03) 0%, rgba(15, 23, 42, 0) 100%);
+  }
+
+  .admin-theme .admin-data-table th {
+    padding: 0.85rem 1rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #64748b;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.95);
+  }
+
+  .admin-theme .admin-data-table td {
+    padding: 0.9rem 1rem;
+    font-size: 0.88rem;
+    color: #475569;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.85);
+    transition: background-color 180ms ease;
+  }
+
+  .admin-theme .admin-data-table tbody tr:hover td {
+    background: rgba(236, 253, 245, 0.55);
+  }
+
+  .admin-theme .admin-data-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .admin-theme .admin-icon-chip {
+    @apply inline-flex h-11 w-11 items-center justify-center rounded-2xl ring-1 ring-inset;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 14px 30px -22px rgba(15, 23, 42, 0.5);
+  }
+
+  .admin-theme .admin-muted-label {
+    @apply text-xs font-semibold uppercase tracking-[0.08em] text-slate-500;
+  }
+
+  .admin-theme .admin-section-title {
+    @apply text-xl font-semibold text-slate-900;
+  }
 }
 
 @layer utilities {
+  @keyframes adminFadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes adminNavIn {
+    from {
+      opacity: 0;
+      transform: translateX(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes pageFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .admin-fade-up {
+    animation: adminFadeUp 420ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  .admin-slide-in {
+    animation: adminNavIn 380ms cubic-bezier(0.18, 0.85, 0.2, 1) both;
+  }
+
+  .admin-theme .animate-fade-in,
+  .admin-theme .page-enter {
+    animation: pageFadeIn 460ms cubic-bezier(0.18, 0.72, 0.22, 1) both;
+  }
+
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -147,5 +386,14 @@
 
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-theme .admin-fade-up,
+  .admin-theme .admin-slide-in,
+  .admin-theme .animate-fade-in,
+  .admin-theme .page-enter {
+    animation: none !important;
   }
 }

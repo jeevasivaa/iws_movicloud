@@ -220,12 +220,12 @@ const Dashboard = () => {
 
       <section className="grid grid-cols-1 gap-5 xl:grid-cols-4">
         {KPI_ITEMS.map((item) => (
-          <article key={item.title} className="vsa-card rounded-2xl border border-slate-200 bg-white p-6">
+          <article key={item.title} className="vsa-card admin-kpi-card rounded-2xl border border-slate-200 bg-white p-6">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-lg font-medium text-slate-500">{item.title}</p>
-                <p className="mt-1 text-[34px] leading-none font-bold text-slate-800">{item.value}</p>
-                <p className={`mt-2 text-base font-medium ${item.subtitleClass}`}>{item.subtitle}</p>
+                <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">{item.title}</p>
+                <p className="mt-2 text-[32px] leading-none font-bold text-slate-800">{item.value}</p>
+                <p className={`mt-2 text-sm font-medium ${item.subtitleClass}`}>{item.subtitle}</p>
               </div>
               <span className={`inline-flex h-12 w-12 items-center justify-center rounded-2xl ${item.iconWrap}`}>
                 <item.Icon size={24} />
@@ -236,8 +236,8 @@ const Dashboard = () => {
       </section>
 
       <section className="grid grid-cols-1 gap-5 2xl:grid-cols-2">
-        <article className="vsa-card rounded-2xl border border-slate-200 bg-white p-6">
-          <h2 className="mb-5 text-3xl leading-none font-semibold text-slate-800">Monthly Sales</h2>
+        <article className="vsa-card admin-chart-card rounded-2xl border border-slate-200 bg-white p-6">
+          <h2 className="mb-5 text-xl leading-none font-semibold text-slate-800">Monthly Sales</h2>
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={SALES_DATA}>
@@ -265,8 +265,8 @@ const Dashboard = () => {
           </div>
         </article>
 
-        <article className="vsa-card rounded-2xl border border-slate-200 bg-white p-6">
-          <h2 className="mb-5 text-3xl leading-none font-semibold text-slate-800">Production Output</h2>
+        <article className="vsa-card admin-chart-card rounded-2xl border border-slate-200 bg-white p-6">
+          <h2 className="mb-5 text-xl leading-none font-semibold text-slate-800">Production Output</h2>
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={PRODUCTION_DATA}>
@@ -303,35 +303,35 @@ const Dashboard = () => {
       </section>
 
       <section className="grid grid-cols-1 xl:grid-cols-[1.95fr_1fr] gap-5">
-        <article className="vsa-card rounded-2xl border border-slate-200 bg-white p-6">
+        <article className="vsa-card admin-widget-card rounded-2xl border border-slate-200 bg-white p-6">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-3xl leading-none font-semibold text-slate-800">Recent Orders</h2>
-            <button className="text-xl leading-none font-medium text-[#34a56f] transition-colors hover:text-[#2a8a5c]">
+            <h2 className="text-xl leading-none font-semibold text-slate-800">Recent Orders</h2>
+            <button className="text-sm leading-none font-semibold text-emerald-700 transition-colors hover:text-emerald-800">
               View All
             </button>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px] border-collapse">
+            <table className="admin-data-table min-w-[700px]">
               <thead>
-                <tr className="border-b border-slate-200">
-                  <th className="py-3 text-left text-xl font-medium text-slate-500">Order ID</th>
-                  <th className="py-3 text-left text-xl font-medium text-slate-500">Client</th>
-                  <th className="py-3 text-left text-xl font-medium text-slate-500">Status</th>
-                  <th className="py-3 text-right text-xl font-medium text-slate-500">Amount</th>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Client</th>
+                  <th>Status</th>
+                  <th className="text-right">Amount</th>
                 </tr>
               </thead>
               <tbody>
                 {RECENT_ORDERS.map((order) => (
-                  <tr key={order.id} className="border-b border-slate-200 last:border-b-0">
-                    <td className="py-3 pr-4 text-[22px] font-medium text-slate-800">{order.id}</td>
-                    <td className="py-3 pr-4 text-[22px] font-medium text-slate-800">{order.client}</td>
-                    <td className="py-3 pr-4">
-                      <span className={`inline-flex rounded-full px-3 py-1 text-lg font-medium leading-none ${order.statusClass}`}>
+                  <tr key={order.id}>
+                    <td className="font-medium text-slate-800">{order.id}</td>
+                    <td className="font-medium text-slate-800">{order.client}</td>
+                    <td>
+                      <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold leading-none ${order.statusClass}`}>
                         {order.status}
                       </span>
                     </td>
-                    <td className="py-3 text-right text-[22px] font-medium text-slate-800">{order.amount}</td>
+                    <td className="text-right font-semibold text-slate-800">{order.amount}</td>
                   </tr>
                 ))}
               </tbody>
@@ -339,8 +339,8 @@ const Dashboard = () => {
           </div>
         </article>
 
-        <article className="vsa-card rounded-2xl border border-slate-200 bg-white p-6">
-          <h2 className="mb-3 text-3xl leading-none font-semibold text-slate-800">Inventory Breakdown</h2>
+        <article className="vsa-card admin-chart-card rounded-2xl border border-slate-200 bg-white p-6">
+          <h2 className="mb-3 text-xl leading-none font-semibold text-slate-800">Inventory Breakdown</h2>
 
           <div className="mx-auto h-[260px] w-[260px] max-w-full">
             <ResponsiveContainer width="100%" height="100%">

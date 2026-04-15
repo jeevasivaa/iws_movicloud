@@ -455,8 +455,8 @@ function Expenses() {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {kpis.map((kpi) => (
-          <article key={kpi.label} className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <p className="text-sm text-gray-500">{kpi.label}</p>
+          <article key={kpi.label} className="admin-kpi-card rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <p className="admin-muted-label normal-case tracking-normal text-gray-500">{kpi.label}</p>
             <p className={`mt-2 text-4xl font-semibold ${kpi.valueClass}`}>{kpi.value}</p>
           </article>
         ))}
@@ -472,16 +472,16 @@ function Expenses() {
         />
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
-        <table className="w-full min-w-[980px] text-left">
-          <thead className="bg-gray-50">
+      <div className="admin-widget-card overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+        <table className="admin-data-table min-w-[980px] text-left">
+          <thead>
             <tr>
-              <th className="px-6 py-4 text-sm font-medium text-gray-500">Date</th>
-              <th className="px-6 py-4 text-sm font-medium text-gray-500">Category</th>
-              <th className="px-6 py-4 text-sm font-medium text-gray-500">Description</th>
-              <th className="px-6 py-4 text-sm font-medium text-gray-500">Amount</th>
-              <th className="px-6 py-4 text-sm font-medium text-gray-500">Status</th>
-              <th className="px-6 py-4 text-sm font-medium text-gray-500">Actions</th>
+              <th>Date</th>
+              <th>Category</th>
+              <th>Description</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Actions</th>
             </tr>
           </thead>
 
@@ -494,21 +494,21 @@ function Expenses() {
               </tr>
             ) : (
               filteredRows.map((row) => (
-                <tr key={row._id || `${row.date}-${row.description}`} className="border-b border-gray-100 last:border-b-0">
-                  <td className="px-6 py-5 text-sm text-gray-600">{formatDate(row.date)}</td>
-                  <td className="px-6 py-5">
+                <tr key={row._id || `${row.date}-${row.description}`}>
+                  <td>{formatDate(row.date)}</td>
+                  <td>
                     <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${getCategoryPillClasses(row.category)}`}>
                       {row.category}
                     </span>
                   </td>
-                  <td className="px-6 py-5 text-sm font-medium text-gray-900">{row.description}</td>
-                  <td className="px-6 py-5 text-sm font-semibold text-gray-900">{formatCurrency(row.amount)}</td>
-                  <td className="px-6 py-5">
+                  <td className="font-medium text-gray-900">{row.description}</td>
+                  <td className="font-semibold text-gray-900">{formatCurrency(row.amount)}</td>
+                  <td>
                     <span className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${getStatusPillClasses(row.status)}`}>
                       {row.status}
                     </span>
                   </td>
-                  <td className="px-6 py-5">
+                  <td>
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
