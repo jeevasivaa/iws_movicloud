@@ -9,40 +9,28 @@ orders_collection = db["orders"]
 production_collection = db["production_batches"]
 expenses_collection = db["expenses"]
 
+MONTH_MAP = {
+    "01": "Jan",
+    "02": "Feb",
+    "03": "Mar",
+    "04": "Apr",
+    "05": "May",
+    "06": "Jun",
+    "07": "Jul",
+    "08": "Aug",
+    "09": "Sep",
+    "10": "Oct",
+    "11": "Nov",
+    "12": "Dec",
+}
 
-@reports_bp.route("/sales", methods=["GET"])
-@role_required("admin", "manager", "finance")
-def get_sales_report():
-    pipeline = [
-        {
-            "$group": {
-                "_id": {"$substr": ["$date", 0, 7]},
-                "sales": {"$sum": "$total_amount"},
-            }
-        },
-        {"$sort": {"_id": 1}},
-    ]
 
-    month_map = {
-        "01": "Jan",
-        "02": "Feb",
-        "03": "Mar",
-        "04": "Apr",
-        "05": "May",
-        "06": "Jun",
-        "07": "Jul",
-        "08": "Aug",
-        "09": "Sep",
-        "10": "Oct",
-        "11": "Nov",
-        "12": "Dec",
-    }
-
+def _format_month_label(year_month):
     if len(year_month) != 7 or "-" not in year_month:
         return year_month
 
     year_token, month_token = year_month.split("-", 1)
-    month_label = month_map.get(month_token)
+    month_label = MONTH_MAP.get(month_token)
     if not month_label:
         return year_month
 
@@ -50,7 +38,7 @@ def get_sales_report():
 
 
 @reports_bp.route("/sales", methods=["GET"])
-@role_required("admin", "manager", "staff", "finance")
+@role_required("admin", "manager", "finance")
 def get_sales_report():
     pipeline = [
         {
@@ -81,59 +69,42 @@ def get_sales_report():
 @reports_bp.route("/production-efficiency", methods=["GET"])
 @role_required("admin", "manager", "finance")
 def get_production_efficiency():
-    pipeline = [
-        {
-            "$project": {
-                "month": {"$substr": ["$start_date", 0, 7]},
-                "stage": "$stage",
-                "quantity": {"$ifNull": ["$quantity", 0]},
-            }
-        },
-        {
-            "$group": {
-                "_id": "$month",
-                "planned_qty": {"$sum": "$quantity"},
-                "completed_qty": {
-                    "$sum": {
-                        "$cond": [
-                            {"$eq": ["$stage", "Completed"]},
-                            "$quantity",
-                            0,
-                        ]
-                    }
-                },
-                "in_progress_qty": {
-                    "$sum": {
-                        "$cond": [
-                            {"$eq": ["$stage", "In Progress"]},
-                            "$quantity",
-                            0,
-                        ]
-                    }
-                },
-            }
-        },
-        {"$sort": {"_id": 1}},
-    ]
+    monthly_totals = {}
+    for row in production_collection.find():
+        month_key = str(row.get("start_date") or "")[:7]
+        if not month_key:
+            continue
+
+        quantity = float(row.get("quantity") or 0)
+        stage = str(row.get("stage") or "")
+
+        bucket = monthly_totals.setdefault(
+            month_key,
+            {
+                "planned_qty": 0.0,
+                "completed_qty": 0.0,
+                "in_progress_qty": 0.0,
+            },
+        )
+        bucket["planned_qty"] += quantity
+        if stage == "Completed":
+            bucket["completed_qty"] += quantity
+        elif stage == "In Progress":
+            bucket["in_progress_qty"] += quantity
 
     efficiency_rows = []
-    for doc in production_collection.aggregate(pipeline):
-        year_month = str(doc.get("_id", ""))
-        planned_qty = float(doc.get("planned_qty", 0.0))
-        completed_qty = float(doc.get("completed_qty", 0.0))
-        in_progress_qty = float(doc.get("in_progress_qty", 0.0))
+    for month_key in sorted(monthly_totals):
+        totals = monthly_totals[month_key]
+        planned_qty = float(totals["planned_qty"])
+        completed_qty = float(totals["completed_qty"])
+        in_progress_qty = float(totals["in_progress_qty"])
 
         weighted_output = completed_qty + (in_progress_qty * 0.6)
         efficiency = 0.0
         if planned_qty > 0:
             efficiency = min(100.0, round((weighted_output / planned_qty) * 100, 1))
 
-        efficiency_rows.append(
-            {
-                "month": _format_month_label(year_month),
-                "efficiency": efficiency,
-            }
-        )
+        efficiency_rows.append({"month": _format_month_label(month_key), "efficiency": efficiency})
 
     if len(efficiency_rows) > 12:
         efficiency_rows = efficiency_rows[-12:]

@@ -1,4 +1,3 @@
-import React, { useState, useEffect } from 'react'
 import {
   TrendingUp,
   TrendingDown,
@@ -25,8 +24,6 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts'
-import { useAuth } from '../context/useAuth'
-import { apiGet } from '../services/apiClient'
 
 const FINANCE_KPI_DATA = [
   {
@@ -136,21 +133,6 @@ function KPICard({ card }) {
 }
 
 function FinanceDashboard() {
-  const { user, token } = useAuth()
-  const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    // Optional: Fetch real finance data from backend
-    // const fetchFinanceData = async () => {
-    //   try {
-    //     const response = await apiGet('/api/dashboard/finance', token)
-    //   } catch (error) {
-    //     console.error('Error fetching finance data:', error)
-    //   }
-    // }
-    // fetchFinanceData()
-  }, [token])
-
   return (
     <div className="space-y-6 pb-8">
       {/* Header */}

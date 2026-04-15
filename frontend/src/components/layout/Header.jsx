@@ -4,7 +4,7 @@ import { useAuth } from '../../context/useAuth'
 
 function Header({ onToggleSidebar }) {
   const navigate = useNavigate()
-  const { user, logout } = useAuth()
+  const { logout } = useAuth()
 
   const handleLogout = async () => {
     await logout()

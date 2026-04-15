@@ -1,11 +1,12 @@
 from datetime import datetime, timezone
 
 from flask import Blueprint, jsonify, request
+from flask_jwt_extended import get_jwt  # type: ignore[import-untyped]
 from pymongo.errors import DuplicateKeyError  # type: ignore[import-untyped]
 
 from utils.db import get_db
 from utils.decorators import admin_required, role_required
-from utils.helpers import parse_object_id
+from utils.helpers import normalize_choice, parse_object_id
 
 staff_bp = Blueprint("staff", __name__)
 db = get_db()
@@ -15,34 +16,39 @@ staff_requests_collection = db["staff_requests"]
 STAFF_REQUIRED_FIELDS = ["name", "email", "role", "department", "status"]
 STAFF_REQUEST_STATUSES = {"pending", "approved", "rejected"}
 ALLOWED_STAFF_ROLES = {"admin", "manager", "staff", "finance", "client"}
-ALLOWED_STAFF_STATUSES = {"Active", "Inactive", "On Leave"}
+ALLOWED_STAFF_STATUSES = ("Active", "Inactive", "On Leave")
 MAX_STAFF_NAME_LENGTH = 120
 MAX_STAFF_EMAIL_LENGTH = 254
 MAX_STAFF_DEPARTMENT_LENGTH = 120
 
 
 def _serialize_staff_member(user):
-    user["_id"] = str(user["_id"])
-    user.pop("password_hash", None)
-    return user
+    serialized = dict(user)
+    serialized["_id"] = str(serialized["_id"])
+    serialized.pop("password_hash", None)
+    return serialized
 
 
-@staff_bp.route("", methods=["GET"])
-@role_required("admin", "manager", "staff", "finance")
-def get_staff():
-    query = {"role": {"$ne": "client"}}
-    staff = [_serialize_staff_member(user) for user in users_collection.find(query).sort("name", 1)]
-    return jsonify(staff), 200
+def _serialize_staff_request(staff_request):
+    serialized = dict(staff_request)
+    serialized["_id"] = str(serialized["_id"])
+    approved_staff_id = serialized.get("approved_staff_id")
+    if approved_staff_id is not None:
+        serialized["approved_staff_id"] = str(approved_staff_id)
+
+    requested_by = serialized.get("requested_by")
+    if isinstance(requested_by, dict) and requested_by.get("user_id") is not None:
+        requested_by = dict(requested_by)
+        requested_by["user_id"] = str(requested_by["user_id"])
+        serialized["requested_by"] = requested_by
+
+    return serialized
 
 
-@staff_bp.route("", methods=["POST"])
-@admin_required
-def create_staff_member():
-    data = request.get_json() or {}
-    required_fields = ["name", "email", "role", "department", "status"]
-    missing_fields = [field for field in required_fields if data.get(field) in [None, ""]]
+def _build_staff_payload(data):
+    missing_fields = [field for field in STAFF_REQUIRED_FIELDS if data.get(field) in [None, ""]]
     if missing_fields:
-        return jsonify({"msg": f"Missing required fields: {', '.join(missing_fields)}"}), 400
+        return None, f"Missing required fields: {', '.join(missing_fields)}"
 
     name = str(data.get("name") or "").strip()
     if len(name) > MAX_STAFF_NAME_LENGTH:
@@ -60,13 +66,11 @@ def create_staff_member():
     if len(department) > MAX_STAFF_DEPARTMENT_LENGTH:
         return None, "department must be at most 120 characters"
 
-    status_raw = str(data.get("status") or "").strip()
-    status_map = {choice.lower(): choice for choice in ALLOWED_STAFF_STATUSES}
-    status = status_map.get(status_raw.lower())
+    status = normalize_choice(data.get("status"), ALLOWED_STAFF_STATUSES)
     if not status:
         return None, "Invalid status. Use Active, Inactive, or On Leave"
 
-    payload = {
+    return {
         "name": name,
         "email": email,
         "role": role,
@@ -74,8 +78,7 @@ def create_staff_member():
         "status": status,
         "created_at": datetime.now(timezone.utc),
         "updated_at": datetime.now(timezone.utc),
-    }
-    return payload, None
+    }, None
 
 
 @staff_bp.route("", methods=["GET"])
@@ -92,6 +95,7 @@ def create_staff_member():
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
         return jsonify({"msg": "Invalid JSON payload"}), 400
+
     payload, validation_error = _build_staff_payload(data)
     if validation_error or payload is None:
         return jsonify({"msg": validation_error}), 400
@@ -102,14 +106,15 @@ def create_staff_member():
     if user_role == "manager" and payload["role"] == "admin":
         return jsonify({"msg": "Managers cannot request admin accounts"}), 403
 
-    if users_collection.find_one({"email": payload["email"]}):
-        return jsonify({"msg": "Email already exists"}), 409
-
     if user_role == "admin":
+        if users_collection.find_one({"email": payload["email"]}):
+            return jsonify({"msg": "Email already exists"}), 409
+
         try:
             result = users_collection.insert_one(payload)
         except DuplicateKeyError:
             return jsonify({"msg": "Email already exists"}), 409
+
         created = users_collection.find_one({"_id": result.inserted_id})
         return jsonify(_serialize_staff_member(created)), 201
 
@@ -224,13 +229,13 @@ def approve_staff_request(id):
                     "user_id": claims.get("user_id"),
                     "email": claims.get("sub"),
                 },
-                "approved_staff_id": created_result.inserted_id,
+                "approved_staff_id": result.inserted_id,
                 "updated_at": now,
             }
         },
     )
 
-    created_staff = users_collection.find_one({"_id": created_result.inserted_id})
+    created_staff = users_collection.find_one({"_id": result.inserted_id})
     updated_request = staff_requests_collection.find_one({"_id": object_id})
     return (
         jsonify(
@@ -297,6 +302,7 @@ def update_staff_member(id):
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
         return jsonify({"msg": "Invalid JSON payload"}), 400
+
     update_fields = {}
 
     if "name" in data:
@@ -306,6 +312,7 @@ def update_staff_member(id):
         if len(name) > MAX_STAFF_NAME_LENGTH:
             return jsonify({"msg": "name must be at most 120 characters"}), 400
         update_fields["name"] = name
+
     if "email" in data:
         email = str(data.get("email") or "").strip().lower()
         if not email:
@@ -313,11 +320,13 @@ def update_staff_member(id):
         if len(email) > MAX_STAFF_EMAIL_LENGTH:
             return jsonify({"msg": "email must be at most 254 characters"}), 400
         update_fields["email"] = email
+
     if "role" in data:
         role = str(data.get("role") or "").strip().lower()
         if role not in ALLOWED_STAFF_ROLES:
             return jsonify({"msg": "Invalid role. Use admin, manager, staff, finance, or client"}), 400
         update_fields["role"] = role
+
     if "department" in data:
         department = str(data.get("department") or "").strip()
         if not department:
@@ -325,10 +334,9 @@ def update_staff_member(id):
         if len(department) > MAX_STAFF_DEPARTMENT_LENGTH:
             return jsonify({"msg": "department must be at most 120 characters"}), 400
         update_fields["department"] = department
+
     if "status" in data:
-        status_raw = str(data.get("status") or "").strip()
-        status_map = {choice.lower(): choice for choice in ALLOWED_STAFF_STATUSES}
-        status = status_map.get(status_raw.lower())
+        status = normalize_choice(data.get("status"), ALLOWED_STAFF_STATUSES)
         if not status:
             return jsonify({"msg": "Invalid status. Use Active, Inactive, or On Leave"}), 400
         update_fields["status"] = status
@@ -347,6 +355,7 @@ def update_staff_member(id):
         result = users_collection.update_one({"_id": object_id}, {"$set": update_fields})
     except DuplicateKeyError:
         return jsonify({"msg": "Email already exists"}), 409
+
     if result.matched_count == 0:
         return jsonify({"msg": "Staff member not found"}), 404
 

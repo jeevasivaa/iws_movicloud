@@ -12,6 +12,7 @@ from utils.helpers import (
     parse_float_value,
     parse_int_value,
     parse_object_id,
+    to_int,
 )
 
 MAX_ORDER_ID_LENGTH = 40

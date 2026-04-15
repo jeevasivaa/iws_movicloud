@@ -4,7 +4,13 @@ from flask import Blueprint, jsonify, request
 
 from utils.db import get_db
 from utils.decorators import role_required
-from utils.helpers import normalize_choice, normalize_iso_date, parse_int_value, parse_object_id
+from utils.helpers import (
+    normalize_choice,
+    normalize_iso_date,
+    parse_int_value,
+    parse_object_id,
+    to_int,
+)
 
 MAX_ITEM_NAME_LENGTH = 120
 MAX_TYPE_LENGTH = 60
@@ -20,6 +26,22 @@ movements_collection = db["inventory_movements"]
 def _serialize_item(item):
     item["_id"] = str(item["_id"])
     return item
+
+
+def _serialize_movement(movement):
+    serialized = dict(movement)
+
+    if serialized.get("_id") is not None:
+        serialized["_id"] = str(serialized["_id"])
+    if serialized.get("inventory_id") is not None:
+        serialized["inventory_id"] = str(serialized["inventory_id"])
+
+    for key in ("timestamp", "created_at"):
+        value = serialized.get(key)
+        if isinstance(value, datetime):
+            serialized[key] = value.isoformat()
+
+    return serialized
 
 
 def _normalize_status(value):
@@ -105,10 +127,15 @@ def get_inventory_movements():
     limit = to_int(request.args.get("limit"), 100)
     limit = max(1, min(500, limit))
 
-    rows = [
-        _serialize_movement(row)
-        for row in movements_collection.find().sort("timestamp", -1).limit(limit)
-    ]
+    cursor = movements_collection.find().sort("timestamp", -1)
+    if hasattr(cursor, "limit"):
+        cursor = cursor.limit(limit)
+
+    rows = []
+    for index, row in enumerate(cursor):
+        if index >= limit:
+            break
+        rows.append(_serialize_movement(row))
 
     return jsonify(rows), 200
 
@@ -190,6 +217,10 @@ def update_inventory_item(id):
     if not object_id:
         return jsonify({"msg": "Invalid inventory id"}), 400
 
+    existing = inventory_collection.find_one({"_id": object_id})
+    if not existing:
+        return jsonify({"msg": "Inventory item not found"}), 404
+
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
         return jsonify({"msg": "Invalid JSON payload"}), 400
@@ -246,9 +277,7 @@ def update_inventory_item(id):
 
     update_fields["updated_at"] = datetime.now(timezone.utc)
 
-    result = inventory_collection.update_one({"_id": object_id}, {"$set": update_fields})
-    if result.matched_count == 0:
-        return jsonify({"msg": "Inventory item not found"}), 404
+    inventory_collection.update_one({"_id": object_id}, {"$set": update_fields})
 
     updated = inventory_collection.find_one({"_id": object_id})
     if "current_stock" in update_fields and updated:

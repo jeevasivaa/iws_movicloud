@@ -5,13 +5,15 @@ from flask_jwt_extended import create_access_token  # type: ignore[import-untype
 from pymongo.errors import PyMongoError, ServerSelectionTimeoutError  # type: ignore[import-untyped]
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from utils.db import get_db, is_database_available
 from datetime import datetime
+
+from utils.db import get_db
 
 auth_bp = Blueprint("auth", __name__)
 db = get_db()
 users_collection = db["users"]
 ENABLE_DEMO_AUTH_FALLBACK = os.getenv("ENABLE_DEMO_AUTH_FALLBACK", "true").strip().lower() == "true"
+ALLOWED_REGISTER_ROLES = {"admin", "manager", "staff", "finance", "client"}
 
 DEMO_USERS = {
     "admin@vsafoods.com": {
@@ -98,18 +100,18 @@ def _try_demo_login(email, password):
 
 @auth_bp.route("/register", methods=["POST"])
 def register():
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     name = data.get("name")
     email = (data.get("email") or "").strip().lower()
     password = data.get("password")
-    role = data.get("role", "client") # Default role
+    role = str(data.get("role", "client") or "client").strip().lower()
     company_id = data.get("company_id")
 
     if not email or not password or not name:
         return jsonify({"msg": "Missing required fields"}), 400
 
-    if not is_database_available():
-        return jsonify({"msg": "Database unavailable. Please try again later."}), 503
+    if role not in ALLOWED_REGISTER_ROLES:
+        return jsonify({"msg": "Invalid role"}), 400
 
     try:
         if users_collection.find_one({"email": email}):
@@ -144,7 +146,7 @@ def register():
 
 @auth_bp.route("/login", methods=["POST"])
 def login():
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     email = (data.get("email") or "").strip().lower()
     password = data.get("password")
 

@@ -3,6 +3,7 @@ Flask-PyMongo
 Flask-CORS
 Flask-JWT-Extended
 python-dotenv
+gunicorn
 pymongo[srv]
 flask-bcrypt
 marshmallow

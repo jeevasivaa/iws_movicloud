@@ -1,4 +1,5 @@
 import { ROLE_LABELS, ROLES } from '../constants/roles'
+import { apiPost } from './apiClient'
 
 const MOCK_USERS = {
   [ROLES.ADMIN]: {

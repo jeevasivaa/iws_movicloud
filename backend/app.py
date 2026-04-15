@@ -13,12 +13,30 @@ load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 
 def _resolve_cors_origins():
-    raw_origins = str(os.getenv("CORS_ORIGINS", "*")).strip()
-    if not raw_origins or raw_origins == "*":
-        return "*"
+    def _parse_origins(raw_value: str):
+        value = str(raw_value or "").strip()
+        if not value:
+            return None
+        if value == "*":
+            return "*"
 
-    origins = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
-    return origins or "*"
+        origins = []
+        for origin in value.split(","):
+            trimmed = origin.strip()
+            if not trimmed:
+                continue
+            if trimmed == "*":
+                return "*"
+            origins.append(trimmed.rstrip("/"))
+
+        return origins or None
+
+    frontend_origin = _parse_origins(os.getenv("FRONTEND_URL", ""))
+    if frontend_origin:
+        return frontend_origin
+
+    configured_origins = _parse_origins(os.getenv("CORS_ORIGINS", "*"))
+    return configured_origins or "*"
 
 
 def create_app():

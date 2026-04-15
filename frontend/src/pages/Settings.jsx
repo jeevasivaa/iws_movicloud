@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Bell, Shield } from 'lucide-react'
 import { useAuth } from '../context/useAuth'
 import { ROLE_LABELS } from '../constants/roles'
+import apiClient, { getErrorMessage } from '../services/apiClient'
 
 const NOTIFICATION_KEYS = [
   { key: 'low_stock_alerts', label: 'Low stock alerts' },
@@ -10,8 +11,127 @@ const NOTIFICATION_KEYS = [
   { key: 'payroll_reminders', label: 'Payroll reminders' },
 ]
 
+function toBoolean(value) {
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'number') return value !== 0
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase()
+    if (normalized === 'true' || normalized === '1' || normalized === 'yes') return true
+    if (normalized === 'false' || normalized === '0' || normalized === 'no') return false
+  }
+  return false
+}
+
+function parseThreshold(value, fallback = 100) {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) {
+    return fallback
+  }
+  return Math.max(0, Math.round(parsed))
+}
+
 function Settings() {
-  const { user } = useAuth()
+  const { user, token } = useAuth()
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [refreshIndex, setRefreshIndex] = useState(0)
+  const [settingsMap, setSettingsMap] = useState(new Map())
+  const [lowStockThresholdInput, setLowStockThresholdInput] = useState('100')
+  const authConfig = useMemo(() => (token ? { headers: { Authorization: `Bearer ${token}` } } : {}), [token])
+
+  const loadSettings = useCallback(
+    async (signal) => {
+      if (!token) {
+        setSettingsMap(new Map())
+        setError('Authentication token missing. Please sign in again.')
+        setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        setError('')
+
+        const response = await apiClient.get('/api/settings', { ...authConfig, signal })
+        const rows = Array.isArray(response.data) ? response.data : []
+        const nextMap = new Map(
+          rows
+            .filter((row) => row && typeof row.key === 'string' && row.key.trim())
+            .map((row) => [String(row.key).trim(), row.value]),
+        )
+
+        setSettingsMap(nextMap)
+        setLowStockThresholdInput(String(parseThreshold(nextMap.get('low_stock_threshold'))))
+      } catch (err) {
+        if (signal?.aborted) return
+        setSettingsMap(new Map())
+        setError(getErrorMessage(err, 'Failed to load settings'))
+      } finally {
+        setLoading(false)
+      }
+    },
+    [authConfig, token],
+  )
+
+  useEffect(() => {
+    const controller = new AbortController()
+    loadSettings(controller.signal)
+    return () => controller.abort()
+  }, [loadSettings, refreshIndex])
+
+  const handleToggle = async (key, isEnabled) => {
+    if (!token) {
+      setError('Authentication token missing. Please sign in again.')
+      return
+    }
+
+    const nextValue = !isEnabled
+
+    try {
+      setSaving(true)
+      setError('')
+      await apiClient.put('/api/settings', { key, value: nextValue }, authConfig)
+      setSettingsMap((current) => {
+        const next = new Map(current)
+        next.set(key, nextValue)
+        return next
+      })
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to update notification setting'))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleLowStockThresholdSave = async () => {
+    if (!token) {
+      setError('Authentication token missing. Please sign in again.')
+      return
+    }
+
+    const threshold = parseThreshold(lowStockThresholdInput, Number.NaN)
+    if (!Number.isFinite(Number(lowStockThresholdInput)) || threshold < 0) {
+      setError('Threshold must be a non-negative number')
+      return
+    }
+
+    try {
+      setSaving(true)
+      setError('')
+      await apiClient.put('/api/settings', { key: 'low_stock_threshold', value: threshold }, authConfig)
+      setSettingsMap((current) => {
+        const next = new Map(current)
+        next.set('low_stock_threshold', threshold)
+        return next
+      })
+      setLowStockThresholdInput(String(threshold))
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to save low stock threshold'))
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <section className="space-y-6">
@@ -113,7 +233,7 @@ function Settings() {
         ) : (
           <div className="space-y-4">
             {NOTIFICATION_KEYS.map((item) => {
-              const isEnabled = Boolean(settingsMap.get(item.key))
+              const isEnabled = toBoolean(settingsMap.get(item.key))
 
               return (
                 <div key={item.key} className="flex items-center justify-between gap-4">

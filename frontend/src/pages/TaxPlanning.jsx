@@ -1,4 +1,3 @@
-import React, { useState } from 'react'
 import {
   TrendingUp,
   AlertCircle,
@@ -116,8 +115,6 @@ function getPriorityColor(priority) {
 }
 
 function TaxPlanning() {
-  const [showModal, setShowModal] = useState(false)
-
   return (
     <div className="space-y-6 pb-8">
       {/* Header */}
@@ -127,7 +124,7 @@ function TaxPlanning() {
           <p className="mt-2 text-gray-600">Manage taxes and optimize deductions</p>
         </div>
         <button
-          onClick={() => setShowModal(true)}
+          type="button"
           className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
         >
           <Plus className="h-4 w-4" />

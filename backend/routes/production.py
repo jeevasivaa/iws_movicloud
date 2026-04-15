@@ -23,16 +23,63 @@ STAGE_TRANSITIONS = {
 
 
 def _serialize_batch(batch):
-    batch["_id"] = str(batch["_id"])
-    if batch.get("product_id") is not None:
-        batch["product_id"] = str(batch["product_id"])
-    if batch.get("staff_id") is not None:
-        batch["staff_id"] = str(batch["staff_id"])
-    return batch
+    if not batch:
+        return {}
+
+    serialized = dict(batch)
+    serialized["_id"] = str(serialized["_id"])
+    if serialized.get("product_id") is not None:
+        serialized["product_id"] = str(serialized["product_id"])
+    if serialized.get("staff_id") is not None:
+        serialized["staff_id"] = str(serialized["staff_id"])
+    return serialized
 
 
 def _normalize_stage(value):
     return normalize_choice(value, ("Planned", "In Progress", "Completed"))
+
+
+def _serialize_batch_with_product(batch):
+    serialized = _serialize_batch(batch)
+    if not serialized:
+        return serialized
+
+    product_reference = batch.get("product_id") if isinstance(batch, dict) else None
+    if product_reference is None:
+        return serialized
+
+    product_row = products_collection.find_one({"_id": maybe_object_id(product_reference)})
+    if not product_row and isinstance(product_reference, str):
+        product_row = products_collection.find_one({"_id": product_reference})
+
+    if product_row:
+        serialized["product_name"] = str(product_row.get("name") or "").strip() or "Product"
+
+    return serialized
+
+
+def _identity_variants(raw_value):
+    if raw_value in [None, ""]:
+        return []
+
+    values = [raw_value]
+    text_value = str(raw_value).strip()
+    if text_value:
+        values.append(text_value)
+        object_id = parse_object_id(text_value)
+        if object_id:
+            values.append(object_id)
+
+    unique_values = []
+    seen = set()
+    for value in values:
+        marker = f"{type(value).__name__}:{value}"
+        if marker in seen:
+            continue
+        seen.add(marker)
+        unique_values.append(value)
+
+    return unique_values
 
 
 @production_bp.route("", methods=["GET"])
