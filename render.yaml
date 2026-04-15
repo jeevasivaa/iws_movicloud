@@ -33,5 +33,7 @@ services:
         source: /*
         destination: /index.html
     envVars:
+      - key: VITE_API_URL
+        value: https://iws-backen.onrender.com
       - key: VITE_API_BASE_URL
         sync: false
